@@ -5,7 +5,13 @@ import { WordCard } from "@/components/word-card";
 import { WordDetailPanel } from "@/components/word-detail-panel";
 import { HebrewText } from "@/components/hebrew-text";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -164,34 +170,42 @@ export function DictionaryPage() {
               className="max-w-xs"
             />
             <Select
-              value={pos}
-              onChange={(e) => {
-                setPos(e.target.value);
+              value={pos || "all"}
+              onValueChange={(v) => {
+                setPos(v === "all" ? "" : v);
                 setPage(1);
               }}
-              className="w-40"
             >
-              <option value="">Все ч. речи</option>
-              <option value="noun">Существительное</option>
-              <option value="verb">Глагол</option>
-              <option value="adj">Прилагательное</option>
-              <option value="adv">Наречие</option>
-              <option value="prep">Предлог</option>
-              <option value="pron">Местоимение</option>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Все ч. речи" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все ч. речи</SelectItem>
+                <SelectItem value="noun">Существительное</SelectItem>
+                <SelectItem value="verb">Глагол</SelectItem>
+                <SelectItem value="adj">Прилагательное</SelectItem>
+                <SelectItem value="adv">Наречие</SelectItem>
+                <SelectItem value="prep">Предлог</SelectItem>
+                <SelectItem value="pron">Местоимение</SelectItem>
+              </SelectContent>
             </Select>
             <Select
-              value={frequency}
-              onChange={(e) => {
-                setFrequency(e.target.value);
+              value={frequency || "all"}
+              onValueChange={(v) => {
+                setFrequency(v === "all" ? "" : v);
                 setPage(1);
               }}
-              className="w-40"
             >
-              <option value="">Частотность</option>
-              <option value="1">Высокая</option>
-              <option value="2">Средняя</option>
-              <option value="3">Низкая</option>
-              <option value="4">Редкая</option>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Частотность" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Частотность</SelectItem>
+                <SelectItem value="1">Высокая</SelectItem>
+                <SelectItem value="2">Средняя</SelectItem>
+                <SelectItem value="3">Низкая</SelectItem>
+                <SelectItem value="4">Редкая</SelectItem>
+              </SelectContent>
             </Select>
           </div>
 
