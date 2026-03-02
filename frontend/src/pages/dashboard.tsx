@@ -1,0 +1,285 @@
+import { Link } from "react-router-dom";
+import { useStatsOverview, useLevels } from "@/hooks/use-gamification";
+import { useRecommendations } from "@/hooks/use-recommendations";
+import { useSettings } from "@/hooks/use-settings";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+function SkillBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-sm">
+        <span>{label}</span>
+        <span className="text-muted-foreground">{Math.round(value)}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-muted">
+        <div
+          className="h-2 rounded-full bg-primary transition-all"
+          style={{ width: `${Math.min(100, value)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+const SKILL_LABELS: Record<string, string> = {
+  reading: "Чтение",
+  writing: "Письмо",
+  listening: "Аудирование",
+  grammar: "Грамматика",
+  vocabulary: "Словарный запас",
+  speaking: "Разговорная речь",
+};
+
+function ActivityHeatmap({ activity }: { activity: { date: string; xp_earned: number }[] }) {
+  // Build a map of date -> xp for last 90 days
+  const xpMap = new Map(activity.map((a) => [a.date, a.xp_earned]));
+
+  const today = new Date();
+  const days: { date: string; xp: number }[] = [];
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    days.push({ date: key, xp: xpMap.get(key) ?? 0 });
+  }
+
+  const maxXP = Math.max(1, ...days.map((d) => d.xp));
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-[3px]">
+        {days.map((d) => {
+          const intensity = d.xp === 0 ? 0 : Math.max(0.2, d.xp / maxXP);
+          return (
+            <div
+              key={d.date}
+              className="w-3 h-3 rounded-sm border border-border"
+              style={{
+                backgroundColor: d.xp > 0 ? `rgba(34, 197, 94, ${intensity})` : undefined,
+              }}
+              title={`${d.date}: ${d.xp} XP`}
+            />
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+        <span>90 дней назад</span>
+        <span>Сегодня</span>
+      </div>
+    </div>
+  );
+}
+
+export function DashboardPage() {
+  const { data: stats, isLoading } = useStatsOverview();
+  const { data: levels } = useLevels();
+  const { data: recommendations } = useRecommendations();
+  const { data: settings } = useSettings();
+
+  if (isLoading || !stats) {
+    return <p className="text-center py-12 text-muted-foreground">Загрузка...</p>;
+  }
+
+  // Find current level info
+  const currentLevelInfo = levels?.find((l) => l.level === stats.current_level);
+  const nextLevelInfo = levels?.find((l) => l.level === stats.current_level + 1);
+  const xpInCurrentLevel = nextLevelInfo
+    ? (nextLevelInfo.xp_required - stats.xp_to_next_level - (currentLevelInfo?.xp_required ?? 0))
+    : stats.total_xp;
+  const xpNeededForLevel = nextLevelInfo
+    ? nextLevelInfo.xp_required - (currentLevelInfo?.xp_required ?? 0)
+    : 1;
+  const levelProgress = nextLevelInfo
+    ? Math.round((xpInCurrentLevel / xpNeededForLevel) * 100)
+    : 100;
+
+  // Daily goal progress
+  const goalMinutes = settings?.daily_goal_minutes ?? 15;
+  const todayActivity = stats.daily_activity.find(
+    (a) => a.date === new Date().toISOString().split("T")[0]
+  );
+  const todayMinutes = todayActivity?.time_minutes ?? 0;
+  const goalPct = Math.min(100, Math.round((todayMinutes / goalMinutes) * 100));
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Панель управления</h1>
+
+      {/* Recommendations widget */}
+      {recommendations && recommendations.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Что изучать сегодня</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {recommendations.map((rec) => (
+                <Button
+                  key={rec.type}
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="h-auto py-2"
+                >
+                  <Link to={rec.link}>
+                    <span className="mr-1">{rec.icon}</span>
+                    <span className="flex flex-col items-start text-left">
+                      <span className="font-medium text-xs">{rec.title}</span>
+                      <span className="text-[10px] text-muted-foreground">{rec.description}</span>
+                    </span>
+                  </Link>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Daily goal progress */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Дневная цель</span>
+            <span className="text-sm text-muted-foreground">
+              {todayMinutes} / {goalMinutes} мин ({goalPct}%)
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-muted">
+            <div
+              className="h-2 rounded-full bg-green-500 transition-all"
+              style={{ width: `${goalPct}%` }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Top stats */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <Card>
+          <CardContent className="pt-4 text-center">
+            <p className="text-3xl font-bold">{stats.current_level}</p>
+            <p className="text-sm text-muted-foreground">{stats.level_name}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 text-center">
+            <p className="text-3xl font-bold">{stats.total_xp}</p>
+            <p className="text-sm text-muted-foreground">XP</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 text-center">
+            <p className="text-3xl font-bold">{stats.streak_days}</p>
+            <p className="text-sm text-muted-foreground">Серия (дней)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 text-center">
+            <p className="text-3xl font-bold">
+              {stats.achievements_unlocked}/{stats.achievements_total}
+            </p>
+            <p className="text-sm text-muted-foreground">Достижения</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Level progress */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Прогресс уровня</CardTitle>
+          <CardDescription>
+            {nextLevelInfo
+              ? `${stats.xp_to_next_level} XP до уровня ${stats.current_level + 1} (${nextLevelInfo.name})`
+              : "Максимальный уровень достигнут!"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-4 rounded-full bg-muted">
+            <div
+              className="h-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
+              style={{ width: `${levelProgress}%` }}
+            />
+          </div>
+          {levels && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {levels.map((l) => (
+                <span
+                  key={l.level}
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    l.level <= stats.current_level
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {l.level}. {l.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Skills radar */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Навыки</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {Object.entries(stats.skills).map(([key, value]) => (
+              <SkillBar key={key} label={SKILL_LABELS[key] ?? key} value={value} />
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Study stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Статистика</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <StatItem label="Слов изучено" value={stats.total_words} />
+              <StatItem label="Карточек создано" value={stats.total_cards} />
+              <StatItem label="Повторений" value={stats.total_reviews} />
+              <StatItem label="Упражнений" value={stats.total_exercises} />
+              <StatItem label="Текстов прочитано" value={stats.total_texts_read} />
+              <StatItem label="Диалогов пройдено" value={stats.total_dialogues} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Activity heatmap */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Активность</CardTitle>
+          <CardDescription>XP за последние 90 дней</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ActivityHeatmap activity={stats.daily_activity} />
+        </CardContent>
+      </Card>
+
+      {/* Quick links */}
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link to="/achievements">Достижения</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/culture">Культура Израиля</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function StatItem({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="text-center p-2 rounded bg-muted/50">
+      <p className="text-xl font-bold">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
