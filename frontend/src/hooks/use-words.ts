@@ -67,6 +67,7 @@ interface WordsParams {
   search?: string;
   pos?: string;
   frequency?: number;
+  level_id?: number;
   root?: string;
 }
 

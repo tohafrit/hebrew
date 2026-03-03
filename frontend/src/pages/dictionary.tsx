@@ -90,6 +90,7 @@ export function DictionaryPage() {
   const [search, setSearch] = useState("");
   const [pos, setPos] = useState("");
   const [frequency, setFrequency] = useState("");
+  const [level, setLevel] = useState("");
   const [page, setPage] = useState(1);
   const [rootsPage, setRootsPage] = useState(1);
   const [selectedWordId, setSelectedWordId] = useState<number | null>(null);
@@ -101,6 +102,7 @@ export function DictionaryPage() {
     search: search || undefined,
     pos: pos || undefined,
     frequency: frequency ? Number(frequency) : undefined,
+    level_id: level ? Number(level) : undefined,
   });
 
   const { data: rootsData, isLoading: rootsLoading } = useRootFamilies({
@@ -205,6 +207,26 @@ export function DictionaryPage() {
                 <SelectItem value="2">Средняя</SelectItem>
                 <SelectItem value="3">Низкая</SelectItem>
                 <SelectItem value="4">Редкая</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={level || "all"}
+              onValueChange={(v) => {
+                setLevel(v === "all" ? "" : v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Уровень" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все уровни</SelectItem>
+                <SelectItem value="1">Алеф (א) · A1</SelectItem>
+                <SelectItem value="2">Бет (ב) · A2</SelectItem>
+                <SelectItem value="3">Гимель (ג) · B1</SelectItem>
+                <SelectItem value="4">Далет (ד) · B2</SelectItem>
+                <SelectItem value="5">Хей (ה) · C1</SelectItem>
+                <SelectItem value="6">Вав (ו) · C2</SelectItem>
               </SelectContent>
             </Select>
           </div>
