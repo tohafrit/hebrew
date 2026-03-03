@@ -21,30 +21,82 @@ export function TTSControls({
 }: TTSControlsProps) {
   const [speed, setSpeed] = useState<number>(1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const speak = useCallback(() => {
-    if (!("speechSynthesis" in window)) return;
+  const speakServer = useCallback(
+    async (rate: number) => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("No auth token");
 
-    window.speechSynthesis.cancel();
+        const url = `/api/tts/speak?text=${encodeURIComponent(text)}&rate=${rate}`;
+        const resp = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!resp.ok) throw new Error(`TTS error ${resp.status}`);
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    utterance.rate = speed;
-    utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => setIsPlaying(false);
-    utterance.onerror = () => setIsPlaying(false);
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  }, [text, lang, speed]);
+        const blob = await resp.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+
+        audio.onplay = () => setIsPlaying(true);
+        audio.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.onerror = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+
+        await audio.play();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [text]
+  );
+
+  const speakFallback = useCallback(
+    (rate: number) => {
+      if (!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      utterance.rate = rate;
+      utterance.onstart = () => setIsPlaying(true);
+      utterance.onend = () => setIsPlaying(false);
+      utterance.onerror = () => setIsPlaying(false);
+      window.speechSynthesis.speak(utterance);
+    },
+    [text, lang]
+  );
+
+  const speak = useCallback(async () => {
+    const ok = await speakServer(speed);
+    if (!ok) {
+      speakFallback(speed);
+    }
+  }, [speakServer, speakFallback, speed]);
 
   const stop = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
     window.speechSynthesis.cancel();
     setIsPlaying(false);
   }, []);
 
   useEffect(() => {
     return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       window.speechSynthesis.cancel();
     };
   }, []);
@@ -83,7 +135,29 @@ export function TTSControls({
 // Hook for TTS
 export function useTTS(lang = "he-IL") {
   const speak = useCallback(
-    (text: string, rate = 1) => {
+    async (text: string, rate = 1) => {
+      // Try server TTS first
+      try {
+        const token = localStorage.getItem("token");
+        if (token) {
+          const url = `/api/tts/speak?text=${encodeURIComponent(text)}&rate=${rate}`;
+          const resp = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (resp.ok) {
+            const blob = await resp.blob();
+            const audioUrl = URL.createObjectURL(blob);
+            const audio = new Audio(audioUrl);
+            audio.onended = () => URL.revokeObjectURL(audioUrl);
+            await audio.play();
+            return;
+          }
+        }
+      } catch {
+        // Fall through to Web Speech API
+      }
+
+      // Fallback to Web Speech API
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);

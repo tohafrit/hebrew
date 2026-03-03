@@ -57,8 +57,17 @@ async def award_xp(db: AsyncSession, user: User, amount: int, reason: str) -> in
     if new_level > user.current_level:
         user.current_level = new_level
 
-    # Update daily activity
+    # Update streak
     today = date.today()
+    yesterday = today - timedelta(days=1)
+    if user.last_activity_date is None or user.last_activity_date < yesterday:
+        user.streak_days = 1
+    elif user.last_activity_date == yesterday:
+        user.streak_days += 1
+    # If last_activity_date == today, no streak change
+    user.last_activity_date = today
+
+    # Update daily activity
     result = await db.execute(
         select(UserDailyActivity).where(
             UserDailyActivity.user_id == user.id,

@@ -24,6 +24,7 @@ from app.services.srs import (
     get_srs_stats,
     review_card,
 )
+from app.services.gamification import award_xp, check_and_award_achievements
 
 router = APIRouter(prefix="/srs", tags=["srs"])
 
@@ -66,6 +67,8 @@ async def submit_review(
         result = await review_card(
             db, user.id, body.card_id, body.quality, body.response_time_ms,
         )
+        await award_xp(db, user, 5, "review_card")
+        await check_and_award_achievements(db, user)
         return ReviewResponse(**result)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

@@ -141,6 +141,46 @@ async def save_exercise_result(
     return result
 
 
+async def get_lesson_completion(
+    db: AsyncSession, user_id: uuid.UUID, lesson_ids: list[int]
+) -> dict[int, bool]:
+    """Check which lessons are completed (all exercises have at least one correct answer)."""
+    if not lesson_ids:
+        return {}
+
+    # For each lesson, count total exercises and exercises with a correct result
+    total_q = (
+        select(Exercise.lesson_id, func.count(Exercise.id).label("total"))
+        .where(Exercise.lesson_id.in_(lesson_ids))
+        .group_by(Exercise.lesson_id)
+    )
+    total_result = await db.execute(total_q)
+    totals = {row.lesson_id: row.total for row in total_result}
+
+    # Exercises with at least one correct answer from this user
+    correct_q = (
+        select(
+            Exercise.lesson_id,
+            func.count(func.distinct(Exercise.id)).label("correct_count"),
+        )
+        .join(ExerciseResult, ExerciseResult.exercise_id == Exercise.id)
+        .where(
+            Exercise.lesson_id.in_(lesson_ids),
+            ExerciseResult.user_id == user_id,
+            ExerciseResult.is_correct == True,
+        )
+        .group_by(Exercise.lesson_id)
+    )
+    correct_result = await db.execute(correct_q)
+    corrects = {row.lesson_id: row.correct_count for row in correct_result}
+
+    return {
+        lid: corrects.get(lid, 0) >= totals.get(lid, 1)
+        for lid in lesson_ids
+        if totals.get(lid, 0) > 0
+    }
+
+
 async def list_reading_texts(
     db: AsyncSession,
     level_id: int | None = None,

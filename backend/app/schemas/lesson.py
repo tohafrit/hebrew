@@ -11,6 +11,7 @@ class LessonBrief(BaseModel):
     description: str | None = None
     content_md: str | None = None
     type: str
+    completed: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +43,9 @@ class ExerciseCheckResponse(BaseModel):
     correct_answer: str | dict | list | None = None
     explanation: str | None = None
     points_earned: int = 0
+    xp_earned: int = 0
+    total_xp: int = 0
+    new_achievements: list[str] = []
 
 
 class ReadingTextBrief(BaseModel):

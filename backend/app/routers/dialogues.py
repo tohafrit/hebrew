@@ -9,6 +9,7 @@ from app.schemas.dialogue import (
     DialogueCheckRequest, DialogueCheckResponse,
 )
 from app.services.dialogue import list_dialogues, get_dialogue, check_dialogue_answer
+from app.services.gamification import award_xp, check_and_award_achievements
 
 router = APIRouter(tags=["dialogues"])
 
@@ -48,6 +49,10 @@ async def check_answer(
     is_correct, correct_idx, correct_text = check_dialogue_answer(
         dialogue, req.line_index, req.selected_option
     )
+
+    xp_amount = 20 if is_correct else 2
+    await award_xp(db, user, xp_amount, "dialogue_done")
+    await check_and_award_achievements(db, user)
 
     return DialogueCheckResponse(
         correct=is_correct,

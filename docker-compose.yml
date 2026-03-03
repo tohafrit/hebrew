@@ -32,6 +32,7 @@ services:
       - ./backend/app:/app/app
       - ./backend/migrations:/app/migrations
       - ./hebrew_bet_smart_dictionary.xlsx:/app/data/dictionary.xlsx:ro
+      - tts_audio:/app/audio
     depends_on:
       db:
         condition: service_healthy
@@ -64,3 +65,4 @@ services:
 
 volumes:
   postgres_data:
+  tts_audio:
