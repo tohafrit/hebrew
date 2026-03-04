@@ -29,6 +29,9 @@ _SUFFIXES = ["ים", "ות", "ית", "ת", "ה", "י", "יים", "ן", "ם", "ך
 
 # Reverse sofit map — to convert final forms back to medial when stripping suffixes
 _SOFIT_TO_REGULAR = {'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ'}
+# Forward sofit map — to apply final letter form after stripping suffix
+# e.g., ארצות → strip ות → ארצ → apply sofit → ארץ
+_REGULAR_TO_SOFIT = {'כ': 'ך', 'מ': 'ם', 'נ': 'ן', 'פ': 'ף', 'צ': 'ץ'}
 
 
 class AnalyzeRequest(BaseModel):
@@ -111,6 +114,23 @@ async def analyze_text(
     )
 
 
+def _match_stem(stem: str, cache: dict) -> dict | None:
+    """Try stem with sofit letter adjustments against a cache."""
+    if not stem:
+        return None
+    if stem in cache:
+        return cache[stem]
+    if stem[-1] in _REGULAR_TO_SOFIT:
+        v = stem[:-1] + _REGULAR_TO_SOFIT[stem[-1]]
+        if v in cache:
+            return cache[v]
+    if stem[-1] in _SOFIT_TO_REGULAR:
+        v = stem[:-1] + _SOFIT_TO_REGULAR[stem[-1]]
+        if v in cache:
+            return cache[v]
+    return None
+
+
 def _lookup_word(
     clean: str,
     word_cache: dict,
@@ -123,106 +143,139 @@ def _lookup_word(
     1. Exact matches (most reliable)
     2. Word forms from DB
     3. Single-letter prefix stripping (ה/ב/כ/ל/מ/ו/ש — very common, reliable)
-    4. Suffix stripping (plural/feminine — less reliable, can produce false stems)
+    4. Suffix stripping (plural/feminine — with sofit + ות→ה restoration)
     5. Verb conjugations
-    6. Multi-letter prefixes
-    7. Combined prefix + suffix
+    6. Single-letter prefix → form_cache/conj_cache (+ construct state)
+    7. Suffix stripping → form_cache (with sofit + ות→ה)
+    8. Multi-letter prefixes
+    9. Combined prefix + suffix (with sofit + ות→ה)
+    10. Multi-letter prefix + suffix
     """
 
     # 1. Exact match in words table
     if clean in word_cache:
-        w = word_cache[clean]
-        return {**w, "match_type": "exact"}
+        return {**word_cache[clean], "match_type": "exact"}
 
     # 2. Match in word_forms
     if clean in form_cache:
-        w = form_cache[clean]
-        return {**w, "match_type": "form"}
+        return {**form_cache[clean], "match_type": "form"}
 
     # 3. Single-letter prefix → word_cache (catches ל+בית, ה+ילדים, ב+ירושלים)
     for prefix in ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]:
         if clean.startswith(prefix) and len(clean) > 2:
             stem = clean[len(prefix):]
             if stem in word_cache:
-                w = word_cache[stem]
-                return {**w, "match_type": "prefix"}
+                return {**word_cache[stem], "match_type": "prefix"}
+            # Construct state after prefix: בשנת = ב + שנת → שנה
+            if stem.endswith('ת') and len(stem) > 2:
+                construct = stem[:-1] + 'ה'
+                if construct in word_cache:
+                    return {**word_cache[construct], "match_type": "prefix"}
 
     # 4. Suffix stripping → word_cache (catches plural/feminine: ילדים→ילד)
     for suffix in _SUFFIXES:
         if clean.endswith(suffix) and len(clean) > len(suffix) + 1:
             stem = clean[:-len(suffix)]
-            if stem in word_cache:
-                w = word_cache[stem]
+            w = _match_stem(stem, word_cache)
+            if w:
                 return {**w, "match_type": "form"}
-            # Also try restoring sofit→regular on the new last letter
-            # e.g., שלומך → strip ך → שלום (ם is sofit, stays). But:
-            # חיילך → strip ך → חייל → ל stays. No sofit issue.
-            # For cases like: base ends in כ/מ/נ/פ/צ which became ך/ם/ן/ף/ץ in sofit
-            if stem and stem[-1] in _SOFIT_TO_REGULAR:
-                stem_restored = stem[:-1] + _SOFIT_TO_REGULAR[stem[-1]]
-                if stem_restored in word_cache:
-                    w = word_cache[stem_restored]
-                    return {**w, "match_type": "form"}
+            # Feminine ות→stem+ה (תוצאות→תוצא→תוצאה)
+            if suffix == "ות" and stem:
+                stem_h = stem + 'ה'
+                if stem_h in word_cache:
+                    return {**word_cache[stem_h], "match_type": "form"}
 
     # 4b. Construct state: ת at end of word → try replacing with ה
     # (ארוחת→ארוחה, משפחת→משפחה, תוכנת→תוכנה)
     if clean.endswith('ת') and len(clean) > 2:
         construct_stem = clean[:-1] + 'ה'
         if construct_stem in word_cache:
-            w = word_cache[construct_stem]
-            return {**w, "match_type": "form"}
+            return {**word_cache[construct_stem], "match_type": "form"}
 
     # 5. Verb conjugations (only actual verbs, filtered at cache build time)
     if clean in conj_cache:
-        w = conj_cache[clean]
-        return {**w, "match_type": "conjugation"}
+        return {**conj_cache[clean], "match_type": "conjugation"}
 
-    # 6. Single-letter prefix → form_cache/conj_cache
+    # 6. Single-letter prefix → form_cache/conj_cache (+ construct state)
     for prefix in ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]:
         if clean.startswith(prefix) and len(clean) > 2:
             stem = clean[len(prefix):]
             if stem in form_cache:
-                w = form_cache[stem]
-                return {**w, "match_type": "prefix"}
+                return {**form_cache[stem], "match_type": "prefix"}
             if stem in conj_cache:
-                w = conj_cache[stem]
-                return {**w, "match_type": "prefix"}
+                return {**conj_cache[stem], "match_type": "prefix"}
+            # Construct state after prefix → form_cache
+            if stem.endswith('ת') and len(stem) > 2:
+                construct = stem[:-1] + 'ה'
+                if construct in form_cache:
+                    return {**form_cache[construct], "match_type": "prefix"}
 
-    # 7. Suffix stripping → form_cache
+    # 7. Suffix stripping → form_cache (with sofit + ות→ה restoration)
     for suffix in _SUFFIXES:
         if clean.endswith(suffix) and len(clean) > len(suffix) + 1:
             stem = clean[:-len(suffix)]
-            if stem in form_cache:
-                w = form_cache[stem]
+            w = _match_stem(stem, form_cache)
+            if w:
                 return {**w, "match_type": "form"}
+            if suffix == "ות" and stem:
+                stem_h = stem + 'ה'
+                if stem_h in form_cache:
+                    return {**form_cache[stem_h], "match_type": "form"}
 
     # 8. Multi-letter prefixes (וה, של, כש, etc.)
     for prefix in _PREFIXES:
         if len(prefix) > 1 and clean.startswith(prefix) and len(clean) > len(prefix) + 1:
             stem = clean[len(prefix):]
             if stem in word_cache:
-                w = word_cache[stem]
-                return {**w, "match_type": "prefix"}
+                return {**word_cache[stem], "match_type": "prefix"}
             if stem in form_cache:
-                w = form_cache[stem]
-                return {**w, "match_type": "prefix"}
+                return {**form_cache[stem], "match_type": "prefix"}
             if stem in conj_cache:
-                w = conj_cache[stem]
-                return {**w, "match_type": "prefix"}
+                return {**conj_cache[stem], "match_type": "prefix"}
+            # Construct state after multi-letter prefix
+            if stem.endswith('ת') and len(stem) > 2:
+                construct = stem[:-1] + 'ה'
+                if construct in word_cache:
+                    return {**word_cache[construct], "match_type": "prefix"}
 
-    # 9. Combined prefix + suffix stripping
+    # 9. Combined single prefix + suffix stripping (with sofit + ות→ה)
     for prefix in ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]:
         if clean.startswith(prefix) and len(clean) > 3:
             after_prefix = clean[len(prefix):]
             for suffix in _SUFFIXES:
                 if after_prefix.endswith(suffix) and len(after_prefix) > len(suffix) + 1:
                     inner = after_prefix[:-len(suffix)]
-                    if inner in word_cache:
-                        w = word_cache[inner]
+                    w = _match_stem(inner, word_cache)
+                    if w:
                         return {**w, "match_type": "prefix"}
-                    if inner in form_cache:
-                        w = form_cache[inner]
+                    w = _match_stem(inner, form_cache)
+                    if w:
                         return {**w, "match_type": "prefix"}
+                    # ות→stem+ה (התוצאות = ה + תוצאות → תוצא → תוצאה)
+                    if suffix == "ות" and inner:
+                        inner_h = inner + 'ה'
+                        if inner_h in word_cache:
+                            return {**word_cache[inner_h], "match_type": "prefix"}
+                        if inner_h in form_cache:
+                            return {**form_cache[inner_h], "match_type": "prefix"}
+
+    # 10. Multi-letter prefix + suffix stripping (with sofit + ות→ה)
+    for prefix in _PREFIXES:
+        if len(prefix) > 1 and clean.startswith(prefix) and len(clean) > len(prefix) + 2:
+            after_prefix = clean[len(prefix):]
+            for suffix in _SUFFIXES:
+                if after_prefix.endswith(suffix) and len(after_prefix) > len(suffix) + 1:
+                    inner = after_prefix[:-len(suffix)]
+                    w = _match_stem(inner, word_cache)
+                    if w:
+                        return {**w, "match_type": "prefix"}
+                    w = _match_stem(inner, form_cache)
+                    if w:
+                        return {**w, "match_type": "prefix"}
+                    if suffix == "ות" and inner:
+                        inner_h = inner + 'ה'
+                        if inner_h in word_cache:
+                            return {**word_cache[inner_h], "match_type": "prefix"}
 
     return None
 
