@@ -22,6 +22,7 @@ import { SettingsPage } from "@/pages/settings";
 import { TopicsPage } from "@/pages/topics";
 import { ReaderPage } from "@/pages/reader";
 import { NotFoundPage } from "@/pages/not-found";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,7 @@ const queryClient = new QueryClient({
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <BrowserRouter>
@@ -65,5 +67,6 @@ export default function App() {
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

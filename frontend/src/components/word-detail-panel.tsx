@@ -218,7 +218,7 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
             <h4 className="text-sm font-semibold mb-2">Примеры</h4>
             <div className="space-y-2">
               {word.examples.map((ex) => (
-                <div key={ex.id} className="text-sm border-l-2 pl-3">
+                <div key={ex.id} className="text-sm border-s-2 ps-3">
                   <HebrewText className="block">{ex.hebrew}</HebrewText>
                   <p className="text-muted-foreground">{ex.translation_ru}</p>
                 </div>

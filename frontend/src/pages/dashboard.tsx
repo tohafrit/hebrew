@@ -40,7 +40,7 @@ function ActivityHeatmap({ activity }: { activity: { date: string; xp_earned: nu
   for (let i = 89; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().split("T")[0];
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     days.push({ date: key, xp: xpMap.get(key) ?? 0 });
   }
 
@@ -96,9 +96,11 @@ export function DashboardPage() {
 
   // Daily goal progress
   const goalMinutes = settings?.daily_goal_minutes ?? 15;
-  const todayActivity = stats.daily_activity.find(
-    (a) => a.date === new Date().toISOString().split("T")[0]
-  );
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const todayActivity = stats.daily_activity.find((a) => a.date === todayStr);
   const todayMinutes = todayActivity?.time_minutes ?? 0;
   const goalPct = Math.min(100, Math.round((todayMinutes / goalMinutes) * 100));
 

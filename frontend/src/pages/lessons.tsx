@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useLessons, useLesson, useCheckExercise, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
@@ -288,6 +288,12 @@ export function LessonsPage() {
   const [currentExIdx, setCurrentExIdx] = useState(0);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("content");
+
+  // Reset exercise state when navigating to a different lesson via URL
+  useEffect(() => {
+    setCurrentExIdx(0);
+    setPhase("content");
+  }, [lessonIdParam]);
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;

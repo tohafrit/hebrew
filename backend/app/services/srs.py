@@ -1,12 +1,13 @@
 """SM-2 spaced repetition engine."""
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.srs import SRSCard, SRSReview, SRSSchedule
+from app.models.user import User
 from app.models.word import Word
 
 
@@ -52,25 +53,32 @@ async def create_cards_for_words(
     card_types: list[str],
 ) -> int:
     """Create SRS cards for given words. Skip duplicates."""
-    created = 0
     now = datetime.utcnow()
 
+    # Batch-fetch all words at once
+    words_result = await db.execute(
+        select(Word).where(Word.id.in_(word_ids))
+    )
+    words_map = {w.id: w for w in words_result.scalars().all()}
+
+    # Batch-check existing cards
+    existing_result = await db.execute(
+        select(SRSCard.content_id, SRSCard.card_type).where(
+            SRSCard.user_id == user_id,
+            SRSCard.content_id.in_(word_ids),
+            SRSCard.card_type.in_(card_types),
+        )
+    )
+    existing_set = {(row.content_id, row.card_type) for row in existing_result}
+
+    created = 0
     for word_id in word_ids:
-        # Fetch word data for card content
-        word = await db.get(Word, word_id)
+        word = words_map.get(word_id)
         if not word:
             continue
 
         for card_type in card_types:
-            # Check for existing card
-            existing = await db.scalar(
-                select(SRSCard.id).where(
-                    SRSCard.user_id == user_id,
-                    SRSCard.content_id == word_id,
-                    SRSCard.card_type == card_type,
-                )
-            )
-            if existing:
+            if (word_id, card_type) in existing_set:
                 continue
 
             if card_type == "word_he_ru":
@@ -96,7 +104,6 @@ async def create_cards_for_words(
             db.add(card)
             await db.flush()
 
-            # Create initial schedule (due immediately)
             schedule = SRSSchedule(
                 card_id=card.id,
                 next_review=now,
@@ -219,7 +226,7 @@ async def review_card(
     schedule.lapses = new_lapses
     schedule.next_review = datetime.utcnow() + timedelta(days=new_interval)
 
-    await db.commit()
+    await db.flush()
 
     return {
         "card_id": card_id,
@@ -257,8 +264,9 @@ async def get_leech_cards(
     return cards
 
 
-async def get_srs_stats(db: AsyncSession, user_id: uuid.UUID) -> dict:
+async def get_srs_stats(db: AsyncSession, user: User) -> dict:
     """Get SRS statistics for a user."""
+    user_id = user.id
     now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -299,6 +307,6 @@ async def get_srs_stats(db: AsyncSession, user_id: uuid.UUID) -> dict:
         "due_today": due,
         "new_cards": new_cards,
         "reviews_today": reviews_today,
-        "streak_days": 0,  # TODO: compute from user model
+        "streak_days": user.streak_days,
         "average_ease": round(avg_ease, 2) if avg_ease else None,
     }

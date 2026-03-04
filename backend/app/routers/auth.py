@@ -3,14 +3,19 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
+
+security = HTTPBearer()
 from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse
 from app.schemas.common import MessageResponse
 from app.schemas.user import UserResponse
 from app.services.auth import blacklist_token, is_token_blacklisted
-from app.services.user import create_user, get_user_by_email
+from app.services.user import create_user, get_user_by_email, get_user_by_id
 from app.utils.security import (
     create_access_token,
     create_refresh_token,
@@ -47,7 +52,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(body: RefreshRequest):
+async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
     payload = decode_token(body.refresh_token)
     if payload is None or payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
@@ -56,11 +61,19 @@ async def refresh(body: RefreshRequest):
     if jti and await is_token_blacklisted(jti):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been revoked")
 
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    # Verify user still exists
+    user = await get_user_by_id(db, uuid.UUID(user_id))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User no longer exists")
+
     # Blacklist old refresh token (rotation)
     if jti:
         await blacklist_token(jti, 60 * 60 * 24 * 7)  # 7 days TTL
 
-    user_id = payload["sub"]
     return TokenResponse(
         access_token=create_access_token(user_id),
         refresh_token=create_refresh_token(user_id),
@@ -68,10 +81,19 @@ async def refresh(body: RefreshRequest):
 
 
 @router.post("/logout", response_model=MessageResponse)
-async def logout(body: RefreshRequest):
+async def logout(
+    body: RefreshRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    # Blacklist refresh token
     payload = decode_token(body.refresh_token)
     if payload and payload.get("jti"):
         await blacklist_token(payload["jti"], 60 * 60 * 24 * 7)
+    # Also blacklist the current access token
+    access_payload = decode_token(credentials.credentials)
+    if access_payload and access_payload.get("jti"):
+        ttl = settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        await blacklist_token(access_payload["jti"], ttl)
     return MessageResponse(message="Logged out")
 
 

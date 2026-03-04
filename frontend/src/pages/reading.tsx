@@ -7,15 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const LEVEL_LABELS: Record<number, string> = {
-  1: "Алеф",
-  2: "Бет",
-  3: "Гимель",
-  4: "Далет",
-  5: "Хей",
-  6: "Вав",
-};
+import { LEVEL_LABELS } from "@/lib/constants";
 
 const CAT_LABELS: Record<string, string> = {
   story: "Рассказ",
@@ -92,7 +84,7 @@ function InteractiveReader({ contentHe, vocabulary }: {
           {tooltip.translit && (
             <span className="text-muted-foreground">{tooltip.translit}</span>
           )}
-          <span className="ml-2">— {tooltip.ru}</span>
+          <span className="ms-2">— {tooltip.ru}</span>
         </div>
       )}
     </div>

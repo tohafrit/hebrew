@@ -25,7 +25,7 @@ _cache_time: float = 0
 _CACHE_TTL = 300  # 5 minutes
 
 # Hebrew punctuation / connectors to strip when matching
-_STRIP_RE = re.compile(r'[.,!?;:"\'"״""«»()\[\]{}\u05BE\u200F\u200E]')
+_STRIP_RE = re.compile(r'[.,!?;:"\'"״""«»()\[\]{}\u200F\u200E]')
 # Number patterns (plain digits, or digits with Hebrew prefix like ב-2, ו-50)
 _NUMBER_RE = re.compile(r'^[בכלמוה]?-?[\d]+[,.]?[\d]*$')
 # Common Hebrew prefixes (ב, כ, ל, מ, ה, ו, ש)

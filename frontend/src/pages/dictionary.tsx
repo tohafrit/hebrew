@@ -299,13 +299,31 @@ export function DictionaryPage() {
               )}
             </div>
 
-            {/* Detail panel */}
+            {/* Detail panel — desktop sidebar */}
             {selectedWordId && (
               <div className="w-80 shrink-0 hidden lg:block">
                 <WordDetailPanel
                   wordId={selectedWordId}
                   onClose={() => setSelectedWordId(null)}
                 />
+              </div>
+            )}
+
+            {/* Detail panel — mobile overlay */}
+            {selectedWordId && (
+              <div className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm"
+                onClick={() => setSelectedWordId(null)}
+              >
+                <div
+                  className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto bg-background border-t rounded-t-xl shadow-lg"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-12 h-1 rounded-full bg-muted-foreground/30 mx-auto mt-2 mb-1" />
+                  <WordDetailPanel
+                    wordId={selectedWordId}
+                    onClose={() => setSelectedWordId(null)}
+                  />
+                </div>
               </div>
             )}
           </div>

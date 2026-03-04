@@ -69,8 +69,10 @@ async def submit_review(
         )
         await award_xp(db, user, 5, "review_card")
         await check_and_award_achievements(db, user)
+        await db.commit()  # Single commit for review + XP + achievements
         return ReviewResponse(**result)
     except ValueError as e:
+        await db.rollback()
         raise HTTPException(status_code=404, detail=str(e))
 
 
@@ -79,7 +81,7 @@ async def stats(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await get_srs_stats(db, user.id)
+    return await get_srs_stats(db, user)
 
 
 @router.get("/leeches", response_model=LeechResponse)

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 
 from sqlalchemy import select, func, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -91,7 +91,8 @@ async def award_xp(db: AsyncSession, user: User, amount: int, reason: str) -> in
         )
         db.add(daily)
 
-    await db.commit()
+    # Don't commit here — let the router commit once for the whole operation
+    await db.flush()
     return user.xp
 
 
@@ -161,7 +162,7 @@ async def check_and_award_achievements(db: AsyncSession, user: User) -> list[str
             newly_unlocked.append(defn.code)
 
     if newly_unlocked:
-        await db.commit()
+        await db.flush()
 
     return newly_unlocked
 

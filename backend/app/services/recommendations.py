@@ -1,7 +1,7 @@
 """Smart study recommendations engine."""
 
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession

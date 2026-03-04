@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -143,7 +143,7 @@ async def save_exercise_result(
         created_at=datetime.utcnow(),
     )
     db.add(result)
-    await db.commit()
+    await db.flush()
     await db.refresh(result)
     return result
 

@@ -23,6 +23,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("Seed failed: %s", e)
     yield
+    # Cleanup on shutdown
+    from app.services.auth import _redis
+    if _redis is not None:
+        await _redis.close()
 
 
 app = FastAPI(title="Ulpan AI", version="0.2.0", lifespan=lifespan)

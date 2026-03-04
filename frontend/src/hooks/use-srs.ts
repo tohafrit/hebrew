@@ -66,7 +66,8 @@ export function useReviewCard() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["srs-session"] });
+      // Don't invalidate srs-session mid-review — it causes stale currentIndex.
+      // Session will be refetched on restart via handleRestart().
       queryClient.invalidateQueries({ queryKey: ["srs-stats"] });
     },
   });

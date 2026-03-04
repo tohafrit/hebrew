@@ -1,3 +1,5 @@
+import warnings
+
 from pydantic_settings import BaseSettings
 
 
@@ -16,3 +18,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if settings.JWT_SECRET_KEY == "change-me":
+    warnings.warn(
+        "JWT_SECRET_KEY is set to the insecure default 'change-me'. "
+        "Set a strong secret in .env before deploying to production!",
+        stacklevel=1,
+    )

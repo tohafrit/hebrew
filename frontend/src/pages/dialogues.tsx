@@ -7,15 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const LEVEL_LABELS: Record<number, string> = {
-  1: "Алеф",
-  2: "Бет",
-  3: "Гимель",
-  4: "Далет",
-  5: "Хей",
-  6: "Вав",
-};
+import { LEVEL_LABELS } from "@/lib/constants";
 
 // ── Dialogue bubble ───────────────────────────────────────────────────────
 
@@ -92,6 +84,16 @@ function DialoguePlayer({ dialogueId, onBack }: {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [localLines, setLocalLines] = useState<any[]>([]);
+  const ttsTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(ttsTimerRef.current);
+      clearTimeout(advanceTimerRef.current);
+    };
+  }, []);
 
   // Clone lines from query data to avoid mutating React Query cache
   useEffect(() => {
@@ -118,7 +120,7 @@ function DialoguePlayer({ dialogueId, onBack }: {
       setRevealedLines((prev) => new Set(prev).add(currentLine));
       // Auto-play TTS for NPC line
       if (currentLineData.text_he) {
-        setTimeout(() => speak(currentLineData.text_he), 300);
+        ttsTimerRef.current = setTimeout(() => speak(currentLineData.text_he), 300);
       }
     }
   }, [currentLine, currentLineData, speak]);
@@ -161,7 +163,7 @@ function DialoguePlayer({ dialogueId, onBack }: {
       speak(res.correct ? selectedText : res.correct_text_he);
 
       // Advance to next line after a delay
-      setTimeout(() => {
+      advanceTimerRef.current = setTimeout(() => {
         if (currentLine + 1 < lines.length) {
           setCurrentLine((i) => i + 1);
         } else {

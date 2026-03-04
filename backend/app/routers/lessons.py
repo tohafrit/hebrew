@@ -78,7 +78,7 @@ async def check_exercise(
         raise HTTPException(status_code=404, detail="Exercise not found")
 
     is_correct, correct_answer, explanation = check_answer(exercise, req.answer)
-    points = exercise.points if is_correct else 2
+    points = (exercise.points or 10) if is_correct else 2
 
     await save_exercise_result(
         db, user_id=user.id, exercise_id=exercise.id,
@@ -88,6 +88,7 @@ async def check_exercise(
     xp_reason = "exercise_correct" if is_correct else "exercise_wrong"
     total_xp = await award_xp(db, user, points, xp_reason)
     new_achievements = await check_and_award_achievements(db, user)
+    await db.commit()  # Single commit for result + XP + achievements
 
     return ExerciseCheckResponse(
         correct=is_correct,
