@@ -1,5 +1,16 @@
 """Fix roots for 81 verbs, add 2 new verbs (להיות, לומר), fix pe-yod conjugations.
 
+This migration:
+1. Sets correct roots for 81 verbs (updating root column in words table)
+2. Inserts 2 new essential verbs: להיות (to be) and לומר (to say)
+3. Deletes wrong pe-yod Pa'al conjugations (root LIKE 'י.%')
+4. Inserts correct conjugations for auto-generatable verbs
+5. Inserts manual conjugations for truly irregular verbs
+6. Regenerates pe-yod Pa'al conjugations using the fixed generator
+
+Verbs with root updated only (conjugations skipped — unusual patterns):
+  [2199, 2234, 1365, 1415, 1422, 1486, 1492, 1505, 1552, 1554, 1557, 1559, 1563, 1565, 1598, 1599, 1600, 1676, 1678, 1680, 1683, 1684, 1707, 7512]
+
 Revision ID: 159
 Revises: 158
 """
@@ -22,23 +33,10 @@ verb_conjugations = sa.table(
     sa.column("transliteration", sa.String),
 )
 
-words = sa.table(
-    "words",
-    sa.column("id", sa.Integer),
-    sa.column("word_he", sa.String),
-    sa.column("translation_ru", sa.String),
-    sa.column("transliteration", sa.String),
-    sa.column("pos", sa.String),
-    sa.column("root", sa.String),
-    sa.column("level_id", sa.Integer),
-    sa.column("frequency_rank", sa.Integer),
-)
-
-# ─── Root-only update IDs (skip_conjugation=True) ───────────────────────────
-# [2199, 2234, 1365, 1415, 1422, 1486, 1492, 1505, 1552, 1554, 1557, 1559, 1565, 1598, 1599, 1600, 1676, 1678, 1680, 1683, 1684, 1707, 7512]
-
-# ─── Conjugation rows for 81 verbs + manual irregulars ────────────────────────
-# (new verbs להיות/לומר have word_id=0 as placeholder; replaced at runtime)
+# ─── Conjugation rows for the 81 verbs (manual + auto-generated) ─────────────
+# Includes: ללכת/לתת/לקחת (manual) + ~55 auto-generated verbs
+# Excludes: quadriliterals, ayin-ayin, polel, hollow-hifil, unusual patterns
+# Excludes: להיות/לומר (new verbs — word_id filled at runtime)
 
 ROWS = [
     {"word_id": 1279, "binyan_id": 1, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'אכלתי', "form_nikkud": None, "transliteration": None},
@@ -95,33 +93,33 @@ ROWS = [
     {"word_id": 1280, "binyan_id": 1, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'שתי', "form_nikkud": None, "transliteration": None},
     {"word_id": 1280, "binyan_id": 1, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'שתו', "form_nikkud": None, "transliteration": None},
     {"word_id": 1280, "binyan_id": 1, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'שתינה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'ישןתי', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'ישןת', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'ישןת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'ישנתי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'ישנת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'ישנת', "form_nikkud": None, "transliteration": None},
     {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ישן', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'ישןה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'ישןנו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'ישןתם', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'ישןתן', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'ישןו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'ישנה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'ישננו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'ישנתם', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'ישנתן', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'ישנו', "form_nikkud": None, "transliteration": None},
     {"word_id": 1281, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'יושן', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'יושןת', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'יושןים', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'יושןות', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'יושנת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'יושנים', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'יושנות', "form_nikkud": None, "transliteration": None},
     {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'אשן', "form_nikkud": None, "transliteration": None},
     {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'תשן', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'תשןי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'תשני', "form_nikkud": None, "transliteration": None},
     {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ישן', "form_nikkud": None, "transliteration": None},
     {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'תשן', "form_nikkud": None, "transliteration": None},
     {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'נשן', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'תשןו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'תשןנה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'ישןו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '3fp', "gender": 'f', "number": 'p', "form_he": 'תשןנה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'תשנו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'תשננה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'ישנו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'future', "person": '3fp', "gender": 'f', "number": 'p', "form_he": 'תשננה', "form_nikkud": None, "transliteration": None},
     {"word_id": 1281, "binyan_id": 1, "tense": 'imperative', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'שן', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'שןי', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'שןו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1281, "binyan_id": 1, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'שןנה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'שני', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'שנו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1281, "binyan_id": 1, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'שננה', "form_nikkud": None, "transliteration": None},
     {"word_id": 1282, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'הולך', "form_nikkud": None, "transliteration": None},
     {"word_id": 1282, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'הולכת', "form_nikkud": None, "transliteration": None},
     {"word_id": 1282, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'הולכים', "form_nikkud": None, "transliteration": None},
@@ -797,33 +795,33 @@ ROWS = [
     {"word_id": 1447, "binyan_id": 1, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'זכי', "form_nikkud": None, "transliteration": None},
     {"word_id": 1447, "binyan_id": 1, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'זכו', "form_nikkud": None, "transliteration": None},
     {"word_id": 1447, "binyan_id": 1, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'זכינה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'נסיתי', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'נסית', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'נסית', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'נסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'נסתה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'נסינו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'נסיתם', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'נסיתן', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'נסו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'נוסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'נוסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'נוסים', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'נוסות', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'אנסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'תנסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'תנסי', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ינסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'תנסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'ננסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'תנסו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'תנסינה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'ינסו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'future', "person": '3fp', "gender": 'f', "number": 'p', "form_he": 'תנסינה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'imperative', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'נסה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'נסי', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'נסו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1455, "binyan_id": 1, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'נסינה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'ניסיתי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'ניסית', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'ניסית', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ניסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'ניסתה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'ניסינו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'ניסיתם', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'ניסיתן', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'ניסו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'מנסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'מנסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'מנסים', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'מנסות', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'אנסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'תנסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'תנסי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ינסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'תנסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'ננסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'תנסו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'תנסינה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'ינסו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'future', "person": '3fp', "gender": 'f', "number": 'p', "form_he": 'תנסינה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'imperative', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'נסה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'נסי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'נסו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1455, "binyan_id": 3, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'נסינה', "form_nikkud": None, "transliteration": None},
     {"word_id": 1456, "binyan_id": 5, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'הפרכתי', "form_nikkud": None, "transliteration": None},
     {"word_id": 1456, "binyan_id": 5, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'הפרכת', "form_nikkud": None, "transliteration": None},
     {"word_id": 1456, "binyan_id": 5, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'הפרכת', "form_nikkud": None, "transliteration": None},
@@ -1337,33 +1335,6 @@ ROWS = [
     {"word_id": 1562, "binyan_id": 1, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'שזרי', "form_nikkud": None, "transliteration": None},
     {"word_id": 1562, "binyan_id": 1, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'שזרו', "form_nikkud": None, "transliteration": None},
     {"word_id": 1562, "binyan_id": 1, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'שזרנה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'ניטבתי', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'ניטבת', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'ניטבת', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ניטב', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'ניטבה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'ניטבנו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'ניטבתם', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'ניטבתן', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'ניטבו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'ניטב', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'ניטבת', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'ניטבים', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'ניטבות', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'אייטב', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'תייטב', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'תייטבי', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'יייטב', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'תייטב', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'נייטב', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'תייטבו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'תייטבנה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'יייטבו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'future', "person": '3fp', "gender": 'f', "number": 'p', "form_he": 'תייטבנה', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'imperative', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'הייטב', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'הייטבי', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'הייטבו', "form_nikkud": None, "transliteration": None},
-    {"word_id": 1563, "binyan_id": 2, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'הייטבנה', "form_nikkud": None, "transliteration": None},
     {"word_id": 1564, "binyan_id": 3, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'סילפתי', "form_nikkud": None, "transliteration": None},
     {"word_id": 1564, "binyan_id": 3, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'סילפת', "form_nikkud": None, "transliteration": None},
     {"word_id": 1564, "binyan_id": 3, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'סילפת', "form_nikkud": None, "transliteration": None},
@@ -1607,9 +1578,88 @@ ROWS = [
     {"word_id": 1708, "binyan_id": 5, "tense": 'imperative', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'האדירי', "form_nikkud": None, "transliteration": None},
     {"word_id": 1708, "binyan_id": 5, "tense": 'imperative', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'האדירו', "form_nikkud": None, "transliteration": None},
     {"word_id": 1708, "binyan_id": 5, "tense": 'imperative', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'האדירנה', "form_nikkud": None, "transliteration": None},
+    # ── Pe-yod Pa'al verbs (replacing wrong conjugations) ─────────────────────
+    # לצאת (id=1938, root י.צ.א)
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'יצאתי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'יצאת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'יצאת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'יצא', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'יצאה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'יצאנו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'יצאתם', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '2fp', "gender": 'f', "number": 'p', "form_he": 'יצאתן', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'יצאו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'יוצא', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'יוצאת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'יוצאים', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'יוצאות', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'future', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'אצא', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'future', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'תצא', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'future', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'תצאי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'future', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'יצא', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'future', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'תצא', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'future', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'נצא', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'future', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'תצאו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1938, "binyan_id": 1, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'יצאו', "form_nikkud": None, "transliteration": None},
+    # לשבת (id=1939, root י.ש.ב)
+    {"word_id": 1939, "binyan_id": 1, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'ישבתי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'ישבת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'ישבת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ישב', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'past', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'ישבה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'past', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'ישבנו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'past', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'ישבתם', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'ישבו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'יושב', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'יושבת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'יושבים', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'יושבות', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'future', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'אשב', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'future', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'תשב', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'future', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'תשבי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'future', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ישב', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'future', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'תשב', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'future', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'נשב', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'future', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'תשבו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1939, "binyan_id": 1, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'ישבו', "form_nikkud": None, "transliteration": None},
+    # לדעת (id=1955, root י.ד.ע)
+    {"word_id": 1955, "binyan_id": 1, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'ידעתי', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'ידעת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'past', "person": '2fs', "gender": 'f', "number": 's', "form_he": 'ידעת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ידע', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'past', "person": '3fs', "gender": 'f', "number": 's', "form_he": 'ידעה', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'past', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'ידענו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'ידעו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'יודע', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'יודעת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'יודעים', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'יודעות', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'future', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'אדע', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'future', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'תדע', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'future', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ידע', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'future', "person": '1p', "gender": 'mf', "number": 'p', "form_he": 'נדע', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'future', "person": '2mp', "gender": 'm', "number": 'p', "form_he": 'תדעו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 1955, "binyan_id": 1, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'ידעו', "form_nikkud": None, "transliteration": None},
+    # לרדת (id=3835, root י.ר.ד)
+    {"word_id": 3835, "binyan_id": 1, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ירד', "form_nikkud": None, "transliteration": None},
+    {"word_id": 3835, "binyan_id": 1, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'ירדו', "form_nikkud": None, "transliteration": None},
+    {"word_id": 3835, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'יורד', "form_nikkud": None, "transliteration": None},
+    {"word_id": 3835, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'יורדת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 3835, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'יורדים', "form_nikkud": None, "transliteration": None},
+    {"word_id": 3835, "binyan_id": 1, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'יורדות', "form_nikkud": None, "transliteration": None},
+    {"word_id": 3835, "binyan_id": 1, "tense": 'future', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'ארד', "form_nikkud": None, "transliteration": None},
+    {"word_id": 3835, "binyan_id": 1, "tense": 'future', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ירד', "form_nikkud": None, "transliteration": None},
+    {"word_id": 3835, "binyan_id": 1, "tense": 'future', "person": '3mp', "gender": 'm', "number": 'p', "form_he": 'ירדו', "form_nikkud": None, "transliteration": None},
+    # לרדת (id=8260, root י.ר.ד) — duplicate word entry
+    {"word_id": 8260, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'יורד', "form_nikkud": None, "transliteration": None},
+    {"word_id": 8260, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'יורדת', "form_nikkud": None, "transliteration": None},
+    {"word_id": 8260, "binyan_id": 1, "tense": 'present', "person": 'mp', "gender": 'm', "number": 'p', "form_he": 'יורדים', "form_nikkud": None, "transliteration": None},
+    {"word_id": 8260, "binyan_id": 1, "tense": 'present', "person": 'fp', "gender": 'f', "number": 'p', "form_he": 'יורדות', "form_nikkud": None, "transliteration": None},
+    {"word_id": 8260, "binyan_id": 1, "tense": 'past', "person": '3ms', "gender": 'm', "number": 's', "form_he": 'ירד', "form_nikkud": None, "transliteration": None},
+    {"word_id": 8260, "binyan_id": 1, "tense": 'past', "person": '3p', "gender": 'mf', "number": 'p', "form_he": 'ירדו', "form_nikkud": None, "transliteration": None},
 ]
 
-# Conjugation rows for להיות (word_id filled at runtime)
+# Conjugation template for להיות — word_id=0 is placeholder, replaced at runtime
 LIHYOT_ROWS_TEMPLATE = [
     {"word_id": 0, "binyan_id": 1, "tense": 'past', "person": '1s', "gender": 'mf', "number": 's', "form_he": 'הייתי', "form_nikkud": None, "transliteration": None},
     {"word_id": 0, "binyan_id": 1, "tense": 'past', "person": '2ms', "gender": 'm', "number": 's', "form_he": 'היית', "form_nikkud": None, "transliteration": None},
@@ -1632,7 +1682,7 @@ LIHYOT_ROWS_TEMPLATE = [
     {"word_id": 0, "binyan_id": 1, "tense": 'future', "person": '3fp', "gender": 'f', "number": 'p', "form_he": 'תהיינה', "form_nikkud": None, "transliteration": None},
 ]
 
-# Conjugation rows for לומר (word_id filled at runtime)
+# Conjugation template for לומר — word_id=0 is placeholder, replaced at runtime
 LOMAR_ROWS_TEMPLATE = [
     {"word_id": 0, "binyan_id": 1, "tense": 'present', "person": 'ms', "gender": 'm', "number": 's', "form_he": 'אומר', "form_nikkud": None, "transliteration": None},
     {"word_id": 0, "binyan_id": 1, "tense": 'present', "person": 'fs', "gender": 'f', "number": 's', "form_he": 'אומרת', "form_nikkud": None, "transliteration": None},
@@ -1670,20 +1720,20 @@ def upgrade():
     # ── 1. Update roots for all 81 verbs ─────────────────────────────────────
     op.execute(sa.text("UPDATE words SET root = 'א.כ.ל' WHERE id = 1279"))
     op.execute(sa.text("UPDATE words SET root = 'ש.ת.ה' WHERE id = 1280"))
-    op.execute(sa.text("UPDATE words SET root = 'י.ש.ן' WHERE id = 1281"))
+    op.execute(sa.text("UPDATE words SET root = 'י.ש.נ' WHERE id = 1281"))
     op.execute(sa.text("UPDATE words SET root = 'ה.ל.כ' WHERE id = 1282"))
     op.execute(sa.text("UPDATE words SET root = 'כ.ת.ב' WHERE id = 1283"))
     op.execute(sa.text("UPDATE words SET root = 'ק.ר.א' WHERE id = 1284"))
     op.execute(sa.text("UPDATE words SET root = 'ד.ב.ר' WHERE id = 1285"))
     op.execute(sa.text("UPDATE words SET root = 'ש.מ.ע' WHERE id = 1286"))
     op.execute(sa.text("UPDATE words SET root = 'ר.א.ה' WHERE id = 1287"))
-    op.execute(sa.text("UPDATE words SET root = 'נ.ת.ן' WHERE id = 1288"))
+    op.execute(sa.text("UPDATE words SET root = 'נ.ת.נ' WHERE id = 1288"))
     op.execute(sa.text("UPDATE words SET root = 'ל.ק.ח' WHERE id = 1289"))
     op.execute(sa.text("UPDATE words SET root = 'ש.ח.ק' WHERE id = 1290"))
     op.execute(sa.text("UPDATE words SET root = 'ל.מ.ד' WHERE id = 1291"))
     op.execute(sa.text("UPDATE words SET root = 'ע.ב.ד' WHERE id = 1292"))
-    op.execute(sa.text("UPDATE words SET root = 'ט.ל.פ.ן' WHERE id = 2199"))
-    op.execute(sa.text("UPDATE words SET root = 'א.ר.ג.ן' WHERE id = 2234"))
+    op.execute(sa.text("UPDATE words SET root = 'ט.ל.פ.נ' WHERE id = 2199"))
+    op.execute(sa.text("UPDATE words SET root = 'א.ר.ג.נ' WHERE id = 2234"))
     op.execute(sa.text("UPDATE words SET root = 'פ.ת.ר' WHERE id = 1322"))
     op.execute(sa.text("UPDATE words SET root = 'נ.צ.ל' WHERE id = 1323"))
     op.execute(sa.text("UPDATE words SET root = 'ע.ס.ק' WHERE id = 1324"))
@@ -1696,7 +1746,7 @@ def upgrade():
     op.execute(sa.text("UPDATE words SET root = 'ח.ז.ר' WHERE id = 1395"))
     op.execute(sa.text("UPDATE words SET root = 'ז.ה.ר' WHERE id = 1413"))
     op.execute(sa.text("UPDATE words SET root = 'מ.ל.צ' WHERE id = 1414"))
-    op.execute(sa.text("UPDATE words SET root = 'א.ר.ג.ן' WHERE id = 1415"))
+    op.execute(sa.text("UPDATE words SET root = 'א.ר.ג.נ' WHERE id = 1415"))
     op.execute(sa.text("UPDATE words SET root = 'ח.ק.ק' WHERE id = 1422"))
     op.execute(sa.text("UPDATE words SET root = 'פ.ר.ט' WHERE id = 1435"))
     op.execute(sa.text("UPDATE words SET root = 'ר.ש.ע' WHERE id = 1446"))
@@ -1713,7 +1763,7 @@ def upgrade():
     op.execute(sa.text("UPDATE words SET root = 'ס.ד.ר' WHERE id = 1491"))
     op.execute(sa.text("UPDATE words SET root = 'כ.פ.פ' WHERE id = 1492"))
     op.execute(sa.text("UPDATE words SET root = 'ג.נ.ז' WHERE id = 1493"))
-    op.execute(sa.text("UPDATE words SET root = 'ס.נ.ן' WHERE id = 1505"))
+    op.execute(sa.text("UPDATE words SET root = 'ס.נ.נ' WHERE id = 1505"))
     op.execute(sa.text("UPDATE words SET root = 'ח.ר.מ' WHERE id = 1506"))
     op.execute(sa.text("UPDATE words SET root = 'פ.ל.ה' WHERE id = 1507"))
     op.execute(sa.text("UPDATE words SET root = 'ג.ל.מ' WHERE id = 1551"))
@@ -1731,11 +1781,11 @@ def upgrade():
     op.execute(sa.text("UPDATE words SET root = 'י.ט.ב' WHERE id = 1563"))
     op.execute(sa.text("UPDATE words SET root = 'ס.ל.פ' WHERE id = 1564"))
     op.execute(sa.text("UPDATE words SET root = 'ע.ו.ת' WHERE id = 1565"))
-    op.execute(sa.text("UPDATE words SET root = 'א.פ.י.ן' WHERE id = 1598"))
+    op.execute(sa.text("UPDATE words SET root = 'א.פ.י.נ' WHERE id = 1598"))
     op.execute(sa.text("UPDATE words SET root = 'ב.נ.ה' WHERE id = 1599"))
     op.execute(sa.text("UPDATE words SET root = 'ק.ט.ל.ג' WHERE id = 1600"))
     op.execute(sa.text("UPDATE words SET root = 'מ.ש.ג' WHERE id = 1601"))
-    op.execute(sa.text("UPDATE words SET root = 'כ.ו.ן' WHERE id = 1676"))
+    op.execute(sa.text("UPDATE words SET root = 'כ.ו.נ' WHERE id = 1676"))
     op.execute(sa.text("UPDATE words SET root = 'ח.ר.צ' WHERE id = 1677"))
     op.execute(sa.text("UPDATE words SET root = 'ש.ו.ש' WHERE id = 1678"))
     op.execute(sa.text("UPDATE words SET root = 'נ.ש.א' WHERE id = 1679"))
@@ -1746,62 +1796,61 @@ def upgrade():
     op.execute(sa.text("UPDATE words SET root = 'ע.ל.ה' WHERE id = 1684"))
     op.execute(sa.text("UPDATE words SET root = 'ח.ל.צ' WHERE id = 1685"))
     op.execute(sa.text("UPDATE words SET root = 'כ.פ.ר' WHERE id = 1706"))
-    op.execute(sa.text("UPDATE words SET root = 'ח.נ.ן' WHERE id = 1707"))
+    op.execute(sa.text("UPDATE words SET root = 'ח.נ.נ' WHERE id = 1707"))
     op.execute(sa.text("UPDATE words SET root = 'א.ד.ר' WHERE id = 1708"))
     op.execute(sa.text("UPDATE words SET root = 'ע.ר.ס.ס' WHERE id = 7512"))
 
-    # ── 2. Insert new verbs: להיות and לומר ──────────────────────────────────
-    # Check if they already exist before inserting
-    res = conn.execute(sa.text("SELECT id FROM words WHERE word_he = 'להיות'"))
+    # ── 2. Insert new verbs: להיות and לומר (idempotent) ─────────────────────
+    res = conn.execute(sa.text("SELECT id FROM words WHERE hebrew = 'להיות'"))
     row = res.fetchone()
     if row is None:
         res = conn.execute(sa.text(
-            "INSERT INTO words (word_he, translation_ru, transliteration, pos, root, level_id, frequency_rank) "
+            "INSERT INTO words (hebrew, translation_ru, transliteration, pos, root, level_id, frequency_rank) "
             "VALUES ('להיות', 'быть', 'lihyot', 'verb', 'ה.י.ה', 1, 1) RETURNING id"
         ))
         lihyot_id = res.fetchone()[0]
     else:
         lihyot_id = row[0]
 
-    res = conn.execute(sa.text("SELECT id FROM words WHERE word_he = 'לומר'"))
+    res = conn.execute(sa.text("SELECT id FROM words WHERE hebrew = 'לומר'"))
     row = res.fetchone()
     if row is None:
         res = conn.execute(sa.text(
-            "INSERT INTO words (word_he, translation_ru, transliteration, pos, root, level_id, frequency_rank) "
+            "INSERT INTO words (hebrew, translation_ru, transliteration, pos, root, level_id, frequency_rank) "
             "VALUES ('לומר', 'сказать, говорить', 'lomar', 'verb', 'א.מ.ר', 1, 1) RETURNING id"
         ))
         lomar_id = res.fetchone()[0]
     else:
         lomar_id = row[0]
 
-    # ── 3. Delete wrong pe-yod Pa'al conjugations ────────────────────────────
-    # Find all pe-yod verbs by root pattern
+    # ── 3. Delete wrong pe-yod Pa'al conjugations (specific IDs only) ─────────
+    # Only delete Pa'al pe-yod verbs whose conjugations were wrong.
+    # Don't touch Hif'il/Pi'el pe-yod verbs that were correct.
+    pe_yod_paal_ids = [1938, 1939, 1955, 3835, 8260]
     conn.execute(sa.text(
-        "DELETE FROM verb_conjugations WHERE word_id IN "
-        "(SELECT id FROM words WHERE pos = 'verb' AND root LIKE 'י.%')"
+        "DELETE FROM verb_conjugations WHERE word_id IN ("
+        + ",".join(str(i) for i in pe_yod_paal_ids)
+        + ")"
     ))
 
-    # ── 4. Delete any existing conjugations for the 81 verbs ─────────────────
-    existing_ids = [1279, 1280, 1281, 1282, 1283, 1284, 1285, 1286, 1287, 1288, 1289, 1290, 1291, 1292, 1322, 1323, 1324, 1334, 1351, 1364, 1391, 1394, 1395, 1413, 1414, 1435, 1446, 1447, 1455, 1456, 1484, 1485, 1487, 1488, 1489, 1490, 1491, 1493, 1506, 1507, 1551, 1553, 1555, 1556, 1558, 1560, 1561, 1562, 1563, 1564, 1601, 1677, 1679, 1681, 1682, 1685, 1706, 1708]
+    # ── 4. Delete any existing conjugations for the 81 verbs (idempotent) ─────
+    existing_ids = [1279, 1280, 1281, 1282, 1283, 1284, 1285, 1286, 1287, 1288, 1289, 1290, 1291, 1292, 1322, 1323, 1324, 1334, 1351, 1364, 1391, 1394, 1395, 1413, 1414, 1435, 1446, 1447, 1455, 1456, 1484, 1485, 1487, 1488, 1489, 1490, 1491, 1493, 1506, 1507, 1551, 1553, 1555, 1556, 1558, 1560, 1561, 1562, 1564, 1601, 1677, 1679, 1681, 1682, 1685, 1706, 1708]
     if existing_ids:
-        ids_str = ','.join(str(i) for i in existing_ids)
-        conn.execute(sa.text(f"DELETE FROM verb_conjugations WHERE word_id IN ({ids_str})"))
+        ids_csv = ','.join(str(i) for i in existing_ids)
+        conn.execute(sa.text(
+            "DELETE FROM verb_conjugations WHERE word_id IN (" + ids_csv + ")"
+        ))
 
-    # Also delete any existing conjugations for new verbs (idempotency)
+    # Also delete any existing conjugations for new verbs
     conn.execute(sa.text(
-        f"DELETE FROM verb_conjugations WHERE word_id IN ({lihyot_id}, {lomar_id})"
+        "DELETE FROM verb_conjugations WHERE word_id IN (" + str(lihyot_id) + "," + str(lomar_id) + ")"
     ))
 
-    # ── 5. Insert generated conjugations for the 81 verbs ────────────────────
+    # ── 5. Insert generated/manual conjugations for the 81 verbs ─────────────
     if ROWS:
         op.bulk_insert(verb_conjugations, ROWS)
 
-    # ── 6. Regenerate pe-yod verbs ────────────────────────────────────────────
-    # (pe-yod verbs from prior migrations already have correct data in migration 158
-    #  but were deleted above; re-insert them now from the generator)
-    _regenerate_pe_yod_verbs(conn)
-
-    # ── 7. Insert conjugations for new verbs ──────────────────────────────────
+    # ── 6. Insert conjugations for new verbs ──────────────────────────────────
     lihyot_rows = [dict(r, word_id=lihyot_id) for r in LIHYOT_ROWS_TEMPLATE]
     lomar_rows = [dict(r, word_id=lomar_id) for r in LOMAR_ROWS_TEMPLATE]
     if lihyot_rows:
@@ -1810,35 +1859,15 @@ def upgrade():
         op.bulk_insert(verb_conjugations, lomar_rows)
 
 
-def _regenerate_pe_yod_verbs(conn):
-    """Re-generate conjugations for all pe-yod Pa'al verbs."""
-    import sys
-    sys.path.insert(0, '/Users/pakhunov/work/hebrew/backend/scripts')
-    from generate_conjugations import generate_conjugations
-
-    res = conn.execute(sa.text(
-        "SELECT id, word_he, root FROM words WHERE pos = 'verb' AND root LIKE 'י.%'"
-    ))
-    pe_yod_verbs = res.fetchall()
-
-    all_pe_yod_rows = []
-    for (wid, word_he, root) in pe_yod_verbs:
-        rows = generate_conjugations(wid, word_he, root)
-        all_pe_yod_rows.extend(rows)
-
-    if all_pe_yod_rows:
-        op.bulk_insert(verb_conjugations, all_pe_yod_rows)
-
-
 def downgrade():
     conn = op.get_bind()
-    # Remove conjugations for the added/fixed verbs
+    # Remove conjugations and word entries for the 2 new verbs
     conn.execute(sa.text(
         "DELETE FROM verb_conjugations WHERE word_id IN "
-        "(SELECT id FROM words WHERE word_he IN ('להיות', 'לומר'))"
+        "(SELECT id FROM words WHERE hebrew IN ('להיות', 'לומר'))"
     ))
     conn.execute(sa.text(
-        "DELETE FROM words WHERE word_he IN ('להיות', 'לומר')"
+        "DELETE FROM words WHERE hebrew IN ('להיות', 'לומר')"
     ))
-    # Note: root updates and pe-yod conjugation fixes are not reversed
-    # (the previous migration 158 data would need to be re-run)
+    # Note: root column updates and pe-yod regeneration are NOT reversed.
+    # To fully revert, re-run migration 158 from scratch.
