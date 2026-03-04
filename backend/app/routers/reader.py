@@ -18,6 +18,8 @@ router = APIRouter(tags=["reader"])
 
 # Hebrew punctuation / connectors to strip when matching
 _STRIP_RE = re.compile(r'[.,!?;:"\'"״""«»()\[\]{}\u05BE\u200F\u200E]')
+# Number patterns (plain digits, or digits with Hebrew prefix like ב-2, ו-50)
+_NUMBER_RE = re.compile(r'^[בכלמוה]?-?[\d]+[,.]?[\d]*$')
 # Common Hebrew prefixes (ב, כ, ל, מ, ה, ו, ש)
 _PREFIXES = ["ו", "ה", "ב", "כ", "ל", "מ", "ש", "וה", "וב", "וכ", "ול", "ומ", "וש",
              "שה", "שב", "שכ", "של", "שמ", "מה", "בה", "כש", "לה"]
@@ -49,7 +51,7 @@ class TokenAnnotation(BaseModel):
     pos: str | None = None
     root: str | None = None
     level_id: int | None = None
-    match_type: str | None = None  # "exact", "form", "conjugation", "prefix"
+    match_type: str | None = None  # "exact", "form", "conjugation", "prefix", "number", "proper_noun"
     is_space: bool = False
     dictionary_url: str | None = None  # link to external dictionary
 
@@ -94,6 +96,13 @@ async def analyze_text(
             continue
 
         total_words += 1
+
+        # Number detection — before dictionary lookup
+        if _NUMBER_RE.match(clean):
+            tokens.append(TokenAnnotation(token=raw, clean=clean, match_type="number"))
+            known_count += 1
+            continue
+
         annotation = _lookup_word(clean, word_cache, form_cache, conj_cache)
 
         if annotation:
@@ -106,7 +115,12 @@ async def analyze_text(
                 **annotation,
             ))
         else:
-            tokens.append(TokenAnnotation(token=raw, clean=clean))
+            # Proper noun heuristic — after all lookups fail
+            if _is_likely_proper_noun(clean):
+                tokens.append(TokenAnnotation(token=raw, clean=clean, match_type="proper_noun"))
+                known_count += 1
+            else:
+                tokens.append(TokenAnnotation(token=raw, clean=clean))
 
     return AnalyzeResponse(
         tokens=tokens,
@@ -126,6 +140,17 @@ def _dictionary_url(hebrew: str, pos: str | None = None) -> str:
     if pos == "verb":
         return f"https://www.pealim.com/search/?q={encoded}"
     return f"https://milog.co.il/{encoded}"
+
+
+def _is_likely_proper_noun(word: str) -> bool:
+    """Detect transliterated foreign names (very conservative).
+
+    Catches words with geresh (׳) or apostrophe (') which are common in
+    transliterated names like אנג׳לס (Angeles), ג׳ון (John).
+    """
+    if '׳' in word or "'" in word:
+        return True
+    return False
 
 
 def _match_stem(stem: str, cache: dict) -> dict | None:

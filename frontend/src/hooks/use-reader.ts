@@ -11,7 +11,7 @@ export interface TokenAnnotation {
   pos: string | null;
   root: string | null;
   level_id: number | null;
-  match_type: string | null; // "exact" | "form" | "conjugation" | "prefix"
+  match_type: string | null; // "exact" | "form" | "conjugation" | "prefix" | "number" | "proper_noun"
   is_space: boolean;
 }
 

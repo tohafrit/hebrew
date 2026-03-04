@@ -28,6 +28,8 @@ const MATCH_LABELS: Record<string, string> = {
   form: "форма",
   conjugation: "спряжение",
   prefix: "с приставкой",
+  number: "число",
+  proper_noun: "имя собств.",
 };
 
 const LEVEL_LABELS: Record<number, string> = {
@@ -73,6 +75,9 @@ function AnnotatedWord({ token, isSelected, onSelect, onHover, onLeave }: {
   onLeave: () => void;
 }) {
   const isKnown = token.word_id !== null;
+  const isNumber = token.match_type === "number";
+  const isProperNoun = token.match_type === "proper_noun";
+  const isSpecial = isNumber || isProperNoun;
 
   return (
     <span
@@ -80,7 +85,10 @@ function AnnotatedWord({ token, isSelected, onSelect, onHover, onLeave }: {
         "font-hebrew cursor-pointer transition-all duration-150 rounded px-0.5 relative",
         isKnown
           ? "border-b-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/10"
-          : "text-muted-foreground/70 hover:text-foreground hover:bg-muted",
+          : isSpecial
+            ? "text-muted-foreground/90 hover:bg-muted/50"
+            : "text-muted-foreground/70 hover:text-foreground hover:bg-muted",
+        isProperNoun && "italic",
         isSelected && "bg-primary/20 border-primary"
       )}
       onClick={() => onSelect(token)}
@@ -97,13 +105,19 @@ function InlineTooltip({ token, style }: {
   style: React.CSSProperties;
 }) {
   if (!token.word_id) {
+    const isNumber = token.match_type === "number";
+    const isProperNoun = token.match_type === "proper_noun";
     return (
       <div
         className="absolute z-50 bg-popover border rounded-lg shadow-lg p-3 text-sm max-w-[250px]"
         style={style}
       >
-        <HebrewText size="sm" className="font-bold block">{token.clean}</HebrewText>
-        <p className="text-muted-foreground text-xs mt-1">Не найдено в словаре</p>
+        <HebrewText size="sm" className={cn("font-bold block", isProperNoun && "italic")}>
+          {token.clean}
+        </HebrewText>
+        <p className="text-muted-foreground text-xs mt-1">
+          {isNumber ? "מספר (число)" : isProperNoun ? "שם פרטי (имя собств.)" : "Не найдено в словаре"}
+        </p>
       </div>
     );
   }
@@ -143,16 +157,24 @@ function InlineTooltip({ token, style }: {
 
 function WordDetailSidebar({ token }: { token: TokenAnnotation }) {
   if (!token.word_id) {
+    const isNumber = token.match_type === "number";
+    const isProperNoun = token.match_type === "proper_noun";
     return (
       <Card>
         <CardContent className="p-4 text-center">
-          <HebrewText size="xl" className="block font-bold mb-1">{token.clean}</HebrewText>
-          <p className="text-sm text-muted-foreground">Слово не найдено в словаре</p>
-          <Button variant="outline" size="sm" className="mt-2" asChild>
-            <Link to={`/dictionary?search=${encodeURIComponent(token.clean)}`}>
-              Искать в словаре
-            </Link>
-          </Button>
+          <HebrewText size="xl" className={cn("block font-bold mb-1", isProperNoun && "italic")}>
+            {token.clean}
+          </HebrewText>
+          <p className="text-sm text-muted-foreground">
+            {isNumber ? "מספר (число)" : isProperNoun ? "שם פרטי (имя собственное)" : "Слово не найдено в словаре"}
+          </p>
+          {!isNumber && !isProperNoun && (
+            <Button variant="outline" size="sm" className="mt-2" asChild>
+              <Link to={`/dictionary?search=${encodeURIComponent(token.clean)}`}>
+                Искать в словаре
+              </Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -216,8 +238,8 @@ function WordDetailSidebar({ token }: { token: TokenAnnotation }) {
 
 function StatsBreakdown({ tokens }: { tokens: TokenAnnotation[] }) {
   const wordTokens = tokens.filter((t) => !t.is_space && t.clean);
-  const known = wordTokens.filter((t) => t.word_id !== null);
-  const unknown = wordTokens.filter((t) => t.word_id === null);
+  const known = wordTokens.filter((t) => t.word_id !== null || t.match_type === "number" || t.match_type === "proper_noun");
+  const unknown = wordTokens.filter((t) => t.word_id === null && t.match_type !== "number" && t.match_type !== "proper_noun");
 
   // Count by level
   const byLevel: Record<number, number> = {};
