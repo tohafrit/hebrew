@@ -116,7 +116,7 @@ async def analyze_text(
             ))
         else:
             # Proper noun heuristic — after all lookups fail
-            if _is_likely_proper_noun(clean):
+            if _is_likely_proper_noun(raw):
                 tokens.append(TokenAnnotation(token=raw, clean=clean, match_type="proper_noun"))
                 known_count += 1
             else:
@@ -142,13 +142,16 @@ def _dictionary_url(hebrew: str, pos: str | None = None) -> str:
     return f"https://milog.co.il/{encoded}"
 
 
-def _is_likely_proper_noun(word: str) -> bool:
+def _is_likely_proper_noun(raw: str) -> bool:
     """Detect transliterated foreign names (very conservative).
 
-    Catches words with geresh (׳) or apostrophe (') which are common in
-    transliterated names like אנג׳לס (Angeles), ג׳ון (John).
+    Checks the RAW token (before punctuation stripping) for embedded
+    geresh (׳) or apostrophe (') which are common in transliterated
+    names like אנג׳לס (Angeles), ג׳ון (John).
     """
-    if '׳' in word or "'" in word:
+    # Strip edge punctuation/quotes — we only care about embedded geresh
+    inner = raw.strip("'׳\"״.,!?;:()")
+    if '׳' in inner or "'" in inner:
         return True
     return False
 
@@ -205,11 +208,6 @@ def _lookup_word(
             stem = clean[len(prefix):]
             if stem in word_cache:
                 return {**word_cache[stem], "match_type": "prefix"}
-            # Construct state after prefix: בשנת = ב + שנת → שנה
-            if stem.endswith('ת') and len(stem) > 2:
-                construct = stem[:-1] + 'ה'
-                if construct in word_cache:
-                    return {**word_cache[construct], "match_type": "prefix"}
 
     # 4. Suffix stripping → word_cache (catches plural/feminine: ילדים→ילד)
     for suffix in _SUFFIXES:
@@ -230,6 +228,16 @@ def _lookup_word(
         construct_stem = clean[:-1] + 'ה'
         if construct_stem in word_cache:
             return {**word_cache[construct_stem], "match_type": "form"}
+
+    # 4c. Single-letter prefix + construct state: בשנת = ב + שנת → שנה
+    # (Placed after suffix stripping so בולטת→בולט wins over ב+ולטת→ולטה)
+    for prefix in ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]:
+        if clean.startswith(prefix) and len(clean) > 3:
+            stem = clean[len(prefix):]
+            if stem.endswith('ת') and len(stem) > 2:
+                construct = stem[:-1] + 'ה'
+                if construct in word_cache:
+                    return {**word_cache[construct], "match_type": "prefix"}
 
     # 5. Verb conjugations (only actual verbs, filtered at cache build time)
     if clean in conj_cache:
