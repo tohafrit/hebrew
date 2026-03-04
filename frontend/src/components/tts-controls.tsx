@@ -26,7 +26,7 @@ export function TTSControls({
   const speakServer = useCallback(
     async (rate: number) => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("access_token");
         if (!token) throw new Error("No auth token");
 
         const url = `/api/tts/speak?text=${encodeURIComponent(text)}&rate=${rate}`;
@@ -138,7 +138,7 @@ export function useTTS(lang = "he-IL") {
     async (text: string, rate = 1) => {
       // Try server TTS first
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("access_token");
         if (token) {
           const url = `/api/tts/speak?text=${encodeURIComponent(text)}&rate=${rate}`;
           const resp = await fetch(url, {

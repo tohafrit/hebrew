@@ -66,7 +66,9 @@ def check_answer(exercise: Exercise, user_answer) -> tuple[bool, str | dict | li
         correct = answer_data.get("correct", "")
         accept = answer_data.get("accept", [correct])
         user_str = str(user_answer).strip()
-        is_correct = user_str in [str(a).strip() for a in accept]
+        stripped = _strip_nikkud(user_str)
+        is_correct = user_str in [str(a).strip() for a in accept] or \
+                     stripped in [_strip_nikkud(str(a).strip()) for a in accept]
         return is_correct, correct, explanation_text
 
     elif exercise.type == "match_pairs":
@@ -114,8 +116,13 @@ def check_answer(exercise: Exercise, user_answer) -> tuple[bool, str | dict | li
 
 
 def _strip_nikkud(text: str) -> str:
-    """Remove Hebrew nikkud (vowel marks) from text for fuzzy comparison."""
-    return "".join(c for c in text if not ('\u0591' <= c <= '\u05C7'))
+    """Remove Hebrew nikkud (vowel marks) and cantillation marks from text for fuzzy comparison.
+    Preserves maqaf (U+05BE, Hebrew hyphen) to keep compound words intact.
+    """
+    return "".join(
+        c for c in text
+        if not ('\u0591' <= c <= '\u05BD' or '\u05BF' <= c <= '\u05C7')
+    )
 
 
 async def save_exercise_result(

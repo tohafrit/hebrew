@@ -1,10 +1,11 @@
 """Interactive reader — analyze Hebrew text and annotate words with dictionary data."""
 
 import re
+import time
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,13 @@ from app.models.word import Word, WordForm
 from app.models.grammar import VerbConjugation
 
 router = APIRouter(tags=["reader"])
+
+# Application-level cache with TTL
+_cache_word: dict[str, dict] | None = None
+_cache_form: dict[str, dict] | None = None
+_cache_conj: dict[str, dict] | None = None
+_cache_time: float = 0
+_CACHE_TTL = 300  # 5 minutes
 
 # Hebrew punctuation / connectors to strip when matching
 _STRIP_RE = re.compile(r'[.,!?;:"\'"״""«»()\[\]{}\u05BE\u200F\u200E]')
@@ -38,7 +46,7 @@ _REGULAR_TO_SOFIT = {'כ': 'ך', 'מ': 'ם', 'נ': 'ן', 'פ': 'ף', 'צ': 'ץ'}
 
 
 class AnalyzeRequest(BaseModel):
-    text: str
+    text: str = Field(..., max_length=10000)
 
 
 class TokenAnnotation(BaseModel):
@@ -71,10 +79,17 @@ async def analyze_text(
     if not text:
         return AnalyzeResponse(tokens=[], stats={"known_count": 0, "unknown_count": 0, "total_words": 0})
 
-    # Build lookup caches from DB
-    word_cache = await _build_word_cache(db)
-    form_cache = await _build_form_cache(db)
-    conj_cache = await _build_conjugation_cache(db)
+    # Build lookup caches from DB (cached at app level with TTL)
+    global _cache_word, _cache_form, _cache_conj, _cache_time
+    now = time.time()
+    if _cache_word is None or (now - _cache_time) > _CACHE_TTL:
+        _cache_word = await _build_word_cache(db)
+        _cache_form = await _build_form_cache(db)
+        _cache_conj = await _build_conjugation_cache(db)
+        _cache_time = now
+    word_cache = _cache_word
+    form_cache = _cache_form
+    conj_cache = _cache_conj
 
     # Tokenize: split on whitespace, keeping newlines as separate tokens
     raw_tokens = re.split(r'(\s+)', text)

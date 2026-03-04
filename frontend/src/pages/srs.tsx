@@ -39,11 +39,15 @@ export function SRSPage() {
 
       const responseTime = Date.now() - startTimeRef.current;
 
-      await reviewCard.mutateAsync({
-        card_id: currentCard.id,
-        quality,
-        response_time_ms: responseTime,
-      });
+      try {
+        await reviewCard.mutateAsync({
+          card_id: currentCard.id,
+          quality,
+          response_time_ms: responseTime,
+        });
+      } catch {
+        // Allow the user to continue even on error
+      }
 
       // Play sound effect based on quality
       if (quality >= 2) {

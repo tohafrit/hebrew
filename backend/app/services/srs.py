@@ -30,15 +30,17 @@ def sm2_update(
             new_interval = round(interval_days * ease_factor)
         new_reps = repetitions + 1
         new_lapses = lapses
+        # Only update ease factor on correct answers (SM-2 spec)
+        new_ease = max(
+            1.3,
+            ease_factor + 0.1 - (3 - quality) * (0.08 + (3 - quality) * 0.02),
+        )
     else:  # incorrect
         new_interval = 1.0
         new_reps = 0
         new_lapses = lapses + 1
-
-    new_ease = max(
-        1.3,
-        ease_factor + 0.1 - (3 - quality) * (0.08 + (3 - quality) * 0.02),
-    )
+        # Preserve ease factor on incorrect answers to avoid death spiral
+        new_ease = ease_factor
 
     return new_interval, new_ease, new_reps, new_lapses
 

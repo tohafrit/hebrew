@@ -135,7 +135,7 @@ function MatchPairsExercise({ exercise, onAnswer }: {
               key={right}
               variant={usedRight.has(right) ? "secondary" : "outline"}
               className="w-full justify-start h-auto py-2"
-              disabled={usedRight.has(right) && selectedLeft === null}
+              disabled={usedRight.has(right)}
               onClick={() => handleRightClick(right)}
             >
               {right}
@@ -155,8 +155,11 @@ function WordOrderExercise({ exercise, onAnswer }: {
     words_shuffled: string[];
     translation: string;
   };
-  const [selected, setSelected] = useState<string[]>([]);
-  const remaining = prompt.words_shuffled.filter((w) => !selected.includes(w));
+  const [selected, setSelected] = useState<{ word: string; origIdx: number }[]>([]);
+  const usedIndices = new Set(selected.map((s) => s.origIdx));
+  const remaining = prompt.words_shuffled
+    .map((w, i) => ({ word: w, origIdx: i }))
+    .filter((item) => !usedIndices.has(item.origIdx));
 
   return (
     <div className="space-y-3">
@@ -164,33 +167,33 @@ function WordOrderExercise({ exercise, onAnswer }: {
       <p className="text-sm text-muted-foreground">{prompt.translation}</p>
 
       <div className="min-h-[48px] border rounded-lg p-3 flex flex-wrap gap-2" dir="rtl">
-        {selected.map((w, i) => (
+        {selected.map((item, i) => (
           <Badge
-            key={i}
+            key={`${item.origIdx}-${i}`}
             variant="default"
             className="cursor-pointer text-sm"
             onClick={() => setSelected(selected.filter((_, j) => j !== i))}
           >
-            {w}
+            {item.word}
           </Badge>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-2" dir="rtl">
-        {remaining.map((w, i) => (
+        {remaining.map((item) => (
           <Badge
-            key={i}
+            key={item.origIdx}
             variant="outline"
             className="cursor-pointer text-sm"
             onClick={() => {
-              const updated = [...selected, w];
+              const updated = [...selected, item];
               setSelected(updated);
               if (updated.length === prompt.words_shuffled.length) {
-                onAnswer(updated);
+                onAnswer(updated.map((s) => s.word));
               }
             }}
           >
-            {w}
+            {item.word}
           </Badge>
         ))}
       </div>
@@ -208,12 +211,16 @@ function ExerciseCard({ exercise, onDone }: {
 
   const handleAnswer = useCallback(
     async (answer: any) => {
-      const res = await checkExercise.mutateAsync({
-        exercise_id: exercise.id,
-        answer,
-      });
-      setResult(res);
-      play(res.correct ? "correct" : "wrong");
+      try {
+        const res = await checkExercise.mutateAsync({
+          exercise_id: exercise.id,
+          answer,
+        });
+        setResult(res);
+        play(res.correct ? "correct" : "wrong");
+      } catch {
+        setResult({ correct: false, correct_answer: null, explanation: "Ошибка сети. Попробуйте ещё раз.", points_earned: 0 } as ExerciseCheckResponse);
+      }
     },
     [exercise.id, checkExercise, play]
   );

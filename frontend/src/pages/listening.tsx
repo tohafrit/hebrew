@@ -179,11 +179,15 @@ function ListeningExerciseCard({ exercise, onDone }: {
 
   const handleAnswer = useCallback(
     async (answer: any) => {
-      const res = await checkExercise.mutateAsync({
-        exercise_id: exercise.id,
-        answer,
-      });
-      setResult(res);
+      try {
+        const res = await checkExercise.mutateAsync({
+          exercise_id: exercise.id,
+          answer,
+        });
+        setResult(res);
+      } catch {
+        setResult({ correct: false, correct_answer: null, explanation: "Ошибка сети. Попробуйте ещё раз.", points_earned: 0 } as ExerciseCheckResponse);
+      }
     },
     [exercise.id, checkExercise]
   );

@@ -91,7 +91,16 @@ function DialoguePlayer({ dialogueId, onBack }: {
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const lines = dialogue?.lines_json ?? [];
+  const [localLines, setLocalLines] = useState<any[]>([]);
+
+  // Clone lines from query data to avoid mutating React Query cache
+  useEffect(() => {
+    if (dialogue?.lines_json) {
+      setLocalLines(dialogue.lines_json.map((l: any) => ({ ...l })));
+    }
+  }, [dialogue?.id]);
+
+  const lines = localLines;
   const currentLineData = lines[currentLine] as DialogueLine | undefined;
 
   // Auto-scroll to bottom when new lines appear
@@ -118,16 +127,25 @@ function DialoguePlayer({ dialogueId, onBack }: {
     async (optionIdx: number) => {
       if (!dialogue || !currentLineData) return;
 
-      const res = await checkDialogue.mutateAsync({
-        dialogue_id: dialogue.id,
-        line_index: currentLine,
-        selected_option: optionIdx,
-      });
+      let res;
+      try {
+        res = await checkDialogue.mutateAsync({
+          dialogue_id: dialogue.id,
+          line_index: currentLine,
+          selected_option: optionIdx,
+        });
+      } catch {
+        // On error, treat as incorrect and continue
+        res = { correct: false, correct_text_he: currentLineData.options?.[0] ?? "" };
+      }
 
       const selectedText = currentLineData.options?.[optionIdx] ?? "";
-      // Update line with selected text
-      const lineWithText = { ...currentLineData, text_he: selectedText };
-      lines[currentLine] = lineWithText;
+      // Update line with selected text (using local copy, not React Query cache)
+      setLocalLines((prev) => {
+        const updated = [...prev];
+        updated[currentLine] = { ...prev[currentLine], text_he: selectedText };
+        return updated;
+      });
 
       setRevealedLines((prev) => new Set(prev).add(currentLine));
       setResults((prev) => new Map(prev).set(currentLine, {
@@ -151,16 +169,16 @@ function DialoguePlayer({ dialogueId, onBack }: {
         }
       }, 1200);
     },
-    [dialogue, currentLine, currentLineData, lines, checkDialogue, speak]
+    [dialogue, currentLine, currentLineData, checkDialogue, speak]
   );
 
   const handleContinue = useCallback(() => {
-    if (currentLine + 1 < lines.length) {
+    if (currentLine + 1 < localLines.length) {
       setCurrentLine((i) => i + 1);
     } else {
       setDialogueDone(true);
     }
-  }, [currentLine, lines.length]);
+  }, [currentLine, localLines.length]);
 
   if (!dialogue) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;
