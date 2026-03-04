@@ -24,7 +24,11 @@ _PREFIXES = ["ו", "ה", "ב", "כ", "ל", "מ", "ש", "וה", "וב", "וכ", "
 # Common Hebrew suffixes for noun/adjective inflection
 # ים- (masculine plural), ות- (feminine plural), ת- (feminine singular),
 # ה- (feminine/directional), י- (construct/possessive 1s), ן- (archaic feminine plural)
-_SUFFIXES = ["ים", "ות", "ית", "ת", "ה", "י", "יים", "ן", "ם"]
+# ך- (possessive 2ms), כם- (possessive 2mp)
+_SUFFIXES = ["ים", "ות", "ית", "ת", "ה", "י", "יים", "ן", "ם", "ך", "כם"]
+
+# Reverse sofit map — to convert final forms back to medial when stripping suffixes
+_SOFIT_TO_REGULAR = {'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ'}
 
 
 class AnalyzeRequest(BaseModel):
@@ -150,6 +154,23 @@ def _lookup_word(
             if stem in word_cache:
                 w = word_cache[stem]
                 return {**w, "match_type": "form"}
+            # Also try restoring sofit→regular on the new last letter
+            # e.g., שלומך → strip ך → שלום (ם is sofit, stays). But:
+            # חיילך → strip ך → חייל → ל stays. No sofit issue.
+            # For cases like: base ends in כ/מ/נ/פ/צ which became ך/ם/ן/ף/ץ in sofit
+            if stem and stem[-1] in _SOFIT_TO_REGULAR:
+                stem_restored = stem[:-1] + _SOFIT_TO_REGULAR[stem[-1]]
+                if stem_restored in word_cache:
+                    w = word_cache[stem_restored]
+                    return {**w, "match_type": "form"}
+
+    # 4b. Construct state: ת at end of word → try replacing with ה
+    # (ארוחת→ארוחה, משפחת→משפחה, תוכנת→תוכנה)
+    if clean.endswith('ת') and len(clean) > 2:
+        construct_stem = clean[:-1] + 'ה'
+        if construct_stem in word_cache:
+            w = word_cache[construct_stem]
+            return {**w, "match_type": "form"}
 
     # 5. Verb conjugations (only actual verbs, filtered at cache build time)
     if clean in conj_cache:
