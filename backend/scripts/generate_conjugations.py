@@ -49,7 +49,12 @@ def classify_root(root: list[str]) -> str:
 
 def identify_binyan(hebrew: str, root: list[str]) -> int:
     """Identify binyan from infinitive + root. Returns binyan_id 1-7."""
-    if hebrew.startswith('להת') or hebrew.startswith('להסת') or hebrew.startswith('להצט') or hebrew.startswith('להזד'):
+    # Hitpa'el: including sibilant metathesis forms
+    # להת... (standard), להסת... (ס root), להצט... (צ root), להזד... (ז root)
+    # להשת... (ש root: השתתף, השתמש), להזד... (ז root)
+    if (hebrew.startswith('להת') or hebrew.startswith('להסת') or
+            hebrew.startswith('להצט') or hebrew.startswith('להזד') or
+            hebrew.startswith('להשת')):
         return 7  # Hitpa'el
     if hebrew.startswith('להי') or hebrew.startswith('להינ') or hebrew.startswith('להיפ'):
         return 2  # Nif'al
@@ -74,14 +79,23 @@ def identify_binyan(hebrew: str, root: list[str]) -> int:
     return 1  # Default Pa'al
 
 
-# ─── Helper ──────────────────────────────────────────────────────────────────
+# ─── Final form (sofit) handling ──────────────────────────────────────────────
+
+SOFIT_MAP = {'כ': 'ך', 'מ': 'ם', 'נ': 'ן', 'פ': 'ף', 'צ': 'ץ'}
+
+def apply_sofit(form: str) -> str:
+    """Apply final letter forms (sofit) to Hebrew word."""
+    if form and form[-1] in SOFIT_MAP:
+        return form[:-1] + SOFIT_MAP[form[-1]]
+    return form
+
 
 def _row(word_id, binyan_id, tense, person, gender, number, form):
     return {
         "word_id": word_id, "binyan_id": binyan_id,
         "tense": tense, "person": person,
         "gender": gender, "number": number,
-        "form_he": form, "form_nikkud": None, "transliteration": None,
+        "form_he": apply_sofit(form), "form_nikkud": None, "transliteration": None,
     }
 
 
