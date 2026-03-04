@@ -79,6 +79,47 @@ NEW_WORDS = [
     ("לב", "сердце", "lev", "noun", None, 1, 1),
     ("פנים", "лицо", "panim", "noun", None, 1, 1),
     ("בית", "дом", "bait", "noun", None, 1, 1),
+    ("אחר", "другой, иной", "akher", "adj", "א.ח.ר", 1, 1),
+    ("כך", "так, таким образом", "kakh", "adv", None, 1, 1),
+    ("חיפה", "Хайфа", "kheifa", "propn", None, 1, 1),
+
+    # === Prepositional pronoun forms (ב + pronoun) ===
+    ("בו", "в нём", "bo", "pron", None, 1, 1),
+    ("בה", "в ней", "ba", "pron", None, 1, 1),
+    ("בי", "во мне", "bi", "pron", None, 1, 1),
+    ("בנו", "в нас", "banu", "pron", None, 1, 1),
+    ("בהם", "в них (м.)", "bahem", "pron", None, 1, 1),
+    ("בהן", "в них (ж.)", "bahen", "pron", None, 2, 1),
+
+    # === על + pronoun ===
+    ("עליו", "на нём", "alav", "pron", None, 1, 1),
+    ("עליה", "на ней", "aleha", "pron", None, 1, 1),
+    ("עלינו", "на нас", "aleinu", "pron", None, 1, 1),
+    ("עליהם", "на них (м.)", "aleihem", "pron", None, 1, 1),
+
+    # === מן + pronoun ===
+    ("ממנו", "от него; от нас", "mimenu", "pron", None, 1, 1),
+    ("ממנה", "от неё", "mimena", "pron", None, 1, 1),
+
+    # === אל + pronoun ===
+    ("אליו", "к нему", "elav", "pron", None, 1, 1),
+    ("אליה", "к ней", "eleha", "pron", None, 1, 1),
+    ("אלינו", "к нам", "eleinu", "pron", None, 1, 1),
+    ("אליהם", "к ним", "aleihem", "pron", None, 1, 1),
+
+    # === של + pronoun (possessives) ===
+    ("שלו", "его (принадлежность)", "shelo", "pron", None, 1, 1),
+    ("שלה", "её (принадлежность)", "shela", "pron", None, 1, 1),
+    ("שלי", "мой/моя", "sheli", "pron", None, 1, 1),
+    ("שלנו", "наш/наша", "shelanu", "pron", None, 1, 1),
+    ("שלהם", "их (м.)", "shelahem", "pron", None, 1, 1),
+    ("שלכם", "ваш (м.)", "shelakhem", "pron", None, 1, 1),
+
+    # === עם/את + pronoun ===
+    ("איתו", "с ним", "ito", "pron", None, 1, 1),
+    ("איתה", "с ней", "ita", "pron", None, 1, 1),
+    ("איתי", "со мной", "iti", "pron", None, 1, 1),
+    ("איתנו", "с нами", "itanu", "pron", None, 1, 1),
 ]
 
 # Word forms for variant spellings and common inflections
@@ -90,6 +131,12 @@ WORD_FORMS = [
     ("יכולה", "יכול", "fs"),
     ("יכולים", "יכול", "mp"),
     ("יכולות", "יכול", "fp"),
+    # אחר inflections
+    ("אחרת", "אחר", "fs"),
+    ("אחרים", "אחר", "mp"),
+    ("אחרות", "אחר", "fp"),
+    # Irregular plurals
+    ("חנויות", "חנות", "fp"),
 ]
 
 
@@ -201,6 +248,19 @@ def upgrade() -> None:
                 R("present", "0", "f", "p", "שוררות"),
             ]
             op.bulk_insert(verb_conjugations, conj)
+
+    # --- Fix lamed-he verb conjugations (e.g., לשחות — swim) ---
+    row = conn.execute(
+        sa.text("SELECT id FROM words WHERE hebrew = 'לשחות' AND pos = 'verb' LIMIT 1")
+    ).fetchone()
+    if row:
+        wid = row[0]
+        # Fix wrong present tense forms (שוחי→שוחה, שוחיים→שוחים, etc.)
+        for old, new in [("שוחי", "שוחה"), ("שוחית", "שוחה"), ("שוחיים", "שוחים"), ("שוחיות", "שוחות")]:
+            conn.execute(
+                sa.text("UPDATE verb_conjugations SET form_he = :new WHERE word_id = :wid AND form_he = :old"),
+                {"wid": wid, "new": new, "old": old},
+            )
 
     # --- Add Huf'al passive forms as word_forms for common verbs ---
     # הוקמה (was established) → לקום
