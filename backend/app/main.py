@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import async_session
-from app.routers import auth, health, seed, words, srs, alphabet, grammar, lessons, dialogues, gamification, topics, tts
+from app.routers import auth, health, seed, words, srs, alphabet, grammar, lessons, dialogues, gamification, topics, tts, reader
 from app.routers import settings as settings_router
 from app.scripts.seed_dictionary import seed_dictionary
 
@@ -48,3 +48,4 @@ app.include_router(gamification.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 app.include_router(topics.router, prefix="/api")
 app.include_router(tts.router, prefix="/api")
+app.include_router(reader.router, prefix="/api")

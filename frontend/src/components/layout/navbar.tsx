@@ -30,6 +30,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Практика",
     items: [
       { path: "/reading", label: "Чтение" },
+      { path: "/reader", label: "Свой текст" },
       { path: "/listening", label: "Аудирование" },
       { path: "/writing", label: "Письмо" },
       { path: "/dialogues", label: "Диалоги" },

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useWord } from "@/hooks/use-words";
 import { useConjugations } from "@/hooks/use-grammar";
 import { useCreateCards } from "@/hooks/use-srs";
@@ -173,13 +174,17 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
             <h4 className="text-sm font-semibold mb-2">Однокоренные слова</h4>
             <div className="space-y-1">
               {word.root_family.map((w) => (
-                <div key={w.id} className="flex items-center gap-2 text-sm">
+                <Link
+                  key={w.id}
+                  to={`/dictionary?search=${encodeURIComponent(w.hebrew)}`}
+                  className="flex items-center gap-2 text-sm hover:bg-accent rounded px-1 py-0.5 -mx-1 transition-colors"
+                >
                   <HebrewText size="sm" className="font-medium">
                     {w.hebrew}
                   </HebrewText>
                   <span className="text-muted-foreground">—</span>
                   <span>{w.translation_ru}</span>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -222,9 +227,23 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
           </div>
         )}
 
-        <Button onClick={handleAddToSRS} className="w-full" disabled={createCards.isPending}>
-          {createCards.isPending ? "Добавление..." : "Добавить в SRS-карточки"}
-        </Button>
+        <div className="space-y-2">
+          <Button onClick={handleAddToSRS} className="w-full" disabled={createCards.isPending}>
+            {createCards.isPending ? "Добавление..." : "Добавить в SRS-карточки"}
+          </Button>
+          <div className="flex gap-2">
+            {word.pos === "verb" && (
+              <Button variant="outline" size="sm" className="flex-1" asChild>
+                <Link to="/grammar?tab=topics">Грамматика</Link>
+              </Button>
+            )}
+            {word.level_id && (
+              <Button variant="outline" size="sm" className="flex-1" asChild>
+                <Link to={`/reading?level=${word.level_id}`}>Тексты</Link>
+              </Button>
+            )}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

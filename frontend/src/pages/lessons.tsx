@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useLessons, useLesson, useCheckExercise, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
 import { HebrewText } from "@/components/hebrew-text";
@@ -272,8 +273,10 @@ function ExerciseCard({ exercise, onDone }: {
 type Phase = "content" | "exercises" | "done";
 
 export function LessonsPage() {
+  const { lessonId: lessonIdParam } = useParams<{ lessonId: string }>();
+  const navigate = useNavigate();
   const { data: lessons, isLoading } = useLessons();
-  const [selectedLessonId, setSelectedLessonId] = useState<number | null>(null);
+  const selectedLessonId = lessonIdParam ? Number(lessonIdParam) : null;
   const { data: lessonDetail } = useLesson(selectedLessonId);
   const [currentExIdx, setCurrentExIdx] = useState(0);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -298,13 +301,13 @@ export function LessonsPage() {
   };
 
   const handleSelectLesson = (id: number) => {
-    setSelectedLessonId(id);
+    navigate(`/lessons/${id}`);
     setCurrentExIdx(0);
     setPhase("content");
   };
 
   const handleBackToList = () => {
-    setSelectedLessonId(null);
+    navigate("/lessons");
     setCurrentExIdx(0);
     setPhase("content");
   };
@@ -372,7 +375,7 @@ export function LessonsPage() {
               <p className="text-muted-foreground">
                 Вы выполнили {lessonDetail.exercises.length} упражнений
               </p>
-              <div className="flex gap-2 justify-center">
+              <div className="flex gap-2 justify-center flex-wrap">
                 {hasContent && (
                   <Button variant="outline" onClick={() => setPhase("content")}>
                     Перечитать материал
@@ -386,6 +389,20 @@ export function LessonsPage() {
                     Повторить
                   </Button>
                 )}
+              </div>
+              <div className="flex gap-2 justify-center pt-2">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/reading">Чтение</Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/dialogues">Диалоги</Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/dictionary">Словарь</Link>
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/srs">SRS-карточки</Link>
+                </Button>
               </div>
             </CardContent>
           </Card>

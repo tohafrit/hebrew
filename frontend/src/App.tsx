@@ -20,6 +20,7 @@ import { AchievementsPage } from "@/pages/achievements";
 import { CulturePage } from "@/pages/culture";
 import { SettingsPage } from "@/pages/settings";
 import { TopicsPage } from "@/pages/topics";
+import { ReaderPage } from "@/pages/reader";
 import { NotFoundPage } from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -42,15 +43,19 @@ export default function App() {
                 <Route path="/alphabet" element={<AlphabetPage />} />
                 <Route path="/grammar" element={<GrammarPage />} />
                 <Route path="/lessons" element={<LessonsPage />} />
+                <Route path="/lessons/:lessonId" element={<LessonsPage />} />
                 <Route path="/reading" element={<ReadingPage />} />
+                <Route path="/reading/:textId" element={<ReadingPage />} />
                 <Route path="/listening" element={<ListeningPage />} />
                 <Route path="/writing" element={<WritingPage />} />
                 <Route path="/dialogues" element={<DialoguesPage />} />
+                <Route path="/dialogues/:dialogueId" element={<DialoguesPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/achievements" element={<AchievementsPage />} />
                 <Route path="/culture" element={<CulturePage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/topics" element={<TopicsPage />} />
+                <Route path="/reader" element={<ReaderPage />} />
               </Route>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />

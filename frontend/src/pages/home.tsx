@@ -157,6 +157,18 @@ export function HomePage() {
 
         <Card>
           <CardHeader>
+            <CardTitle className="text-lg">Свой текст</CardTitle>
+            <CardDescription>Вставь иврит — увидишь перевод</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full" variant="secondary">
+              <Link to="/reader">Открыть чтец</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle className="text-lg">Аудирование</CardTitle>
             <CardDescription>Диктанты · минимальные пары · TTS</CardDescription>
           </CardHeader>

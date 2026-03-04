@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGrammarTopics, useGrammarTopic, useBinyanim, usePrepositions } from "@/hooks/use-grammar";
+import { useUrlParam, useUrlNumParam } from "@/hooks/use-url-state";
 import type { Preposition } from "@/hooks/use-grammar";
 import { HebrewText } from "@/components/hebrew-text";
 import { MarkdownContent } from "@/components/markdown-content";
@@ -126,16 +127,16 @@ export function GrammarPage() {
   const { data: topics, isLoading } = useGrammarTopics();
   const { data: binyanim } = useBinyanim();
   const { data: prepositions } = usePrepositions();
-  const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
+  const [selectedTopicId, setSelectedTopicId] = useUrlNumParam("topic");
   const { data: topicDetail } = useGrammarTopic(selectedTopicId);
-  const [levelFilter, setLevelFilter] = useState<number | null>(null);
-  const [tab, setTab] = useState<GrammarTab>("topics");
+  const [levelFilter, setLevelFilter] = useUrlNumParam("level");
+  const [tab, setTab] = useUrlParam("tab", "topics") as [GrammarTab, (v: string) => void];
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;
   }
 
-  const filteredTopics = levelFilter
+  const filteredTopics = levelFilter !== null
     ? topics?.filter((t) => t.level_id === levelFilter)
     : topics;
 

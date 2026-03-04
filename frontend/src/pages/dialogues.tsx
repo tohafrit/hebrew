@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDialogues, useDialogue, useCheckDialogue, type DialogueLine } from "@/hooks/use-dialogues";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls, useTTS } from "@/components/tts-controls";
@@ -180,11 +181,13 @@ function DialoguePlayer({ dialogueId, onBack }: {
       {dialogue.vocabulary_json && dialogue.vocabulary_json.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {dialogue.vocabulary_json.map((w, i) => (
-            <Badge key={i} variant="outline" className="text-xs">
-              <HebrewText size="sm">{w.he}</HebrewText>
-              <span className="mx-1">—</span>
-              {w.ru}
-            </Badge>
+            <Link key={i} to={`/dictionary?search=${encodeURIComponent(w.he)}`}>
+              <Badge variant="outline" className="text-xs hover:bg-accent cursor-pointer transition-colors">
+                <HebrewText size="sm">{w.he}</HebrewText>
+                <span className="mx-1">—</span>
+                {w.ru}
+              </Badge>
+            </Link>
           ))}
         </div>
       )}
@@ -257,6 +260,17 @@ function DialoguePlayer({ dialogueId, onBack }: {
                 Повторить
               </Button>
             </div>
+            <div className="flex gap-2 justify-center pt-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/reading">Чтение</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/lessons">Уроки</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/dictionary">Словарь</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -267,8 +281,10 @@ function DialoguePlayer({ dialogueId, onBack }: {
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export function DialoguesPage() {
+  const { dialogueId: dialogueIdParam } = useParams<{ dialogueId: string }>();
+  const navigate = useNavigate();
   const { data: dialogues, isLoading } = useDialogues();
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selectedId = dialogueIdParam ? Number(dialogueIdParam) : null;
   const [levelFilter, setLevelFilter] = useState<number | null>(null);
 
   if (isLoading) {
@@ -276,7 +292,7 @@ export function DialoguesPage() {
   }
 
   if (selectedId !== null) {
-    return <DialoguePlayer dialogueId={selectedId} onBack={() => setSelectedId(null)} />;
+    return <DialoguePlayer dialogueId={selectedId} onBack={() => navigate("/dialogues")} />;
   }
 
   const filtered = levelFilter
@@ -320,7 +336,7 @@ export function DialoguesPage() {
           <Card
             key={d.id}
             className="cursor-pointer hover:bg-accent/50 transition-colors"
-            onClick={() => setSelectedId(d.id)}
+            onClick={() => navigate(`/dialogues/${d.id}`)}
           >
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2 mb-1">

@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useReadingTexts, useReadingText } from "@/hooks/use-lessons";
+import { useUrlNumParam } from "@/hooks/use-url-state";
 import { HebrewText } from "@/components/hebrew-text";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +26,11 @@ function VocabWord({ word }: {
   word: { he: string; ru: string; translit?: string };
 }) {
   return (
-    <div className="flex items-center gap-2 p-2 rounded border text-sm">
+    <Link
+      to={`/dictionary?search=${encodeURIComponent(word.he)}`}
+      className="flex items-center gap-2 p-2 rounded border text-sm hover:bg-accent hover:border-primary/30 transition-colors"
+      title="Найти в словаре"
+    >
       <HebrewText size="sm" className="font-bold">
         {word.he}
       </HebrewText>
@@ -32,7 +38,8 @@ function VocabWord({ word }: {
         <span className="text-muted-foreground text-xs">{word.translit}</span>
       )}
       <span className="text-xs">— {word.ru}</span>
-    </div>
+      <span className="text-xs text-muted-foreground ml-auto shrink-0">→</span>
+    </Link>
   );
 }
 
@@ -93,17 +100,19 @@ function InteractiveReader({ contentHe, vocabulary }: {
 }
 
 export function ReadingPage() {
+  const { textId: textIdParam } = useParams<{ textId: string }>();
+  const navigate = useNavigate();
   const { data: texts, isLoading } = useReadingTexts();
-  const [selectedTextId, setSelectedTextId] = useState<number | null>(null);
+  const selectedTextId = textIdParam ? Number(textIdParam) : null;
   const { data: textDetail } = useReadingText(selectedTextId);
   const [showTranslation, setShowTranslation] = useState(false);
-  const [levelFilter, setLevelFilter] = useState<number | null>(null);
+  const [levelFilter, setLevelFilter] = useUrlNumParam("level");
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;
   }
 
-  const filteredTexts = levelFilter
+  const filteredTexts = levelFilter !== null
     ? texts?.filter((t) => t.level_id === levelFilter)
     : texts;
 
@@ -115,7 +124,7 @@ export function ReadingPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setSelectedTextId(null); setShowTranslation(false); }}
+            onClick={() => { navigate("/reading"); setShowTranslation(false); }}
           >
             ← Назад
           </Button>
@@ -178,6 +187,25 @@ export function ReadingPage() {
             </Card>
           )}
         </div>
+
+        {/* Cross-links */}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/dictionary?level=${textDetail.level_id}`}>
+              Словарь · {LEVEL_LABELS[textDetail.level_id]}
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/dialogues`}>
+              Диалоги
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/lessons`}>
+              Уроки
+            </Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -216,7 +244,7 @@ export function ReadingPage() {
           <Card
             key={text.id}
             className="cursor-pointer hover:bg-accent/50 transition-colors"
-            onClick={() => setSelectedTextId(text.id)}
+            onClick={() => navigate(`/reading/${text.id}`)}
           >
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2 mb-1">

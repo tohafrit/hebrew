@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAlphabet, type AlphabetLetter, type NikkudMark } from "@/hooks/use-alphabet";
+import { useUrlParam } from "@/hooks/use-url-state";
 import { HebrewText } from "@/components/hebrew-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -94,7 +95,7 @@ function NikkudCard({ mark }: { mark: NikkudMark }) {
 export function AlphabetPage() {
   const { data, isLoading } = useAlphabet();
   const [selectedLetter, setSelectedLetter] = useState<AlphabetLetter | null>(null);
-  const [tab, setTab] = useState<"letters" | "nikkud">("letters");
+  const [tab, setTab] = useUrlParam("tab", "letters") as ["letters" | "nikkud", (v: string) => void];
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;

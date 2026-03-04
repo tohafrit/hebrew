@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useWords, useDictionaryStats, useRootFamilies } from "@/hooks/use-words";
+import { useUrlParam, useUrlNumParam, useSetUrlParams } from "@/hooks/use-url-state";
 import type { RootFamilyOut } from "@/hooks/use-words";
 import { WordCard } from "@/components/word-card";
 import { WordDetailPanel } from "@/components/word-detail-panel";
@@ -86,14 +87,22 @@ function RootFamilyCard({ family }: { family: RootFamilyOut }) {
 type Tab = "words" | "roots";
 
 export function DictionaryPage() {
-  const [tab, setTab] = useState<Tab>("words");
-  const [search, setSearch] = useState("");
-  const [pos, setPos] = useState("");
-  const [frequency, setFrequency] = useState("");
-  const [level, setLevel] = useState("");
-  const [page, setPage] = useState(1);
-  const [rootsPage, setRootsPage] = useState(1);
-  const [selectedWordId, setSelectedWordId] = useState<number | null>(null);
+  const [tab, setTab] = useUrlParam("tab", "words") as [Tab, (v: string) => void];
+  const [search, setSearch] = useUrlParam("search");
+  const [pos, setPos] = useUrlParam("pos");
+  const [frequency, setFrequency] = useUrlParam("freq");
+  const [level, setLevel] = useUrlParam("level");
+  const [pageStr, setPageStr] = useUrlParam("page", "1");
+  const [rootsPageStr, setRootsPageStr] = useUrlParam("rp", "1");
+  const [wordIdStr, setWordIdStr] = useUrlParam("word");
+  const setUrlParams = useSetUrlParams();
+
+  const page = Number(pageStr) || 1;
+  const rootsPage = Number(rootsPageStr) || 1;
+  const selectedWordId = wordIdStr ? Number(wordIdStr) : null;
+  const setPage = (p: number) => setPageStr(String(p));
+  const setRootsPage = (p: number) => setRootsPageStr(String(p));
+  const setSelectedWordId = (id: number | null) => setWordIdStr(id ? String(id) : "");
   const perPage = 24;
 
   const { data, isLoading } = useWords({
@@ -116,9 +125,7 @@ export function DictionaryPage() {
   const rootsTotalPages = rootsData ? Math.ceil(rootsData.total / 20) : 0;
 
   const handleRootClick = (root: string) => {
-    setTab("words");
-    setSearch(root);
-    setPage(1);
+    setUrlParams({ tab: "words", search: root, page: "1" });
   };
 
   return (
@@ -166,16 +173,14 @@ export function DictionaryPage() {
               placeholder="Поиск..."
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
+                setUrlParams({ search: e.target.value || null, page: null });
               }}
               className="max-w-xs"
             />
             <Select
               value={pos || "all"}
               onValueChange={(v) => {
-                setPos(v === "all" ? "" : v);
-                setPage(1);
+                setUrlParams({ pos: v === "all" ? null : v, page: null });
               }}
             >
               <SelectTrigger className="w-44">
@@ -194,8 +199,7 @@ export function DictionaryPage() {
             <Select
               value={frequency || "all"}
               onValueChange={(v) => {
-                setFrequency(v === "all" ? "" : v);
-                setPage(1);
+                setUrlParams({ freq: v === "all" ? null : v, page: null });
               }}
             >
               <SelectTrigger className="w-44">
@@ -212,8 +216,7 @@ export function DictionaryPage() {
             <Select
               value={level || "all"}
               onValueChange={(v) => {
-                setLevel(v === "all" ? "" : v);
-                setPage(1);
+                setUrlParams({ level: v === "all" ? null : v, page: null });
               }}
             >
               <SelectTrigger className="w-44">
