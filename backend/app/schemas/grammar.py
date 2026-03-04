@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+import json as _json
+
+from pydantic import BaseModel, field_validator
 
 
 class GrammarRuleOut(BaseModel):
@@ -8,6 +10,16 @@ class GrammarRuleOut(BaseModel):
     exceptions_json: dict | list | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("examples_json", "exceptions_json", mode="before")
+    @classmethod
+    def parse_json_string(cls, v):
+        if isinstance(v, str):
+            try:
+                return _json.loads(v)
+            except (ValueError, TypeError):
+                return None
+        return v
 
 
 class GrammarTopicBrief(BaseModel):

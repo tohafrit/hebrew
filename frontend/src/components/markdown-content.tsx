@@ -60,6 +60,12 @@ export function MarkdownContent({ content }: { content: string }) {
 
     if (line.trim() === "") {
       elements.push(<div key={i} className="h-2" />);
+    } else if (line.startsWith("#### ")) {
+      elements.push(
+        <h4 key={i} className="text-sm font-semibold mt-3 mb-1">
+          <span dangerouslySetInnerHTML={{ __html: processInline(line.slice(5)) }} />
+        </h4>
+      );
     } else if (line.startsWith("### ")) {
       elements.push(
         <h3 key={i} className="text-base font-semibold mt-4 mb-1">

@@ -120,6 +120,9 @@ NEW_WORDS = [
     ("איתה", "с ней", "ita", "pron", None, 1, 1),
     ("איתי", "со мной", "iti", "pron", None, 1, 1),
     ("איתנו", "с нами", "itanu", "pron", None, 1, 1),
+
+    # === Missing common adjectives ===
+    ("טעים", "вкусный", "ta'im", "adj", "ט.ע.מ", 1, 1),
 ]
 
 # Word forms for variant spellings and common inflections
@@ -137,6 +140,10 @@ WORD_FORMS = [
     ("אחרות", "אחר", "fp"),
     # Irregular plurals
     ("חנויות", "חנות", "fp"),
+    # טעים inflections
+    ("טעימה", "טעים", "fs"),
+    ("טעימים", "טעים", "mp"),
+    ("טעימות", "טעים", "fp"),
 ]
 
 

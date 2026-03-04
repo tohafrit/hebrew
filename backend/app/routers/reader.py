@@ -1,6 +1,7 @@
 """Interactive reader — analyze Hebrew text and annotate words with dictionary data."""
 
 import re
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -25,7 +26,7 @@ _PREFIXES = ["ו", "ה", "ב", "כ", "ל", "מ", "ש", "וה", "וב", "וכ", "
 # ים- (masculine plural), ות- (feminine plural), ת- (feminine singular),
 # ה- (feminine/directional), י- (construct/possessive 1s), ן- (archaic feminine plural)
 # ך- (possessive 2ms), כם- (possessive 2mp)
-_SUFFIXES = ["ים", "ות", "ית", "ת", "ה", "י", "יים", "ן", "ם", "ך", "כם"]
+_SUFFIXES = ["ים", "ות", "ית", "ת", "ה", "י", "יים", "ן", "ם", "ך", "כם", "ו"]
 
 # Reverse sofit map — to convert final forms back to medial when stripping suffixes
 _SOFIT_TO_REGULAR = {'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ'}
@@ -50,6 +51,7 @@ class TokenAnnotation(BaseModel):
     level_id: int | None = None
     match_type: str | None = None  # "exact", "form", "conjugation", "prefix"
     is_space: bool = False
+    dictionary_url: str | None = None  # link to external dictionary
 
 
 class AnalyzeResponse(BaseModel):
@@ -96,6 +98,8 @@ async def analyze_text(
 
         if annotation:
             known_count += 1
+            dict_word = annotation.get("hebrew", clean)
+            annotation["dictionary_url"] = _dictionary_url(dict_word, annotation.get("pos"))
             tokens.append(TokenAnnotation(
                 token=raw,
                 clean=clean,
@@ -112,6 +116,16 @@ async def analyze_text(
             "total_words": total_words,
         },
     )
+
+
+def _dictionary_url(hebrew: str, pos: str | None = None) -> str:
+    """Build a link to an external Hebrew dictionary for this word.
+    Verbs → Pealim (conjugation tables), other words → Milog (definitions).
+    """
+    encoded = quote(hebrew)
+    if pos == "verb":
+        return f"https://www.pealim.com/search/?q={encoded}"
+    return f"https://milog.co.il/{encoded}"
 
 
 def _match_stem(stem: str, cache: dict) -> dict | None:

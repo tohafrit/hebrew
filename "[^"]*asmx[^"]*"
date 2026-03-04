@@ -1,0 +1,3764 @@
+
+
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="he" lang="he" dir="rtl">
+<head><title>
+	מפעל המילון ההיסטורי
+</title><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><link href="/Pages/css/sederCss?v=nSmW1FSokSwxcs48YlHaQt-e-Rz31TVE-NQqHlb6t0Q1" rel="stylesheet"/>
+
+		<link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
+
+		<!--[if IE]>
+        <link rel="stylesheet" type="text/css" href="css/ie.css" />
+    <![endif]-->
+
+		<script src="/Pages/js/sederJsLib?v=9eFdDATfr-jRKKxg9rIpMSMOnKsdmVvmu6FtBWUYg4c1"></script>
+
+    
+    
+
+	<script src="https://www.paypal.com/sdk/js?client-id=AUEzh76V_s9kGFcObxoQENznVSGsnMZZkSl6iA_yDFylcVqom4F1ZGAphTIujSCcQBnPzgiUncygXmh6&currency=ILS"></script>
+
+	
+	<script type="text/javascript" src="https://accessible.vagas.co.il/a/maagarim.hebrew-academy/accessibility.js"></script>
+	<link rel="stylesheet" href="https://accessible.vagas.co.il/a/maagarim.hebrew-academy/accessibility.css" />
+
+	
+
+	<script type="text/javascript">
+		//fixes a visual bug in chrome 77 
+		//24/09/19 Iddo Ziv
+		//It hides and shows very fast an element to force redrew
+		$(function () {
+			$("#schEssayline1").addClass("hidden");
+			setTimeout(function () {
+				$("#schEssayline1").removeClass("hidden");
+			}, 1);
+		});
+
+
+
+		var seriesSuga1, seriesSuga2;
+		var seriesTkufa1, seriesTkufa2;
+
+		function renderCharts() {
+			var rows1, rows2;
+			if ($("#lnkChangeStatSug").html().indexOf("תקופה") != -1) {
+				$("#lnkChangeStatSug").html("להצגת סטטיסטיקה לפי סוגה");
+				$("#h4StatTitle").html("סטטיסטיקה לפי תקופה");
+				$("#srOccOvStatByTitle").html('שכיחות המילה ביחס לכלל המילים בתקופה');
+				rows1 = seriesTkufa1;
+				rows2 = seriesTkufa2;
+			}
+			else {
+				$("#lnkChangeStatSug").html("להצגת סטטיסטיקה לפי תקופה");
+				$("#h4StatTitle").html("סטטיסטיקה לפי סוגה");
+				$("#srOccOvStatByTitle").html('שכיחות המילה ביחס לכלל המילים בסוגה');
+				rows1 = seriesSuga1;
+				rows2 = seriesSuga2;
+			}
+
+			new CanvasJS.Chart('divRelStat',
+				{
+					axisY: {
+						interval: 0.01,
+						minimum: 0,
+						labelFontSize: 12
+					},
+					axisX: {
+						labelAngle: -50,
+						labelFontSize: 12,
+						interval: 1
+					},
+					data: [
+						{
+							type: "column",
+							dataPoints: rows1
+						}
+					]
+				}).render();
+
+			new CanvasJS.Chart('divStat',
+				{
+					data: [
+						{
+							indexLabel: " ",
+							indexLabelPlacement: "inside",
+							type: "pie",
+							dataPoints: rows2
+						}
+					]
+				}).render();
+		}
+
+		function GetStats(calcerech, koderech) {
+			//return false;
+			var prm = new Object();
+			prm.koderech = koderech;
+
+			var pushstate_prm = new Object();
+			pushstate_prm.koderech = koderech;
+			pushstate_prm.calcerech = calcerech;
+
+			document.title = "סטטיסטיקה - " + calcerech + " | מפעל המילון ההיסטורי";
+			if (GetStats.caller.name == "onclick") {
+				var url = window.location.href;
+				history.pushState(pushstate_prm, "סטטיסטיקה", url.substring(0, url.lastIndexOf("?")));
+			}
+
+
+			$.ajax({
+				type: "POST",
+				url: "ws/Arachim.asmx/GetStats",
+				data: JSON.stringify(prm),
+				dataType: "json",
+				contentType: "application/json; charset=utf-8",
+				success: function (data) {
+					seriesSuga1 = JSON.parse(data.d).sugaRelative;
+					seriesSuga2 = JSON.parse(data.d).suga;
+					seriesTkufa1 = JSON.parse(data.d).tkufaRelative;
+					seriesTkufa2 = JSON.parse(data.d).tkufa;
+
+					$("#h3Occur").html(calcerech);
+					//$("#lnkStatTkufa").unbind();
+					$("#srOccurOverlay").overlay({
+						mask: {
+							color: '#000',
+							loadSpeed: 200,
+							opacity: 0.8
+						},
+						closeOnClick: false,
+						onLoad: function () {
+							centerOverlay('#srOccurOverlay');
+						}
+					});
+					$("#srOccurOverlay").overlay().load();
+					if ($("#srOccurOverlay").css('display') == 'none')
+						$("#srOccurOverlay").css('display', 'block');
+					renderCharts();
+				},
+				error: function (request, status, error) {
+					console.log("1-error " + request.responseText + error);
+				},
+				async: true
+			});
+		}
+		function ClearWordPattern() {
+			var ind = 10;
+			for (ind = 10; ind > 0; ind--) {
+				var tb;
+				if (ind < 10)
+					tb = document.getElementById('wdPattent0' + ind);
+				else
+					tb = document.getElementById('wdPattent' + ind);
+				tb.value = '';
+			}
+			document.getElementById('wdPattent01').focus();
+			acadActiveElement = document.getElementById('wdPattent01');
+		}
+
+		function ClearErechPattern() {
+			var ind = 10;
+			for (ind = 10; ind > 0; ind--) {
+				var tb;
+				if (ind < 10)
+					tb = document.getElementById('wdCrossAll0' + ind);
+				else
+					tb = document.getElementById('wdCrossAll' + ind);
+				tb.value = '';
+				$(tb).removeClass('wildcard');
+			}
+			document.getElementById('wdCrossAll01').focus();
+			acadActiveElement = document.getElementById('wdCrossAll01');
+		}
+
+		function ClearTevaPattern() {
+			var ind = 10;
+			for (ind = 10; ind > 0; ind--) {
+				var tb;
+				if (ind < 10)
+					tb = document.getElementById('wdCrossAll0' + ind + 't');
+				else
+					tb = document.getElementById('wdCrossAll' + ind + 't');
+				tb.value = '';
+				$(tb).removeClass('wildcard');
+			}
+			document.getElementById('wdCrossAll01t').focus();
+			acadActiveElement = document.getElementById('wdCrossAll01t');
+		}
+
+		function reSort(sort) {
+			document.getElementById('ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdSort').value = sort;
+			var wordToSearch = document.getElementById("wordInput").value;
+			var arachim = document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdArachim").value;
+			var zurot = document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdZurot").value;
+			var sort = document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdSort").value;
+			//***ASPxSearchWordCallback.PerformCallback(wordToSearch);
+			var mode = $("#searchBy").val();
+			var misRcivim = 0;
+			for (var i = 1; i < 7; i++) {
+				if (document.getElementById("hdRciv" + i).value != "")
+					misRcivim++;
+			}
+			var strUrl = "ws/Arachim.asmx/SearchMila?mode=" + mode + "&wordToSearch=" + wordToSearch + "&arachim=" + arachim +
+				"&zurot=" + zurot + "&sort=" + sort + "&misRcivim=" + misRcivim;
+			var strReturn = "&nbsp;$&nbsp;&&nbsp;";
+			if (xhr != null) {
+				openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.requestInProcess"));
+				return;
+			}
+			//document.getElementById("imgSearchWordLoading").style.display = "block";
+			openDataTransferOverlay();
+			xhr = jQuery.ajax({
+				url: encodeURI(strUrl),
+				success: function (data) {
+					xhr = null;
+					//document.getElementById("imgSearchWordLoading").style.display = "none";
+					closeDataTransferOverlay();
+					strReturn = data.documentElement.textContent;//.childNodes[0].nodeValue;
+					document.getElementById("divCrossSectionResults").innerHTML = "";
+					document.getElementById("divRootSearchResults").innerHTML = "";
+					document.getElementById("divSearchWordResultUnknown").innerHTML = strReturn.split("$")[0];
+					document.getElementById("divSearchWordResultUnanalized").innerHTML = strReturn.split("$")[1];
+					document.getElementById("divSearchWordResultArachim").innerHTML = strReturn.split("$")[2];
+					document.getElementById("wordSearch_word_result").style.display = "block";
+
+					titleTooltip();
+				},
+				async: true
+			});
+			return false;
+		}
+		function reSortHatach(sort) {
+			//alert(sort);
+			var misRcivim = 0;
+			//hdRciv1
+			for (var i = 1; i < 7; i++) {
+				if (document.getElementById("hdRciv" + i).value != "")
+					misRcivim++;
+			}
+			var mode = $("#searchBy").val();
+			var strUrl = "ws/Arachim.asmx/HipusHatach?mode=" + mode + "&menukad=" +
+				document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value +
+				"&zura=" + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura").value +
+				"&kodim=" + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value +
+				"&zman=" + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZman").value +
+				"&sugerech=" + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value +
+				"&lfiKodim=" + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value +
+				"&sort=" + sort + "&misRcivim=" + misRcivim;
+			//alert(strUrl);
+			var strReturn = "";
+			if (xhr != null) {
+				openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.requestInProcess"));
+				return;
+			}
+			//document.getElementById("imgSearchWordLoading").style.display = "block";
+			openDataTransferOverlay();
+			xhr = jQuery.ajax({
+				url: encodeURI(strUrl),
+				success: function (data) {
+					xhr = null;
+					//document.getElementById("imgSearchWordLoading").style.display = "none";
+					closeDataTransferOverlay();
+					strReturn = data.documentElement.textContent;//.childNodes[0].nodeValue;
+					document.getElementById("wordSearch_word_result").style.display = "none";
+					document.getElementById("wordSearch_root_result").style.display = "none";
+					document.getElementById("wordSearch_crossSection_result").style.display = "block";
+					document.getElementById("wordSearch_teva_result").style.display = "none";
+
+					document.getElementById("divRootSearchResults").innerHTML = "";
+					document.getElementById("divSearchWordResultUnknown").innerHTML = "";
+					document.getElementById("divSearchWordResultUnanalized").innerHTML = "";
+					document.getElementById("divSearchWordResultArachim").innerHTML = "";
+					document.getElementById("divCrossSectionResults").innerHTML = strReturn.split("$")[2];
+					document.getElementById("divCrossSectionResultsUnregsitered").innerHTML = strReturn.split("$")[0];
+					document.getElementById("divCrossSectionResultsUnknown").innerHTML = strReturn.split("$")[1];
+				}
+			});
+			return false;
+		}
+
+		function GetHatacSql(sug) {
+			var binyan = document.getElementById("selBinyan").options[document.getElementById("selBinyan").selectedIndex].value;
+			var zman = document.getElementById("selZman").options[document.getElementById("selZman").selectedIndex].value;
+			var sbinyan = document.getElementById("selBinyan").options[document.getElementById("selBinyan").selectedIndex].toString();
+			if (zman == "-1") {
+				zman = "0";
+			}
+			var reshima = document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].value;
+			var zura = '';
+			$("#tabHatac li.schCrossPtrnField input").each(function () { zura += changeMemToKav(this); });
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura").value = zura;
+			var menukad = '';
+			$("#tabHatac li.schCrossAllField input").each(function () {
+				if (this.style.visibility === "hidden") return false;
+				menukad += changeMemToKav(this);
+			});
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value = menukad;
+			var s = document.getElementById("crossWithInput").value;
+			if (s == "wordSearch_crossSection_verb")
+				document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value = "1";
+		else if (s == "wordSearch_crossSection_nonVerb") {
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value = "2";
+			zman = "0";
+		}
+		else {
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value = "0";
+				zman = "0";
+			}
+			if (s == "wordSearch_crossSection_verb")
+				document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value = binyan;
+	else if (s == "wordSearch_crossSection_nonVerb")
+		document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value = reshima;
+	else
+		document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value = "";
+			if (document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value != "1") {
+				document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZman").value = "0";
+	}
+	else {
+		document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZman").value = zman;
+			}
+			if (
+				(s == "wordSearch_crossSection_verb"
+					&& document.getElementById("selBinyan").selectedIndex == 0
+				)
+				||
+				(s == "wordSearch_crossSection_nonVerb"
+					&& document.getElementById("selReshima").selectedIndex == 0)
+				||
+				(s == "wordSearch_crossSection_all")
+			) {
+				document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value = "0";
+	}
+	else {
+		if (s == "wordSearch_crossSection_verb" || document.getElementById('schGCrossGroup1').checked)
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value = "1";
+		else
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value = "2";
+			}
+			if (!document.getElementById('cbSpecialLists').checked && s == "wordSearch_crossSection_nonVerb")
+				document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value = "0";
+			var sugerech = document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value;
+			var lfiKodim = document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value;
+			if (menukad == "" && zura == "") {
+				if ((sugerech == "1" && (lfiKodim != "0" || zman != "0"))
+					||
+					(sugerech == "2" && lfiKodim != "0")) {
+					menukad = "*";
+				}
+				else {
+					openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.chooseCrosssection"));
+					return;
+				}
+			}
+
+			var isSchenut = $("#searchBy").val() == "wordSearch_proximity";
+
+			//Maagar_Pck.GET_SQL_HATAC('#menukad','#zura','#kodim',#zman,'#tnai',#sugerech,#lfi_kodim,1)
+			var sql = "";
+			if (sug != 2) {
+				sql = "Maagar_Pck.GET_SQL_HATAC(";
+			}
+			else {
+				sql = "Maagar_Pck.GET_SQL_HATAC_ZRF_NOT(";
+			}
+			sql += "''" + menukad.replace("'", "''''") + "'',";
+			sql += "''" + zura.replace("'", "''''") + "'',";
+			sql += "''" + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value + "'',";
+			sql += document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZman").value + ",";
+			if (isSchenut) {
+				sql += "''#sinun#'',";
+			} else {
+				sql += "'' '',";
+			}
+			sql += document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value + ",";
+			sql += document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value;
+			if (sug != 2) {
+				sql += ",1)";
+			}
+			else {
+				sql += ")";
+			}
+			return sql;
+		}
+
+		/*neighbors.js*/
+		function GetHatacKoteret(sug) {
+			var zura = '';
+			$("#tabHatac li.schCrossPtrnField input").each(function () { zura += changeMemToKav(this); });
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura").value = zura;
+
+		//hMenukad: erec. im suger = lo poal, erec yachol lihyot menukad
+		var menukad = '';
+		$("#tabHatac li.schCrossAllField input").each(function () {
+			if (this.style.visibility === "hidden") return false;
+			menukad += changeMemToKav(this);
+		});
+		document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value = menukad;
+
+		var HatacText = "";
+		var HatacTextMale = "";
+		if (document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura").value != "") {
+			// zura
+			HatacText = "<b>" + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura").value + " -</b>";
+			HatacTextMale = document.getElementById('lblTavnitMila').innerHTML + ": <b>" +
+				document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura").value + "</b>,";
+		}
+		if (document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value == "1") {
+			//poal
+			if (document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value != "") {
+				HatacTextMale += " " + document.getElementById('lblErechShoresh').innerHTML + ": <b>" +
+					document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value + "</b>,";
+				if (HatacText == "")
+					HatacText = "<b>" +
+						document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value +
+						"</b>,";
+				else
+					HatacText += " " + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value + ",";
+			}
+			if (document.getElementById("selBinyan").selectedIndex != 0) {
+				HatacTextMale += " " + document.getElementById("lblKotBinyan").innerHTML + ": <b>" +
+					document.getElementById("selBinyan").options[document.getElementById("selBinyan").selectedIndex].text + "</b>,";
+				if (HatacText == "")
+					HatacText = "<b>" +
+						document.getElementById("selBinyan").options[document.getElementById("selBinyan").selectedIndex].text +
+						"</b>,";
+				else
+					HatacText += " " + document.getElementById("selBinyan").options[document.getElementById("selBinyan").selectedIndex].text + ",";
+			}
+			if (document.getElementById("selZman").selectedIndex != 0) {
+				HatacTextMale += " " + document.getElementById("lblKotZman").innerHTML + ": <b>" +
+					document.getElementById("selZman").options[document.getElementById("selZman").selectedIndex].text + "</b>,";
+				if (HatacText == "")
+					HatacText = "<b>" +
+						document.getElementById("selZman").options[document.getElementById("selZman").selectedIndex].text +
+						"</b>,";
+				else
+					HatacText += " " + document.getElementById("selZman").options[document.getElementById("selZman").selectedIndex].text + ",";
+			}
+			if (document.getElementById("selBinyan").selectedIndex == 0 &&
+				document.getElementById("selZman").selectedIndex == 0) {
+				HatacTextMale += " " + document.getElementById("lblSugErec").innerHTML + ": <b>" +
+					document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text + "</b>,";
+				if (HatacText == "")
+					HatacText = "<b>" +
+						document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text +
+						"</b>,";
+				else
+					HatacText += " " + document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text + ",";
+			}
+		}
+		else if (document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value == "2") {
+			// lo poal
+			if (document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value != "") {
+				HatacTextMale += " " + document.getElementById('lblErechShoresh').innerHTML + ": <b>" +
+					document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value + "</b>,";
+				if (HatacText == "")
+					HatacText = "<b>" +
+						document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value +
+						"</b>,";
+				else
+					HatacText += " " + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value + ",";
+			}
+			if (document.getElementById('cbSpecialLists').checked) {
+				if (document.getElementById("schGCrossGroup1").checked) {
+					HatacTextMale += " רשימה: <b>" + document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].text.replace('---', '') + "</b>,";
+					if (HatacText == "")
+						HatacText = "<b>" +
+							document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].text.replace('---', '') +
+							"</b>,";
+					else
+						HatacText += " " + document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].text.replace('---', '') + ",";
+				}
+				if (document.getElementById("schGCrossGroup2").checked) {
+					HatacTextMale += " חוץ מרשימה: <b>" + document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].text.replace('---', '') + "</b>,";
+					if (HatacText == "")
+						HatacText = "<b>חוץ מ: " +
+							document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].text.replace('---', '') +
+							"</b>,";
+					else
+						HatacText += " חוץ מ: " + document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].text.replace('---', '') + ",";
+				}
+			}
+			if (!document.getElementById('cbSpecialLists').checked) {
+				HatacTextMale += " " + document.getElementById("lblSugErec").innerHTML + ": <b>" +
+					document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text + "</b>,";
+				if (HatacText == "")
+					HatacText = "<b>" +
+						document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text +
+						"</b>,";
+				else
+					HatacText += " " + document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text + ",";
+			}
+		}
+		else {
+			// hakol
+			if (document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value != "") {
+				HatacTextMale += " " + document.getElementById('lblErechShoresh').innerHTML + ": <b>" +
+					document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value + "</b>,";
+				if (HatacText == "")
+					HatacText = "<b>" +
+						document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value +
+						"</b>,";
+				else
+					HatacText += " " + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value + ",";
+				}
+				HatacTextMale += " " + document.getElementById("lblSugErec").innerHTML + ": <b>" +
+					document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text + "</b>,";
+				if (HatacText == "")
+					HatacText = "<b>" +
+						document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text +
+						"</b>,";
+				else
+					HatacText += " " + document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text + ",";
+
+			}
+			HatacText = "חתך: " + HatacText.substr(0, HatacText.length - 1);
+			HatacTextMale = "חתך: " + HatacTextMale.substr(0, HatacTextMale.length - 1);
+			if (sug == "1")
+				return HatacText;
+			else
+				return HatacTextMale;
+		}
+
+	</script>
+
+<script src="/Pages/js/sederJsCustom?v=_ZK_JE1kHa9pQ5rTBH97BF7lsNwJHi06A10FPr39FZ01"></script>
+
+		<script type="text/javascript">
+
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-17356850-3']);
+			_gaq.push(['_trackPageview']);
+
+			(function () {
+				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			})();
+
+		</script>
+		</head>
+<body id="ctl00_ctl00_mybody">
+	<!--[if lt IE 9]>
+<script>alert('הנך משתמש בדפדפן מיושן או במצב תאימות ו"מאגרים" לא יפעל בו כהלכה. מומלץ לגלוש מדפדפן מעודכן יותר ולבטל מצב תאימות.');</script>
+<![endif]-->
+	<form name="aspnetForm" method="post" action="./PMain.aspx" id="aspnetForm">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJOTY0MjkxNTI1D2QWAmYPZBYCZg9kFgICAw9kFgICAQ9kFgYCAw8WAh4HVmlzaWJsZWgWAgIBDxYCHglpbm5lcmh0bWxlZAIGDxYCHwBoZAIHD2QWAmYPZBYGAgEPFgIfAQWeGjxzZWxlY3QgaWQ9J3NlbEJpbnlhbic+PG9wdGlvbiB2YWx1ZT0nLTEnPi0tLdeb15wg15TXkdeg15nXmdeg15nXnS0tLTwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzEnPten15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPScyJz7XoNek16LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzMnPtek15nXotecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNCc+16TXlda816LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzUnPteU16rXpNei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc2Jz7XlNek16LXmdecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNyc+15TXldek16LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzgnPtek15XXnNa115w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc5Jz7XpNeV15zWt9ecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMTAnPteU16rXpNeV15zXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzExJz7Xkdeg15nXmdefINeX16jXmdeSPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMjAnPteR16DXmdeZ158g15zXkCDXmdeT15XXojwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzIxJz7Xp9ecL9eg16TXotecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMjInPten15wv16TXmdei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPScyMyc+16fXnC/XpNeV1rzXotecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMjQnPten15wv15TXqtek16LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzI1Jz7Xp9ecL9eU16TXoteZ15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPScyNic+16fXnC/XlNeV16TXotecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMjcnPten15wv16TXldec1rXXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzI4Jz7Xp9ecL9ek15XXnNa315w8L29wdGlvbj48b3B0aW9uIHZhbHVlPScyOSc+16fXnC/XlNeq16TXldec15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSczMCc+16DXpNei15wv16TXmdei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSczMSc+16DXpNei15wv16TXlda816LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzMyJz7XoNek16LXnC/XlNeq16TXotecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMzMnPteg16TXotecL9eU16TXoteZ15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSczNCc+16DXpNei15wv15TXldek16LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzM1Jz7XoNek16LXnC/XpNeV15zWtdecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMzYnPteg16TXotecL9ek15XXnNa315w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSczNyc+16DXpNei15wv15TXqtek15XXnNecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMzgnPtek15nXotecL9ek15XWvNei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSczOSc+16TXmdei15wv15TXqtek16LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzQwJz7XpNeZ16LXnC/XlNek16LXmdecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNDEnPtek15nXotecL9eU15XXpNei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc0Mic+16TXmdei15wv16TXldec1rXXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzQzJz7XpNeZ16LXnC/XpNeV15zWt9ecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNDQnPtek15nXotecL9eU16rXpNeV15zXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzQ1Jz7XpNeV1rzXotecL9eU16rXpNei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc0Nic+16TXlda816LXnC/XlNek16LXmdecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNDcnPtek15XWvNei15wv15TXldek16LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzQ4Jz7XpNeV1rzXotecL9ek15XXnNa115w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc0OSc+16TXlda816LXnC/XpNeV15zWt9ecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNTAnPtek15XWvNei15wv15TXqtek15XXnNecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNTEnPteU16rXpNei15wv15TXpNei15nXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzUyJz7XlNeq16TXotecL9eU15XXpNei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc1Myc+15TXqtek16LXnC/XpNeV15zWtdecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNTQnPteU16rXpNei15wv16TXldec1rfXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzU1Jz7XlNeq16TXotecL9eU16rXpNeV15zXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzU2Jz7XlNek16LXmdecL9eU15XXpNei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc1Nyc+15TXpNei15nXnC/XpNeV15zWtdecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNTgnPteU16TXoteZ15wv16TXldec1rfXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzU5Jz7XlNek16LXmdecL9eU16rXpNeV15zXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzYwJz7XlNeV16TXotecL9ek15XXnNa115w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc2MSc+15TXldek16LXnC/XpNeV15zWt9ecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNjInPteU15XXpNei15wv15TXqtek15XXnNecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNjMnPtek15XXnNa115wv16TXldec1rfXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzY0Jz7XpNeV15zWtdecL9eU16rXpNeV15zXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzY1Jz7XpNeV15zWt9ecL9eU16rXpNeV15zXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzY2Jz7Xkdeg15nXmdefINeX16jXmdeSL9en15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc2Nyc+15HXoNeZ15nXnyDXl9eo15nXki/XoNek16LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzY4Jz7Xkdeg15nXmdefINeX16jXmdeSL9ek15nXotecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNjknPteR16DXmdeZ158g15fXqNeZ15Iv16TXlda816LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzcwJz7Xkdeg15nXmdefINeX16jXmdeSL9eU16rXpNei15w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc3MSc+15HXoNeZ15nXnyDXl9eo15nXki/XlNek16LXmdecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNzInPteR16DXmdeZ158g15fXqNeZ15Iv15TXldek16LXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzczJz7Xkdeg15nXmdefINeX16jXmdeSL9ek15XXnNa115w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc3NCc+15HXoNeZ15nXnyDXl9eo15nXki/XpNeV15zWt9ecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNzUnPteR16DXmdeZ158g15fXqNeZ15Iv15TXqtek15XXnNecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nNzYnPtek15XWvNei15wv16HXkdeZ15wg16fXnDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9Jzc3Jz7XlNeV16TXotecL9eh15HXmdecINen15w8L29wdGlvbj48L3NlbGVjdD5kAgIPFgIfAQX7BTxzZWxlY3QgaWQ9J3NlbFptYW4nPjxvcHRpb24gdmFsdWU9Jy0xJz4tLS3Xm9ecINeU15bXnteg15nXnS0tLTwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzEnPtei15HXqDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzInPtei16rXmdeTPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMyc+16bXmdeV15XXmTwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzQnPteR15nXoNeV16DXmTwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzUnPteR15nXoNeV16DXmSDXpNa81rjXota115w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc2Jz7XkdeZ16DXldeg15kg16TWvNa416LXlda815w8L29wdGlvbj48b3B0aW9uIHZhbHVlPSc3Jz7Xnten15XXqDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzIwJz7Xltee158g15zXkCDXmdeT15XXojwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzIxJz7XoteR16gv16LXqteZ15M8L29wdGlvbj48b3B0aW9uIHZhbHVlPScyMic+16LXkdeoL9eR15nXoNeV16DXmTwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzIzJz7XpteZ15XXldeZL9ee16fXldeoPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMjQnPtei15HXqC/XkdeZ16DXldeg15kg16TWvNa416LWtdecPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMjUnPteR15nXoNeV16DXmSDXpNa81rjXoteV1rzXnC/Xnten15XXqDwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzI2Jz7XoteR16gv157Xp9eV16g8L29wdGlvbj48b3B0aW9uIHZhbHVlPScyNyc+16LXkdeoL9em15nXldeV15k8L29wdGlvbj48L3NlbGVjdD5kAgMPFgIfAQXqDTxzZWxlY3QgaWQ9J3NlbFJlc2hpbWEnPjxvcHRpb24gdmFsdWU9JzAxLDAyLDAzLDA0LDA1LDA2LDA3LDA4LDA5LDEwLDExLDEyLDEzLDE0LDE1LDE2LDE3LDIwLDIxLDIyLDIzJz4tLS3Xm9ecINeU16jXqdeZ157XldeqPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMDIsMDMsMDQsMDksMTcnIHN0eWxlPSdjb2xvcjpSZWQnPtep157XldeqINek16jXmNeZ15nXnTwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzAyJz4tLS3Xqdee15XXqiDXpNeo15jXmdeZ1508L29wdGlvbj48b3B0aW9uIHZhbHVlPScwMyc+LS0t16nXnteV16og157Xp9eV157XldeqPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMDQnPi0tLdep157XldeqINeZ15nXl9eV16E8L29wdGlvbj48b3B0aW9uIHZhbHVlPScwOSc+LS0t16nXnteV16og15fXmdeR15XXqNeZ1508L29wdGlvbj48b3B0aW9uIHZhbHVlPScxNyc+LS0t16nXnteV16og15fXkdeo15XXqiDXkNeVINee15XXodeT15XXqjwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzIzLDAxLDA2LDEzLDE0LDE1JyBzdHlsZT0nY29sb3I6UmVkJz7XpteZ16jXldek15kg15DXldeq15nXldeqPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMjMnPi0tLdem15nXqNeV16Mg15DXldeq15nXldeqPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMDEnPi0tLdee15nXnNeZ150g157XkNeS15nXldeqINeQ15Ug157XnNeQ15vXldeq15nXldeqPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMDYnPi0tLden15nXpteV16jXmdedINeV16jXkNep15kg16rXmdeR15XXqjwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzEzJz4tLS3XqteZ15HXldeqINep15DXmdeg158g157Xmdec15nXnTwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzE0Jz4tLS3XodeV16TXmdeV16og15PXp9eT15XXp9eZ15XXqjwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzE1Jz4tLS3XqteX15nXnNeZ15XXqiDXk9en15PXlden15nXldeqPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMDcsMDgsMTEsMTIsMTYnIHN0eWxlPSdjb2xvcjpSZWQnPtee15nXnNeZ150g15bXqNeV16o8L29wdGlvbj48b3B0aW9uIHZhbHVlPScwNyc+LS0t157Xmdec15nXnSDXntec16nXldeg15XXqiDXkNeZ16jXldek15Q8L29wdGlvbj48b3B0aW9uIHZhbHVlPScwOCc+LS0t157Xmdec15nXnSDXkNeo157XmdeV16og15TXoNeq15XXoNeV16og15HXlNen16nXqCDXoteR16jXmTwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzEyJz4tLS3XnteZ15zXmdedINei16jXkdeZ15XXqiwg15jXldeo16fXmdeV16og15DXlSDXpNeo16HXmdeV16o8L29wdGlvbj48b3B0aW9uIHZhbHVlPScxNic+LS0t157Xmdec15nXnSDXoteR16jXmdeV16og16LXnCDXk9eo15og15TXmdeZ15PXmdepPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMTEnPi0tLdee15nXnNeZ150g15bXqNeV16og15DXl9eo15XXqjwvb3B0aW9uPjxvcHRpb24gdmFsdWU9JzA1JyBzdHlsZT0nY29sb3I6UmVkJz7Xqdee15XXqiDXlNee16HXpNeoPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMTAnIHN0eWxlPSdjb2xvcjpSZWQnPtem15nXqNeV16TXmSDXnteZ15zXmdedPC9vcHRpb24+PG9wdGlvbiB2YWx1ZT0nMjAnIHN0eWxlPSdjb2xvcjpSZWQnPtee15nXnNeZ150g157Xqdee15XXqiDXpNeo15jXmdeZ1508L29wdGlvbj48b3B0aW9uIHZhbHVlPScyMScgc3R5bGU9J2NvbG9yOlJlZCc+15vXmdeg15XXmdeZ1508L29wdGlvbj48b3B0aW9uIHZhbHVlPScyMicgc3R5bGU9J2NvbG9yOlJlZCc+157Xmdec15XXqiDXqdeQ15zXlDwvb3B0aW9uPjwvc2VsZWN0PmRkEkunRcDhvOuA3zX/xlVugQkdCCMQGDrFXfDNfcK3JyU=" />
+
+
+<script src="/ScriptResource.axd?d=fRIBIRg9NbbwipDj74jKqX-dy0SyeKVc6fiNhg9p1nVaF8rDYW2JtdceChagGbwV2cK2s4pTuqcnsnx5kMbY5dF8mAlh5ER3jfPCaZmjP8Rigdl_ZTuKUB8Ezk8EuGFv3Pb_kNW84pHfRZA9IBwQYHdyokE8cpYCPrtSfZBL9fE1&amp;t=49337fe8" type="text/javascript"></script>
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="B70D2D76" />
+<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAAwit0fQWzbHNfJepXdvd6hYalWW/LMgmJUT43gPXWWcmWrLSh63IbdLguBnlmYZHVg6ikcKx+FPz1Yhh4wm3bdjbg8xR6d3BuHacaahCq/GFc58ebJtRWb7byhPhWZ7NWjJ4wc5rKdpOHbOZ+6+b8rvd4TtEGxWE5oeMq3bQYVnc28IxilFoTl9N7C4f/UfrAaKR6CuLzt3NY+yiH6dwSHtQ2PVLFgp3J8PaGMBlbNDrjMvPCO/lvK+dUfgT+QhHIXEw3dIxaI1yOQmIk0a1KV/jfiqGPJN/uqRfzi3EvbnpA==" />
+		<input type="submit" name="ctl00$ctl00$btnDisableEnter" value="" onclick="return false;" id="ctl00_ctl00_btnDisableEnter" style="display: none;" />
+		
+
+		<div id="wrapper">
+
+			<div class="header">
+				
+<div class="logos" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; width: 100%; margin: auto; ">
+    
+
+    <a href="PMain.aspx" style="flex-shrink: 0;">
+        <img src="images/maagarimLogo.png" alt="מאגרים" width="246" height="72" class="maagarimLogo" />
+    </a>
+
+    <div class="logos1">
+
+        <div class="fms" style="text-align: center;">
+            <a target="_blank" href="https://www.fondationshoah.org/en">
+                <img class="fms" src="images/logo FMS.jpg" style="width: 13mm; height: 13mm;"/>
+            </a>
+				<p class="textlogo" style="width: 213px; line-height: 100%; font-size: 14px; margin: 0;">בסיוע הקרן לזיכרון השואה בשנים 2025-2024</p>
+
+        </div>
+        <div class="logoPais">
+            <img src="images/Pais-logo.png" class="pais" />
+            <p class="textlogo" style="width: 213px; line-height: 100%; font-size: 14px; margin: 0;">בסיוע מועצת הפיס לתרבות ולאמנות בשנים 2022-2021</p>
+        </div>
+        <div class="kreditdiv" style="display: flex; gap: 10px; align-items: center;">
+            <img src="images/misradLogo.png" class="kredit" />
+            <img src="images/landmarks_logo.png" class="kredit" />
+            <p class="textlogo" style="width: 162px; line-height: 100%; font-size: 14px; margin: 0;">בתמיכת תוכנית מורשת בשנים 2016-2014</p>
+        </div>
+    </div>
+
+    <a target="_blank" href="http://hebrew-academy.org.il" style="flex-shrink: 0;">
+        <img src="images/academyLogo.png" alt="האקדמיה ללשון עברית" width="490" height="63" class="academyLogo" />
+    </a>
+    <span id="ctl00_ctl00_spanBeta" style="font-size: xx-large; display: none; text-align: center; width: 100%;">גרסת הרצה</span>
+</div>
+
+				<div id="divHeader" class="headerControls">
+					<script type="text/javascript">
+						var pannelCache = {};
+						//load panel (popup)
+						function loadPannel(panel, page, focusId) {
+							if (!pannelCache[page]) {
+								pannelCache[page] = $.get(page);
+							}
+							$.when(pannelCache[page]).then(function (data) {
+								var $panel = $(panel);
+								if ($panel.html() !== $("<span>").html(data).html()) {
+									if ($panel.is(":visible")) {
+										$panel.slideUp(200, function () {
+											$panel.html(data);
+											//translate text
+											$panel.i18n();
+											adjustPannelButtons();
+										});
+									} else {
+										$panel.html(data);
+										//translate text
+										$panel.i18n();
+										adjustPannelButtons();
+									}
+								}
+								$panel.slideToggle(300, function () { if (focusId) document.getElementById(focusId).focus(); });
+							});
+						}
+
+						$(document).ready(function () {
+							//helpTooltip();
+							handlePermission(adjustPannelButtons);
+						});
+
+						function handlePermission(callback) {
+							$.ajax({
+								type: "POST",
+								url: "ws/Arachim.asmx/IsUserRegistered",
+								data: "{}",
+								dataType: "json",
+								contentType: "application/json; charset=utf-8",
+								success: function (data) {
+									var registered = data.d;
+
+									if (!registered) {
+
+										$('.esScanLinkReport a').attr('onclick', 'openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.feedbackDisabled"));');
+									} /*else {
+                    feedback.removeAttr('ttlid');
+                }*/
+
+									if (callback) {
+										titleTooltip(callback);
+									}
+								},
+								error: function (request, status, error) {
+								},
+								async: true
+							});
+						}
+					</script>
+					<div id="loginPannel" class="loginControls">
+						
+						<div id="ctl00_ctl00_divUnknownUser">
+							<ul class="loginList">
+								<li class="ctrl log">
+									<a onclick="loadPannel('#registrationPannel','PUserLogin.html', 'lblUserName');" data-i18n="divs.login"></a>
+								</li>
+								<li class="ctrl reg">
+									<a onclick="loadPannel('#registrationPannel','PLoginRegister.html','txtUserName');" data-i18n="divs.signup"></a>
+								</li>
+								<li class="ctrl why">
+									<a onclick="loadPannel('#registrationPannel','PLoginWhySignup.html');" data-i18n="divs.whySignup"></a>
+								</li>
+							</ul>
+							<script type="text/javascript">
+								renderSchOverlay('#divHeader');
+							</script>
+						</div>
+					</div>
+
+
+					<ul class="controls">
+						<li id="ctl00_ctl00_lnkNewDisplayHatkana" class="ctrl language">
+							<input type="checkbox" id="cbNewView" onclick="toggleNewView();"  />
+							<label for="cbNewView" data-i18n="divs.newDisplayHatkana"></label>
+						</li>
+						
+						<li class="ctrl help"><a target="_blank" href="http://daf.hebrew-academy.org.il/maagarim-help/" data-i18n="divs.help">עזרה</a></li>
+						<li class="ctrl language"><a data-i18n="divs.lang" onclick="switchLang(adjustPannelButtons);"></a></li>
+					</ul>
+				</div>
+			</div>
+			<div id="registrationPannel"></div>
+			<div class="content">
+				
+    <div id="screeningPannel" class="screening">
+        <h3><img src="images/screening/screeningTitle.png" alt="סינון" /></h3>
+        <div id="scrStatus" class="screeningInactive">
+            לא הוגדר סינון - חיפוש בכל המאגר
+        </div>
+        <ul class="scrToolBar">
+            <li class="scrToolBarSearch">
+                <a title="חיפוש מחדש" class="scrToolBarSearch" id="globalSearch" onclick="GeneralSearch();return false;" ttlid="hipusmhadash">חיפוש מחדש</a>
+            </li>
+            <li class="scrToolBarSaved"><a title="סינונים שמורים" class="scrToolBarSaved disabled" ttlid="sinunimshmurim">סינונים שמורים</a></li>
+            <li class="scrToolBarSaveThis"><a title="שמירת הסינון הנוכחי" class="scrToolBarSaveThis disabled" ttlid="shmiratsinun">שמירת הסינון הנוכחי</a></li>
+            <li class="scrToolBarHelp"><a title="עזרה" class="scrToolBarHelp disabled" ttlid="ezra">עזרה</a></li>
+            <li class="scrToolBarClear"><a title="ניקוי כללי" class="scrToolBarClear" ttlid="nikuyklali">ניקוי כללי</a></li>
+        </ul>
+
+        <div id="overlayScr1" class="overlaySearch">
+            <span class="ovPointer"></span>
+            <div class="ovContent shadow1">
+                הסינון השתנה.<br />
+                לסינון התוצאות לחצו כאן.
+                 <label class="optOut screeningback">
+                    <input type="checkbox" id="HideNipuyWarning"  />
+                    ביטול הצגת הודעה זו בעתיד
+                 </label>
+            </div>
+        </div>
+		<div id="scrClauses" class="scrClausesContainer">
+            <ul id="scrDate" class="scrClause scrDate inactive">
+                <li class="scrTitle">תקופה </li>
+                <li class="clearBtn"><a title="ניקוי" ttlid="nikuy">ניקוי</a></li>
+                <li class="textField scrDateFrom">
+                    <label>משנת 
+                        <input type="text" value="-300" style="direction: ltr; text-align: center" />
+                    </label>
+                </li>
+                <li class="textField scrDateTo">
+                    <label>עד שנת
+                        <input type="text" value="2000" style="direction: ltr; text-align: center" />
+                    </label>
+                </li>
+                <li class="scrDateScale">
+                    <a style="pointer-events:none;">בחירה</a>
+                </li>
+            </ul>
+            <ul id="scrGenre" class="scrClause inactive">
+                <li class="clearBtn"><a title="ניקוי" ttlid="nikuy">ניקוי</a></li>
+                <li class="doubleRadio scrRak">
+                    <fieldset>
+                        <label><input type="radio" name="genre" value="scrGenre1" checked="checked" /><span>רק הסוגה</span></label>
+                        <label><input type="radio" name="genre" value="scrGenre2" /><span>ללא הסוגה</span></label>
+                    </fieldset>
+                </li>
+                <li class="scrItems"><ul id="ulSugot">                        <li class="item add" style="display:none;">
+                            <a class="itemAction add" ttlid="hosafa">הוספה</a>
+                        </li></ul></li>
+                <li class="selectField scrGenreField">
+                    <select name="genreName" id="selSugot" onchange="SugaChanged(this);"></select>
+                </li>
+                <li class="selectField scrSubGenreField" style="display: none">
+                    <select name="subGenre" id="selSubSugot" onchange="SubSugaChanged(this);"></select>
+                </li>
+            </ul>
+            <ul id="scrAuthors" class="scrClause inactive">
+                <li class="clearBtn"><a title="ניקוי" ttlid="nikuy">ניקוי</a></li>
+                <li class="doubleRadio ">
+                    <fieldset>
+                        <label><input type="radio" name="authors" value="scrAuthors1" checked="checked" /><span>רק המחברים</span></label>
+                        <label><input type="radio" name="authors" value="scrAuthors2" /><span>ללא המחברים</span></label>
+                    </fieldset>
+                </li>
+                <li class="scrItems"><ul id="ulMehabrim">                        <li class="item add" style="display:none;">
+                            <a  class="itemAction add" ttlid="hosafa">הוספה</a>
+                        </li></ul></li>
+                <li class="textField scrAuthorField">
+                    <label for="tbMehaber2" class="inFieldValue">הקלדת המחבר</label>
+					<input  type="text" id="tbMehaber2" width="180px" style="margin-left: 28px"/>
+			<script>
+				
+
+  </script>
+                </li>
+            </ul>
+            <ul id="scrEssay" class="scrClause last inactive">
+                <li class="clearBtn"><a title="ניקוי" ttlid="nikuy">ניקוי</a></li>
+                <li class="doubleRadio ">
+                    <fieldset>
+                        <label><input type="radio" name="essay" value="scrEssay1" checked="checked" /><span>רק החיבורים</span></label>
+                        <label><input type="radio" name="essay" value="scrEssay2" /><span>ללא החיבורים</span></label>
+                    </fieldset>
+                </li>
+                <li class="scrItems">
+                    <ul id="ulHiburim">
+                        <li class="item add" style="display:none;">
+                            <a class="itemAction add" ttlid="hosafa">הוספה</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="textField scrEssayField">
+                    <label for="tbHibur2" class="inFieldValue">הקלדת שם חיבור</label>
+					<input  type="text" id="tbHibur2" width="180px" style="margin-left: 28px"/>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    
+	<script src="/Pages/js/mainJs?v=z2qI0_AqNLWvEs9D4nIPiQIPadhvJV6Xj4mPfKxh4Yg1"></script>
+
+
+	<div class="mainContentArea">
+
+		<div id="mainSearchPannel" class="mainSearchContent">
+			<!-- search tabs -->
+
+			<ul class="searchTabs">
+
+				<li class="wordsTab"><a href="#first" class="words" onclick="SwitchToWordsTab();">
+					<img src="images/search/wordsTitle.png" alt="מילים" /></a></li>
+
+				<li class="essaysTab"><a href="#second" class="essays" onclick="SwitchToEssaysTab();">
+					<img src="images/search/essaysTitle.png" alt="חיבורים" /></a></li>
+
+			</ul>
+
+
+
+			<!-- tab contents -->
+
+			<div class="searchPanes">
+
+				<div class="wordsSearchPane">
+
+					<ul class="searchPannelControls">
+
+						<li class="ctrl clearSearches" style="visibility: hidden"><a class="tooltipLeft" title="ניקוי" onclick="ClearWordSearchParameters();" ttlid="nikuy">ניקוי</a></li>
+
+						<li class="ctrl savedSearches"><a class="tooltipLeft disabled" title="חיפושים שמורים" ttlid="hipusimshmurim">חיפושים שמורים</a></li>
+
+						<li class="ctrl latestSearches"><a class="tooltipLeft disabled" title="חיפושים אחרונים" ttlid="hipusimachronim">חיפושים אחרונים</a></li>
+
+					</ul>
+
+
+
+					<div class="pannelSchSelection">
+
+						<label>חיפוש </label>
+
+						<select name="" id="searchBy">
+
+							<option value="wordSearch_word">מילה</option>
+
+							<option value="wordSearch_text">טקסט חופשי</option>
+
+							<option value="wordSearch_root">שורש</option>
+
+							<option value="wordSearch_combination">צירוף חכם</option>
+
+							<option value="wordSearch_crossSection">חתכים ותבניות</option>
+
+							<option value="wordSearch_proximity">שכנויות</option>
+
+							
+
+						</select>
+
+						<label id="lblSearchByLabel" style="visibility: hidden">ל </label>
+
+						<select id="selSearchBySelect" style="visibility: hidden; width: 60px" onchange="SelectChanged(this);">
+							<option selected value="wordSearch_word">מילה</option>
+							<option value="wordSearch_root">שורש</option>
+							<option value="wordSearch_crossSection">חתך</option>
+						</select>
+
+					</div>
+
+
+
+					<script type="text/javascript" charset="utf-8">
+						$("#searchBy").change(function () {
+							document.getElementById("welcomePar").style.display = "none";
+							var mode = $(this).val();
+							changeLfiSearchBy(mode);
+							titleTooltip();
+
+							if ($('#resultTabTitle').hasClass('tabTitleLogo')) {
+								$('#welcomePar').css('display', 'block');
+								$('#wordSearch_word_result').css('display', 'none');
+								$('#wordSearch_root_result').css('display', 'none');
+								$('#wordSearch_crossSection_result').css('display', 'none');
+								$('#wordSearch_teva_result').css('display', 'none');
+
+							}
+						});
+					</script>
+
+					<div id="searchOption" class="schOptionPannel wordSchOptionPannelGradient">
+						<script type="text/javascript" charset="utf-8">
+							fieldDefaultValue($('#searchOption label.inFieldValue'));
+						</script>
+						<div id="wordSearch_word" style="display: block">
+							<script type="text/javascript" charset="utf-8">
+								var resultAccordionMilaInitiliazed = false;
+								function SearchWord(callerName, mode, searchParameters, s, wordToSearch, arachim, zurot, sort, misRcivim) {
+									//CalculateActiveHiburim();
+									callerName = callerName || "";
+									var wordToSearch;
+									if (wordToSearch == null) {
+										wordToSearch = document.getElementById("wordInput").value;
+									}
+									else {
+										wordToSearch = wordToSearch;
+										document.getElementById("wordInput").value = wordToSearch;
+									}
+									var s = document.getElementById("wordValuesInput");
+									var searchParameters = searchParameters || s.options[s.selectedIndex].value;
+									//alert(wordToSearch + " " + searchParameters);
+									document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdArachim").value = searchParameters == "1" || searchParameters == "2" ? "True" : "False";
+									document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdZurot").value = searchParameters == "1" || searchParameters == "3" ? "True" : "False";
+									document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdWordToSearch").value = wordToSearch;
+									var arachim = arachim || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdArachim").value;
+									var zurot = zurot || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdZurot").value;
+									//            	var sort = sort || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdSort").value;
+									var sort = sort || "standart";
+									var misRcivim = misRcivim || 0;
+									//hdRciv1
+									for (var i = 1; i < 7; i++) {
+										if (document.getElementById("hdRciv" + i).value != "")
+											misRcivim++;
+									}
+									//***ASPxSearchWordCallback.PerformCallback(wordToSearch);
+									var mode = mode || $("#searchBy").val();
+									//alert(mode);
+									var strUrl = "ws/Arachim.asmx/SearchMila?mode=" + mode + "&wordToSearch=" + wordToSearch + "&arachim=" + arachim +
+										"&zurot=" + zurot + "&sort=" + sort + "&misRcivim=" + misRcivim;
+									var strReturn = "&nbsp;$&nbsp;&&nbsp;";
+									if (xhr != null) {
+										openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.requestInProcess"));
+										return;
+									}
+									//document.getElementById("imgSearchWordLoading").style.display = "block";
+									openDataTransferOverlay();
+									var prm = new Object();
+									prm.wordToSearch = wordToSearch;
+									prm.arachim = arachim;
+									prm.zurot = zurot;
+									prm.sort = sort;
+									prm.misRcivim = misRcivim;
+									prm.searchParameters = searchParameters;
+									prm.indexWordValuesInput = s.selectedIndex;
+									prm.searchMode = mode;
+
+									if (mode != "wordSearch_combination") {
+										if (mode == "wordSearch_crossSection") {
+											var url = window.location.href;
+											history.pushState(prm, null, url.substring(0, url.lastIndexOf("?")));
+										}
+
+										if (callerName == "updateSinun") {
+											var url = window.location.href;
+											history.pushState(prm, "חיפוש מילה", url.substring(0, url.lastIndexOf("?")));
+										}
+									}
+
+									if (mode == "wordSearch_proximity") {
+										document.title = "שכנויות | מפעל המילון ההיסטורי";
+									}
+									else if (mode == "wordSearch_word") {
+										document.title = "תוצאות חיפוש מילה: " + wordToSearch + " | מפעל המילון ההיסטורי";
+									}
+
+									xhr = jQuery.ajax({
+										url: encodeURI(strUrl),
+										//data: JSON.stringify(prm),
+										//dataType: "json",
+										success: function (data) {
+											xhr = null;
+											document.getElementById("resultTabTitle").innerHTML = "תוצאות חיפוש מילה: " + wordToSearch;
+											document.getElementById("spanHipusMilaKot0").innerHTML = "תוצאות חיפוש מילה: ";
+											ShowTextNipuy("0", "spanNipuyMilaText", "liNipuyMila");
+											var sugHipus = "";
+											if (searchParameters != "1") {
+												var sug = s.options[s.selectedIndex].text;
+												sugHipus = " - " + sug;
+											}
+											document.getElementById("spanHipusMilaText0").innerHTML = wordToSearch + sugHipus;
+											$srTabs = $("#srTabs").data("tabs");
+											$srTabs.click(0);
+											strReturn = data.documentElement.textContent;// childNodes[0].nodeValue;
+											//document.getElementById("imgSearchWordLoading").style.display = "none";
+											closeDataTransferOverlay();
+											document.getElementById("divCrossSectionResults").innerHTML = "";
+											document.getElementById("divRootSearchResults").innerHTML = "";
+											document.getElementById("divSearchWordResultUnknown").innerHTML = strReturn.split("$")[0];
+											document.getElementById("divSearchWordResultUnanalized").innerHTML = strReturn.split("$")[1];
+											document.getElementById("divSearchWordResultArachim").innerHTML = strReturn.split("$")[2];
+
+											var cntArachim = strReturn.split("$")[5];
+											var cntLoYadua = strReturn.split("$")[3];
+											var cntLoNirsham = strReturn.split("$")[4];
+											var initIndex = 2;
+											if (cntArachim == 0) {
+												if (cntLoNirsham != 0)
+													initIndex = 1;
+												else if (cntLoYadua != 0)
+													initIndex = 0;
+												else
+													initIndex = -1;
+											}
+
+											$("#" + "aValues").text("ערכים (" + strReturn.split("$")[5] + ")");
+											$("#" + "aUnknownValue").text("ערך לא מפורש (" + strReturn.split("$")[3] + ")");
+											$("#" + "aUnregisteredValue").text("מילה שלא נרשם לה ערך (" + strReturn.split("$")[4] + ")");
+											document.getElementById("welcomePar").style.display = "none";
+											document.getElementById("wordSearch_word_result").style.display = "block";
+											//if (!resultAccordionMilaInitiliazed) {
+											//resultAccordionMilaInitiliazed = true;
+											$("#resultAccordionMila").tabs("div.resultAccordion div.resAccPane", {
+												tabs: 'h3',
+												effect: 'slide',
+												initialIndex: initIndex
+											});
+
+											handleCloseAccordion();
+
+											$("#srPanes .srOccurCell a[rel]").overlay({
+
+												mask: {
+													color: '#000',
+													loadSpeed: 200,
+													opacity: 0.8
+												},
+												closeOnClick: false,
+												onLoad: function () {
+													centerOverlay('#srOccurOverlay');
+												}
+											});
+
+											document.getElementById("h2Neighbours").style.display = "none";
+											document.getElementById("srPane-1").style.display = "none";
+
+											if (searchParameters == "2") {
+												$("#aUnregisteredValue").css("display", "none");
+												$("#aUnknownValue").css("display", "none");
+												$("#divSearchWordResultUnanalized").css("display", "none");
+											} else {
+												$("#aUnregisteredValue").css("display", "block");
+												$("#aUnknownValue").css("display", "block");
+											}
+
+											titleTooltip();
+
+											$('#resultTabTitle').removeClass('tabTitleLogo');
+										},
+										async: true
+									});
+								}
+							</script>
+							<div class="pannelContainer wdWord wordSchOptionPannelGradientComb line1 wdComb">
+								<ul class="schFieldRow">
+									<!-- class="schFieldRow" -->
+									<li style="margin-right: -330px"><a class="btnClearClass" style="margin-right: -50px; margin-top: -2px" title="ניקוי" onclick="ClearSearchMila();return false;" ttlid="nikuy">ניקוי</a></li>
+									<li class="textField">
+										<label for="wordInput" class="inFieldValue">הקלדת מילה לחיפוש</label>
+										<input type="text" value="" name="word" id="wordInput"
+											onkeypress="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchWord); return false;} else {return true;} " />
+									</li>
+									<li class="selectField schWordValuesField">
+										<label>סוג: </label>
+										<select name="wordValues" id="wordValuesInput">
+											<option value="1">הכול</option>
+											<option value="2">רק ערכים</option>
+											<option value="3">רק צורות</option>
+										</select>
+									</li>
+									<li class="btn"><a class="schSearchButton" title="חיפוש" onclick="MaagarimSinun.UpdateSinunBeforeFunc(SearchWord);" ttlid="hipus">חיפוש</a></li>
+								</ul>
+							</div>
+
+							<script type="text/javascript" charset="utf-8">
+								fieldDefaultValue($('#searchOption label.inFieldValue'));
+							</script>
+						</div>
+						<div id="wordSearch_text" style="display: none">
+							<div class="pannelContainer wordSchOptionPannelGradientComb line1 wdComb">
+								<ul class="schFieldRow">
+									<li class="textField schTextField">
+										<a class="btnClearClass" style="margin-right: -50px; margin-top: -2px" title="ניקוי" onclick="ClearSearchText();return false;" ttlid="nikuy">ניקוי</a>
+										<label for="textInput" class="inFieldValue">הקלדת טקסט חופשי לחיפוש</label>
+										<input type="text" value="" name="test" id="textInput" onkeypress="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchFreeText); return false;} else {return true;} " />
+									</li>
+									<li class="btn">
+										<a id="lnkSearchText" target="_blank" class="schQuoteButton" title="הצגת מובאות" ttlid="muvaot" onclick="MaagarimSinun.UpdateSinunBeforeFunc(SearchFreeText);return false;">הצגת מובאות</a>
+									</li>
+								</ul>
+							</div>
+
+							<script type="text/javascript" charset="utf-8">
+								fieldDefaultValue($('#searchOption label.inFieldValue'));
+							</script>
+						</div>
+						<div id="wordSearch_root" style="display: none">
+							<script type="text/javascript" charset="utf-8">
+								function SearchRoot(callerName, shoreshKod, mode, wordToSearchParam, misRcivim) {
+									callerName = callerName || "";
+									var wordToSearch, word, div;
+									//if we search shoresh from div mila, div = 1, else div = 0
+									if (!wordToSearchParam && !misRcivim) {
+										div = mode || 0;
+										mode = null;
+									} else {
+										div = 0;
+									}
+									if (shoreshKod) {
+										wordToSearch = shoreshKod;
+									}
+									else if (wordToSearchParam != null) {
+										wordToSearch = wordToSearchParam;
+									}
+									else {
+										wordToSearch = document.getElementById("rootInput").value;
+									}
+									document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdWordToSearch").value = wordToSearch;
+									//***ASPxSearchRootCallback.PerformCallback(wordToSearch);
+									var mode = mode || $("#searchBy").val();
+									var misRcivim = misRcivim || 0;
+									//hdRciv1
+									for (var i = 1; i < 7; i++) {
+										if (document.getElementById("hdRciv" + i).value != "")
+											misRcivim++;
+									}
+									var strUrl = "ws/Arachim.asmx/SearchShoresh?mode=" + mode + "&wordToSearch=" + wordToSearch + "&misRcivim=" + misRcivim;
+									var strReturn = "";
+									if (xhr != null) {
+										openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.requestInProcess"));
+										return;
+									}
+									//document.getElementById("imgSearchWordLoading").style.display = "block";
+									openDataTransferOverlay();
+									xhr = jQuery.ajax({
+										url: encodeURI(strUrl),
+										success: function (data) {
+											xhr = null;
+											document.getElementById("resultTabTitle").innerHTML = "תוצאות חיפוש שורש: " + wordToSearch;
+											document.getElementById("spanHipusSrsKot0").innerHTML = "תוצאות חיפוש שורש: ";
+											document.getElementById("spanHipusSrsText0").innerHTML = wordToSearch;
+											ShowTextNipuy("0", "spanNipuySrsText", "liNipuySrs");
+											$srTabs = $("#srTabs").data("tabs");
+											$srTabs.click(0);
+											//document.getElementById("imgSearchWordLoading").style.display = "none";
+											closeDataTransferOverlay();
+											if (data.documentElement.childNodes.length == 0) {
+												strReturn = "אין תוצאות";
+											}
+											else {
+												strReturn = data.documentElement.textContent;//.childNodes[0].nodeValue;
+											}
+											document.getElementById("divRootSearchResults").innerHTML = strReturn;
+											document.getElementById("divCrossSectionResults").innerHTML = "";
+											document.getElementById("divSearchWordResultUnknown").innerHTML = "";
+											document.getElementById("divSearchWordResultUnanalized").innerHTML = "";
+											document.getElementById("divSearchWordResultArachim").innerHTML = "";
+											//search results accordion
+											$("#divRootSearchResults").tabs("div.resultAccordion div.resAccPane", {
+												tabs: 'h3',
+												effect: 'slide',
+												initialIndex: -1
+											});
+
+											if (div == 1) {
+												var index = parseInt($("#divRootSearchResults h3").find("[kods=" + shoreshKod + "]").attr("index"));
+												$("#divRootSearchResults h3").find("[kods=" + shoreshKod + "]").click();
+											}
+
+											handleCloseAccordion();
+
+											document.getElementById("h2Neighbours").style.display = "none";
+											document.getElementById("srPane-1").style.display = "none";
+
+											titleTooltip();
+
+											$('#resultTabTitle').removeClass('tabTitleLogo');
+
+											$("#welcomePar").css("display", "none");
+											$("#wordSearch_word_result").css("display", "none");
+											$("#wordSearch_root_result").css("display", "block");
+											$("#wordSearch_crossSection_result").css("display", "none");
+											$("#wordSearch_teva_result").css("display", "none");
+
+											var $srsTitle = $('#srsTitle');
+											if ($srsTitle.length > 0) {
+												document.getElementById("resultTabTitle").innerHTML = "תוצאות חיפוש שורש: " + $srsTitle.val();
+												document.getElementById("spanHipusSrsKot0").innerHTML = "תוצאות חיפוש שורש: ";
+												document.getElementById("spanHipusSrsText0").innerHTML = $srsTitle.val();
+											}
+
+											if (isNaN(parseInt(wordToSearch))) {
+												word = wordToSearch;
+											}
+											else {
+												word = $srsTitle.val();
+											}
+
+											if (mode == "wordSearch_proximity") {
+												document.title = "שכנויות | מפעל המילון ההיסטורי";
+											}
+											else {
+												document.title = "תוצאות חיפוש שורש: " + word + " | מפעל המילון ההיסטורי";
+											}
+
+										},
+										async: true
+									});
+
+									if (mode != "wordSearch_combination") {
+										if (callerName != "") {
+											if (callerName == "updateSinun") {
+												var indexSearchBy = document.getElementById("selSearchBySelect").selectedIndex;
+												var prm = new Object();
+												prm.searchMode = mode;
+												prm.word = wordToSearch;
+												prm.misRcivim = misRcivim;
+												prm.indexSearchBy = indexSearchBy;
+												var url = window.location.href;
+												history.pushState(prm, "חיפוש שורש", url.substring(0, url.lastIndexOf("?")));
+											}
+										}
+									}
+								}
+							</script>
+							<div class="pannelContainer wdRoot wordSchOptionPannelGradientComb line1 wdComb">
+
+								<ul class="schFieldRow">
+									<li style="margin-right: -281px">
+										<a class="btnClearClass" style="margin-right: -50px; margin-top: -2px" title="ניקוי" onclick="ClearSearchShoresh();return false;" ttlid="nikuy">ניקוי</a></li>
+									<li class="textField schRootField">
+										<label for="rootInput" class="inFieldValue">הקלדת שורש לחיפוש</label>
+										<input type="text" value="" name="word" id="rootInput"
+											onkeypress="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchRoot); return false;} else {return true;} " />
+									</li>
+									<li class="btn"><a class="schSearchButton" title="חיפוש" onclick="MaagarimSinun.UpdateSinunBeforeFunc(SearchRoot);" ttlid="hipus">חיפוש</a></li>
+								</ul>
+							</div>
+
+							<script type="text/javascript" charset="utf-8">
+								fieldDefaultValue($('#searchOption label.inFieldValue'));
+							</script>
+						</div>
+						<div id="wordSearch_crossSection" class="pannelContainer wordSchOptionPannelGradientComb line1 wdComb" style="display: none">
+							<script type="text/javascript">
+								function JumpToNextTB(e, currentTBId, nextTBId) {
+									var lastKey = e ? e.which : window.event.keyCode;
+									var currentTB = document.getElementById(currentTBId);
+									var nextTB = document.getElementById(nextTBId);
+									if ((lastKey >= 65 && lastKey <= 90) || lastKey == 186 || lastKey == 188 || lastKey == 190 || lastKey == 58 || lastKey == 60 || lastKey == 62) {
+										$(currentTB).removeClass('wildcard');
+										nextTB.focus();
+										acadActiveElement = nextTB;
+									}
+								}
+								function JumpToNextTBteva(e, currentTBId, nextTBId) {
+									var hebPatt = /[\u05b0-\u05b9\u05bb\u05d0-\u05ea]/;
+									var simanimPatt = /[\u2000-\u206F\u2E00-\u2E7F!"#$()*+,\-.\/:;<=>?@\[\]^_{}']/; //!"#$()*+,-./:;<=>?@[]^_{}'
+									var numbersPatt = /[0-9]/;
+									var currentTB = document.getElementById(currentTBId);
+									var nextTB = document.getElementById(nextTBId);
+									//if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+									if (hebPatt.test(e.key) || simanimPatt.test(e.key) || numbersPatt.test(e.key)) {
+										$(currentTB).removeClass('wildcard');
+										nextTB.focus();
+										acadActiveElement = nextTB;
+									}
+								}
+								var acadActiveElement = null;
+								function SetActiveElement(elem) {
+									acadActiveElement = elem;
+								}
+								function PutSpecialCharacter(c, belongsTo) {
+									if (acadActiveElement != null && acadActiveElement.id.indexOf(belongsTo) != -1) {
+										acadActiveElement.value = c;
+										$(acadActiveElement).addClass('wildcard');
+										var s = acadActiveElement.id;
+										var digit = parseInt(s.substr(s.length - 1, 1));
+										digit++;
+										if (digit < 10) {
+											document.getElementById(s.substr(0, s.length - 1) + digit).focus();
+											acadActiveElement = document.getElementById(s.substr(0, s.length - 1) + digit);
+										}
+									}
+								}
+								function AddNikud(c, forall) {
+									if (acadActiveElement != null && acadActiveElement.id.indexOf("CrossAll") != -1) {
+
+										var activeElemId = acadActiveElement.id;
+										var $elem = $(acadActiveElement);
+										var digit = +/\d+/.exec(activeElemId)[0];
+										var nextElemId = activeElemId.replace(digit, digit + 1);
+										var nextElem = document.getElementById(nextElemId);
+										var curVal = $elem.val();
+										var mode = searchBy.value;
+
+										var addKolOt = function (point) {
+
+										};
+										var nikudPatt = /[\u05b0-\u05b9\u05bb\u05bd\u05bf]/;
+										var shinPatt = /[\u05c1\u05c2]/;
+										var charShinPatt = /[\u05e9]/;
+										var vavPatt = /[\u05b9\u05bc]/;
+										var charVavPatt = /[\u05d5]/;
+										var dageshPatt = /[\u05bc]/;
+										var holamPatt = /[\u05b9]/;
+
+										if (shinPatt.test(c) && !shinPatt.test(curVal)) {
+											//sin or shin
+											if (curVal === '') {
+												$elem.val('ש' + c);
+											} else if (curVal.search('ש') > -1) {
+												$elem.val(curVal + c);
+											}
+										} else if (vavPatt.test(c) && !vavPatt.test(curVal) && !forall) {
+											//holam male or shuruq
+											if (curVal === '') {
+												$elem.val('ו' + c);
+											} else if (curVal.search('ו') > -1) {
+												$elem.val(curVal + c);
+											}
+										} else if (dageshPatt.test(c) && !dageshPatt.test(curVal) && forall) {
+											//dagesh
+											if (curVal === '') {
+												$elem.addClass('wildcard');
+												$elem.val('ם' + c);
+											} else {
+												$elem.val(curVal + c);
+											}
+										} else if (holamPatt.test(c) && !holamPatt.test(curVal) && forall) {
+											//holam haser
+											if (curVal === '') {
+												$elem.addClass('wildcard');
+												$elem.val('ם' + c);
+											} else {
+												$elem.val(curVal + c);
+											}
+										} else if (nikudPatt.test(c) && !nikudPatt.test(curVal)) {
+											//nikud
+											if (curVal === '') {
+												$elem.addClass('wildcard');
+												$elem.val('ם' + c);
+											} else {
+												$elem.val(curVal + c);
+											}
+										} else if (nikudPatt.test(c) && mode === "wordSearch_teva") {
+											//nikud for hipus teva
+											if (curVal === '') {
+												$elem.addClass('wildcard');
+												$elem.val('ם' + c);
+											} else {
+												$elem.val(curVal + c);
+											}
+										}
+										if (nextElem && (curVal !== $elem.val() || (curVal === '' && $elem.val() !== ''))) {
+											acadActiveElement = nextElem;
+										}
+
+										acadActiveElement.focus();
+									} else {
+										//var str = "המילים בטקסט אינן מנוקדות בדרך כלל. חיפוש ניקוד אפשרי " + "<b>" + "בערכים המילוניים" + "</b>" + " שהוצמדו להן.";
+										openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.nikud"));
+									}
+								}
+								var resultAccordionHatachInitiliazed = false;
+
+								function changeMemToKav(elem) {
+									var $elem = $(elem);
+									if ($elem.hasClass('wildcard')) {
+										return $elem.val().replace('ם', '_');
+									}
+									return $elem.val();
+								};
+
+								function SearchCrossSection(callerName, modeParam, menukadParam, zuraParam, kodimParam, zmanParam, sugerechParam, lfiKodimParam, sortParam, micivimParam, kotm) {
+									callerName = callerName || "";
+									var HatacText = "";
+									var binyan = document.getElementById("selBinyan").options[document.getElementById("selBinyan").selectedIndex].value;
+									var sbinyan = document.getElementById("selBinyan").options[document.getElementById("selBinyan").selectedIndex].text;
+									var zman = document.getElementById("selZman").options[document.getElementById("selZman").selectedIndex].value;
+									if (zman == "-1") {
+										zman = "0";
+									}
+									var reshima = document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].value;
+									var sreshima = document.getElementById("selReshima").options[document.getElementById("selReshima").selectedIndex].text;
+
+									//hZura: zura. tamid lo menukedet
+									var zura = '';
+									$("#tabHatac li.schCrossPtrnField input").each(function () {
+										zura += changeMemToKav(this);
+									});
+									document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura").value = zura;
+
+									//hMenukad: erec. im suger = lo poal, erec yachol lihyot menukad
+									var menukad = ''; var menukadArr = []; var i = 0;
+									$("#tabHatac li.schCrossAllField input").each(function () {
+										if (this.style.visibility === "hidden") return false;
+										menukad += changeMemToKav(this);
+										if (this.value != "")
+											menukadArr[i] = this.value;
+										else
+											menukadArr[i] = "";
+										i++;
+									});
+									document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value = menukad;
+
+									//hSugerech: 0 hakol, 1 poal, 2 shem+rshimot (lo poal)
+									if (zura != "")
+										HatacText += document.getElementById('lblTavnitMila').innerHTML + ": <strong>" +
+											zura + "</strong>,";
+									var s = document.getElementById("crossWithInput").value;
+									if (s == "wordSearch_crossSection_verb") {
+										document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value = "1";
+										if (document.getElementById("selBinyan").selectedIndex == 0 &&
+											document.getElementById("selZman").selectedIndex == 0) {
+											HatacText += " " + document.getElementById("lblSugErec").innerHTML + ": <strong>";
+											HatacText += document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text + "</strong>,";
+										}
+										if (menukad != "")
+											HatacText += " " + document.getElementById('lblErechShoresh').innerHTML + ": <strong>" + menukad + "</strong>,";
+										if (document.getElementById("selBinyan").selectedIndex != 0)
+											HatacText += " " + document.getElementById("lblKotBinyan").innerHTML + ": <strong>" + sbinyan + "</strong>,";
+										if (document.getElementById("selZman").selectedIndex != 0)
+											HatacText += " " + document.getElementById("lblKotZman").innerHTML + ": <strong>" +
+												document.getElementById("selZman").options[document.getElementById("selZman").selectedIndex].text + "</strong>,";
+									}
+									else if (s == "wordSearch_crossSection_nonVerb") {
+										document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value = "2";
+
+										zman = "0";
+										if (!document.getElementById('cbSpecialLists').checked) {
+											HatacText += " " + document.getElementById("lblSugErec").innerHTML + ": <strong>";
+											HatacText += document.getElementById("crossWithInput").options[document.getElementById("crossWithInput").selectedIndex].text + "</strong>,";
+										}
+										if (menukad != "")
+											HatacText += " " + document.getElementById('lblErechShoresh').innerHTML + ": <strong>" + menukad + "</strong>,";
+										if (document.getElementById('cbSpecialLists').checked) {
+											if (document.getElementById("schGCrossGroup1").checked)
+												if (document.getElementById("selReshima").selectedIndex != 0)
+													HatacText += " רשימה: <strong>" + sreshima.replace('---', '') + "</strong>,";
+												else
+													HatacText += " <strong>" + sreshima.replace('---', '') + "</strong>,";
+											if (document.getElementById("schGCrossGroup2").checked)
+												if (document.getElementById("selReshima").selectedIndex != 0)
+													HatacText += " חוץ מרשימה: <strong>" + sreshima.replace('---', '') + "</strong>,";
+												else
+													HatacText += " חוץ מ: <strong>" + sreshima.replace('---', '') + "</strong>,";
+										}
+									}
+									else {
+										document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value = "0";
+										zman = "0";
+										if (menukad != "")
+											HatacText += " " + document.getElementById('lblErechShoresh').innerHTML + ": <strong>" + menukad + "</strong>,";
+									}
+									if (kotm != null) {
+										HatacText = kotm;
+									}
+
+									//hKodim: im suger = poal binyan, im suger = lo poal reshimot, im suger = hakol ze req
+									if (s == "wordSearch_crossSection_verb")
+										document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value = binyan;
+		else if (s == "wordSearch_crossSection_nonVerb")
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value = reshima;
+		else
+			document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value = "";
+									//alert("kodim=" + document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value);
+									//hZman: im suger = poal zman, im lo 0
+									if (document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value != "1") {
+										document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZman").value = "0";
+									}
+									else {
+										document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZman").value = zman;
+									}
+									HatacText = HatacText.substr(0, HatacText.length - 1);
+									//hLfiKodim: 0- ein kodim 1- in kodim 2- not in
+									if (
+										(s == "wordSearch_crossSection_verb"
+											&& document.getElementById("selBinyan").selectedIndex == 0
+										)
+										||
+										/*(s == "wordSearch_crossSection_nonVerb"
+										&& document.getElementById("selReshima").selectedIndex == 0)
+										||*/
+										(s == "wordSearch_crossSection_all")
+									) {
+										document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value = "0";
+									}
+									else {
+										if (s == "wordSearch_crossSection_verb" || document.getElementById('schGCrossGroup1').checked)
+											document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value = "1";
+				else
+					document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value = "2";
+									}
+									if (!document.getElementById('cbSpecialLists').checked && s == "wordSearch_crossSection_nonVerb")
+										document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value = "0";
+									//gridHatachim.Refresh();
+									var mode = $("#searchBy").val();
+
+									var sugerech = sugerechParam || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value;
+									var lfiKodim = lfiKodimParam || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value;
+									//alert(menukad + "," + zura + "," + sugerech + "," + binyan + "," + zman + "," + reshima+","+
+									//    document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value);
+									if ((menukad == "" && zura == "") && (menukadParam == "" && zuraParam == "")) {
+										if ((sugerech == "1" && (lfiKodim != "0" || zman != "0"))
+											||
+											(sugerech == "2" && lfiKodim != "0")) {
+											menukad = "*";
+										}
+										else {
+											openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.chooseCrosssection"));
+											return;
+										}
+									}
+
+									var misRcivim = 0;
+									//hdRciv1
+									for (var i = 1; i < 7; i++) {
+										if (document.getElementById("hdRciv" + i).value != "")
+											misRcivim++;
+									}
+									var mode = modeParam || mode;
+									var menukad = menukadParam || menukad;
+									var zura = zuraParam || zura;
+									var kodim = kodimParam || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim").value;
+									var zman = zmanParam || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZman").value
+									var sugerech = sugerechParam || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech").value;
+									var lfiKodim = lfiKodimParam || document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim").value;
+
+									var strUrl = "ws/Arachim.asmx/HipusHatach?mode=" + mode + "&menukad=" +
+										menukad +
+										"&zura=" + zura +
+										"&kodim=" + kodim +
+										"&zman=" + zman +
+										"&sugerech=" + sugerech +
+										"&lfiKodim=" + lfiKodim +
+										"&sort=otiot_er&misRcivim=" + misRcivim;
+									//            "&sort=standart&misRcivim=" + misRcivim;
+									//alert(strUrl);
+									var strReturn = "";
+									var indexCross = document.getElementById("crossWithInput").selectedIndex;
+									var indexBinyan = document.getElementById("selBinyan").selectedIndex;
+									var indexZman = document.getElementById("selZman").selectedIndex;
+									var cbSpecialLists = document.getElementById("cbSpecialLists").checked;
+									var schGCrossGroup1 = document.getElementById("schGCrossGroup1").checked;
+									var selReshima = document.getElementById("selReshima").selectedIndex;
+
+									var params = new Object();
+									params.searchMode = mode;
+									params.menukad = menukad;
+									params.zura = zura;
+									params.kodim = kodim;
+									params.zman = zman;
+									params.sugerech = sugerech;
+									params.lfiKodim = lfiKodim;
+									params.sort = "otiot_er";
+									params.misRcivim = misRcivim;
+									params.menukadArr = menukadArr;
+									params.indexCross = indexCross;
+									params.indexBinyan = indexBinyan;
+									params.indexZman = indexZman;
+									params.cbSpecialLists = cbSpecialLists;
+									params.schGCrossGroup1 = schGCrossGroup1;
+									params.selReshima = selReshima;
+									params.kotm = HatacText;
+
+									if (callerName != "") {
+										if (callerName == "updateSinun") {
+											var url = window.location.href;
+											history.pushState(params, "חיפוש חתכים ותבניות", url.substring(0, url.lastIndexOf("?")));
+										}
+									}
+
+									document.title = " תוצאות חיפוש חתך - עמוד 1 | מפעל המילון ההיסטורי";
+
+									if (xhr != null) {
+										openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.requestInProcess"));
+										return;
+									}
+									//document.getElementById("imgSearchWordLoading").style.display = "block";
+									openDataTransferOverlay();
+									xhr = jQuery.ajax({
+										url: encodeURI(strUrl),
+										success: function (data) {
+											xhr = null;
+											document.getElementById("resultTabTitle").innerHTML = "תוצאות חיפוש חתך"; // + menukad;
+											document.getElementById("spanHipusHatacKot0").innerHTML = "תוצאות חיפוש חתך: ";
+											document.getElementById("spanHipusHatacText0").innerHTML = HatacText;
+											ShowTextNipuy("0", "spanNipuyHatacText", "liNipuyHatac");
+											$srTabs = $("#srTabs").data("tabs");
+											$srTabs.click(0);
+											//document.getElementById("imgSearchWordLoading").style.display = "none";
+											closeDataTransferOverlay();
+											strReturn = data.documentElement.textContent;//.childNodes[0].nodeValue;
+											document.getElementById("welcomePar").style.display = "none";
+											document.getElementById("wordSearch_word_result").style.display = "none";
+											document.getElementById("wordSearch_root_result").style.display = "none";
+											document.getElementById("wordSearch_crossSection_result").style.display = "block";
+											document.getElementById("wordSearch_teva_result").style.display = "none";
+
+											document.getElementById("divRootSearchResults").innerHTML = "";
+											document.getElementById("divSearchWordResultUnknown").innerHTML = "";
+											document.getElementById("divSearchWordResultUnanalized").innerHTML = "";
+											document.getElementById("divSearchWordResultArachim").innerHTML = "";
+											document.getElementById("divCrossSectionResults").innerHTML = strReturn.split("$")[2];
+											document.getElementById("divCrossSectionResultsUnregsitered").innerHTML = strReturn.split("$")[0];
+											document.getElementById("divCrossSectionResultsUnknown").innerHTML = strReturn.split("$")[1];
+											$("#" + "aCrossValues").text("ערכים (" + strReturn.split("$")[5] + ")");
+											$("#" + "aCrossUnknownValue").text("ערך לא מפורש (" + strReturn.split("$")[4] + ")");
+											$("#" + "aCrossUnregisteredValue").text("מילה שלא נרשם לה ערך (" + strReturn.split("$")[3] + ")");
+											if (!resultAccordionHatachInitiliazed) {
+												resultAccordionHatachInitiliazed = true;
+												$("#resultAccordionHatach").tabs("div.resultAccordion div.resAccPane", {
+													tabs: 'h3',
+													effect: 'slide',
+													initialIndex: 2
+												});
+
+												handleCloseAccordion();
+											}
+											var cnt = parseInt(strReturn.split("$")[5]);
+											if (cnt == 400) {
+												//openCustomOverlay();
+												openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.searchRange"));
+											}
+											document.getElementById("h2Neighbours").style.display = "none";
+											document.getElementById("srPane-1").style.display = "none";
+
+											titleTooltip();
+
+											$('#resultTabTitle').removeClass('tabTitleLogo');
+										},
+										async: true
+									});
+								}
+							</script>
+							<div id="ovSch1" class="overlaySearch">
+								<span class="ovPointer"></span>
+								<div class="ovContent shadow1">
+									תבנית המילה כפי שנכתבה בטקסט (ללא ניקוד)
+   
+								</div>
+							</div>
+							<table id="tabHatac">
+								<tr>
+									<td>
+										<a style="margin-right: 2px; margin-top: -3px" class="btnClearClass" title="ניקוי החתך" onclick="ClearSearchHatach();return false;" ttlid="nikuyhatach">ניקוי החתך</a>
+									</td>
+									<td style="text-align: right; font-size: 14px; width: 10%">
+										<label id="lblTavnitMila"><strong>תבנית המילה</strong></label></td>
+									<td style="text-align: right">
+										<ul>
+											<li class="textFieldArray schCrossPtrnField">
+												<div id="ovCross-1" class="overlaySearch" style="position: relative;">
+													<a class="close"></a>
+													<span class="ovPointer"></span>
+													<div class="ovContent shadow1">
+														תבנית המילה כפי שנכתבה בטקסט (ללא ניקוד)
+                 
+													</div>
+												</div>
+												<table class="arrayTable">
+													<tbody>
+														<tr>
+															<td>
+																<input type="text" value="" id="wdPattent01" name="wdPattent01" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent01','wdPattent02');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent02" name="wdPattent02" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent02','wdPattent03');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent03" name="wdPattent03" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent03','wdPattent04');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent04" name="wdPattent04" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent04','wdPattent05');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent05" name="wdPattent05" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent05','wdPattent06');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent06" name="wdPattent06" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent06','wdPattent07');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent07" name="wdPattent07" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent07','wdPattent08');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent08" name="wdPattent08" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent08','wdPattent09');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent09" name="wdPattent09" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdPattent09','wdPattent10');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdPattent10" name="wdPattent10" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td class="schTxtArrBtn"><a href="javascript:PutSpecialCharacter('ם','Pattent')" class="anyCharBtn" title="אות כלשהי" ttlid="ot">אות</a></td>
+															<td class="schTxtArrBtn"><a href="javascript:PutSpecialCharacter('*','Pattent')" class="charSqnBtn" title="רצף אותיות כלשהו" ttlid="rezefotiot">רצף אותיות</a></td>
+															<td class="schTxtArrBtn"><a href="javascript:ClearWordPattern()" class="charClrBtn" title="ניקוי" ttlid="nikuy">ניקוי</a></td>
+															<td class="schTxtArrBtn">
+																<a rel="#ovCross-1" class="arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+																
+																<script type="text/javascript">
+																	renderSchOverlay('#tabHatac');
+																</script>
+															</td>
+														</tr>
+													</tbody>
+												</table>
+											</li>
+										</ul>
+									</td>
+									<td>&nbsp;</td>
+								</tr>
+								<tr>
+									<td style="text-align: right; font-size: 14px; margin-right: 10px">
+										<label id="lblSugErec"><strong>סוג הערך</strong></label>
+										<select name="paternValues" id="crossWithInput" onchange="Switch(this.value);">
+											<option value="wordSearch_crossSection_nonVerb">לא פועל</option>
+											<option value="wordSearch_crossSection_verb">פועל</option>
+											<option value="wordSearch_crossSection_all">כל הערכים</option>
+										</select>
+									</td>
+									<td style="text-align: right; font-size: 14px">
+										<label id="lblErechShoresh"><strong>תבנית הערך</strong></label></td>
+									<td style="text-align: right">
+										<ul>
+											<li class="textFieldArray schCrossAllField">
+												<div id="ovCross-2" class="overlaySearch" style="position: relative;">
+													<a class="close"></a>
+													<span class="ovPointer"></span>
+													<div class="ovContent shadow1" id="divCross-2">
+														תבנית הערך המילוני. ערך פועלי ניתן על פי שורשו, ערך לא פועלי הוא בדרך כלל מנוקד.
+														<br />
+														<strong>בחירת סוג הערך מאפשרת חיפוש מדויק יותר.
+														</strong>
+													</div>
+												</div>
+												<table id="tabCross" class="arrayTable">
+													<tbody>
+														<tr>
+															<td>
+																<input type="text" value="" id="wdCrossAll01" name="wdCrossAll01" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll01','wdCrossAll02');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll02" name="wdCrossAll02" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll02','wdCrossAll03');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll03" name="wdCrossAll03" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll03','wdCrossAll04');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll04" name="wdCrossAll04" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll04','wdCrossAll05');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll05" name="wdCrossAll05" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll05','wdCrossAll06');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll06" name="wdCrossAll06" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll06','wdCrossAll07');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll07" name="wdCrossAll07" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll07','wdCrossAll08');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll08" name="wdCrossAll08" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll08','wdCrossAll09');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll09" name="wdCrossAll09" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTB(event,'wdCrossAll09','wdCrossAll10');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td>
+																<input type="text" value="" id="wdCrossAll10" name="wdCrossAll10" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection); return false;}" /></td>
+															<td class="schTxtArrBtn"><a href="javascript:PutSpecialCharacter('ם','CrossAll')" class="anyCharBtn" title="אות כלשהי" ttlid="ot">אות</a></td>
+															<td class="schTxtArrBtn"><a href="javascript:PutSpecialCharacter('*','CrossAll')" class="charSqnBtn" title="רצף אותיות כלשהו" ttlid="rezefotiot">רצף אותיות</a></td>
+															<td class="schTxtArrBtn"><a href="javascript:ClearErechPattern()" class="charClrBtn" title="ניקוי" ttlid="nikuy">ניקוי</a></td>
+															<td class="schTxtArrBtn">
+																<a rel="#ovCross-2" class="arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+																<script type="text/javascript">
+																	renderSchOverlay('#tabCross');
+																</script>
+															</td>
+														</tr>
+													</tbody>
+												</table>
+											</li>
+										</ul>
+									</td>
+									<td>&nbsp;</td>
+								</tr>
+								<tr id="trPoal" style="display: none">
+									<td>&nbsp;</td>
+									<td>
+										<label id="lblKotBinyan"><strong>בניין</strong></label></td>
+									<td>
+										<ul>
+											<li class="selectField schCrossStemField">
+												<div id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_divBinyan"><select id='selBinyan'><option value='-1'>---כל הבניינים---</option><option value='1'>קל</option><option value='2'>נפעל</option><option value='3'>פיעל</option><option value='4'>פוּעל</option><option value='5'>התפעל</option><option value='6'>הפעיל</option><option value='7'>הופעל</option><option value='8'>פולֵל</option><option value='9'>פולַל</option><option value='10'>התפולל</option><option value='11'>בניין חריג</option><option value='20'>בניין לא ידוע</option><option value='21'>קל/נפעל</option><option value='22'>קל/פיעל</option><option value='23'>קל/פוּעל</option><option value='24'>קל/התפעל</option><option value='25'>קל/הפעיל</option><option value='26'>קל/הופעל</option><option value='27'>קל/פולֵל</option><option value='28'>קל/פולַל</option><option value='29'>קל/התפולל</option><option value='30'>נפעל/פיעל</option><option value='31'>נפעל/פוּעל</option><option value='32'>נפעל/התפעל</option><option value='33'>נפעל/הפעיל</option><option value='34'>נפעל/הופעל</option><option value='35'>נפעל/פולֵל</option><option value='36'>נפעל/פולַל</option><option value='37'>נפעל/התפולל</option><option value='38'>פיעל/פוּעל</option><option value='39'>פיעל/התפעל</option><option value='40'>פיעל/הפעיל</option><option value='41'>פיעל/הופעל</option><option value='42'>פיעל/פולֵל</option><option value='43'>פיעל/פולַל</option><option value='44'>פיעל/התפולל</option><option value='45'>פוּעל/התפעל</option><option value='46'>פוּעל/הפעיל</option><option value='47'>פוּעל/הופעל</option><option value='48'>פוּעל/פולֵל</option><option value='49'>פוּעל/פולַל</option><option value='50'>פוּעל/התפולל</option><option value='51'>התפעל/הפעיל</option><option value='52'>התפעל/הופעל</option><option value='53'>התפעל/פולֵל</option><option value='54'>התפעל/פולַל</option><option value='55'>התפעל/התפולל</option><option value='56'>הפעיל/הופעל</option><option value='57'>הפעיל/פולֵל</option><option value='58'>הפעיל/פולַל</option><option value='59'>הפעיל/התפולל</option><option value='60'>הופעל/פולֵל</option><option value='61'>הופעל/פולַל</option><option value='62'>הופעל/התפולל</option><option value='63'>פולֵל/פולַל</option><option value='64'>פולֵל/התפולל</option><option value='65'>פולַל/התפולל</option><option value='66'>בניין חריג/קל</option><option value='67'>בניין חריג/נפעל</option><option value='68'>בניין חריג/פיעל</option><option value='69'>בניין חריג/פוּעל</option><option value='70'>בניין חריג/התפעל</option><option value='71'>בניין חריג/הפעיל</option><option value='72'>בניין חריג/הופעל</option><option value='73'>בניין חריג/פולֵל</option><option value='74'>בניין חריג/פולַל</option><option value='75'>בניין חריג/התפולל</option><option value='76'>פוּעל/סביל קל</option><option value='77'>הופעל/סביל קל</option></select></div>
+											</li>
+											<li class="selectField schCrossTenseField">
+												<label id="lblKotZman">זמן</label>
+												<div id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_divZman"><select id='selZman'><option value='-1'>---כל הזמנים---</option><option value='1'>עבר</option><option value='2'>עתיד</option><option value='3'>ציווי</option><option value='4'>בינוני</option><option value='5'>בינוני פָּעֵל</option><option value='6'>בינוני פָּעוּל</option><option value='7'>מקור</option><option value='20'>זמן לא ידוע</option><option value='21'>עבר/עתיד</option><option value='22'>עבר/בינוני</option><option value='23'>ציווי/מקור</option><option value='24'>עבר/בינוני פָּעֵל</option><option value='25'>בינוני פָּעוּל/מקור</option><option value='26'>עבר/מקור</option><option value='27'>עבר/ציווי</option></select></div>
+											</li>
+										</ul>
+									</td>
+									<td>&nbsp;</td>
+								</tr>
+								<tr id="trNonPoal" style="display: table-row">
+									<td>&nbsp;</td>
+									<td>&nbsp;</td>
+									<td>
+										<div class="pannelContainer line2-2">
+											<ul class="schCrossPunctField">
+												<li class="btnArray schPunctField">
+													<a href="javascript:AddNikud(String.fromCharCode(1456))" title="שווא" ttlid="shva" class="punct01">01</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1457))" title="חטף סגול" ttlid="hatafSegol" class="punct02">02</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1458))" title="חטף פתח" ttlid="hatafPatah" class="punct03">03</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1459))" title="חטף קמץ" ttlid="hatafKamatz" class="punct04">04</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1460))" title="חיריק" ttlid="hirik" class="punct05">05</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1461))" title="צירה" ttlid="tsere" class="punct06">06</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1462))" title="סגול" ttlid="segol" class="punct07">07</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1463))" title="פתח" ttlid="patah" class="punct08">08</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1464))" title="קמץ" ttlid="kamats" class="punct09">09</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1467))" title="קובוץ" ttlid="kubuts" class="punct10">10</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1465),true)" title="חולם חסר" ttlid="holamHaser" class="punct11">11</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1465))" title="חולם מלא" ttlid="holamMale" class="punct12">12</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1468))" title="שורוק" ttlid="shuruk" class="punct13">13</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1468),true)" title="דגש" ttlid="dagesh" class="punct14">14</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1473))" title="שין ימנית" ttlid="shinYemanit" class="punct15">15</a>
+													<a href="javascript:AddNikud(String.fromCharCode(1474))" title="שין שמאלית" ttlid="shinSmalit" class="punct16">16</a>
+												</li>
+											</ul>
+										</div>
+
+
+
+									</td>
+									<td>&nbsp;</td>
+								</tr>
+
+								<tr id="trNonPoalOpt" style="display: table-row">
+									<td colspan="4">
+										<div id="divSpecialGroups" class="pannelContainer line2-3 divSpeciaIndent">
+											<div id="ovSch3" class="overlaySearch">
+												<span class="ovPointer"></span>
+												<div class="ovContent shadow1">
+													קבוצות נבחרות של ערכים קובצו תחת כותרת משותפת. באפשרותכם לחפש בתוך קבוצות אלה, או להשמיט אותן או את חלקן מן החיפוש.
+   
+												</div>
+											</div>
+											<ul class="schFieldRow schCrossPtrnField">
+												<li class="textFieldArray schSpecialGroupsField">
+													<input type="checkbox" id="cbSpecialLists" name="sGroup" value="" onclick="this.checked ? document.getElementById('divSpecialLists').style.display = 'block' : document.getElementById('divSpecialLists').style.display = 'none'" />
+													<label><strong>קבוצות מיוחדות</strong></label>
+													<span class="schTxtArrBtn">
+														<a class="arrHelpBtn" rel="#ovSch3" title="עזרה" ttlid="ezra">עזרה</a>
+														<script type="text/javascript">
+															renderSchOverlay('#divSpecialGroups');
+														</script>
+													</span>
+												</li>
+											</ul>
+										</div>
+
+										<div id="divSpecialLists" style="display: none">
+
+											<div class="pannelContainer line2-4 divSpeciaIndent">
+												<ul class="schFieldRow schCrossGrpField">
+													<li class="radioField schGroupSelectField">
+														<fieldset>
+															<legend></legend>
+															<input type="radio" name="gsA" value="rbOnlyNamesFromGroup" id="schGCrossGroup1" checked="checked" />
+															<label for="schGCrossGroup1">רק שמות מן הקבוצה</label>
+															<input type="radio" name="gsA" value="rbOnlyNamesNotFromGroup" id="schGCrossGroup2" />
+															<label for="schGCrossGroup2">רק שמות שאינם מן הקבוצה</label>
+														</fieldset>
+													</li>
+												</ul>
+											</div>
+
+											<div class="pannelContainer line2-5 divSpeciaIndent">
+												<ul class="schFieldRow schCrossGrpField">
+													<li class="selectField schGroupsField">
+														<div id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_divReshima"><select id='selReshima'><option value='01,02,03,04,05,06,07,08,09,10,11,12,13,14,15,16,17,20,21,22,23'>---כל הרשימות</option><option value='02,03,04,09,17' style='color:Red'>שמות פרטיים</option><option value='02'>---שמות פרטיים</option><option value='03'>---שמות מקומות</option><option value='04'>---שמות ייחוס</option><option value='09'>---שמות חיבורים</option><option value='17'>---שמות חברות או מוסדות</option><option value='23,01,06,13,14,15' style='color:Red'>צירופי אותיות</option><option value='23'>---צירוף אותיות</option><option value='01'>---מילים מאגיות או מלאכותיות</option><option value='06'>---קיצורים וראשי תיבות</option><option value='13'>---תיבות שאינן מילים</option><option value='14'>---סופיות דקדוקיות</option><option value='15'>---תחיליות דקדוקיות</option><option value='07,08,11,12,16' style='color:Red'>מילים זרות</option><option value='07'>---מילים מלשונות אירופה</option><option value='08'>---מילים ארמיות הנתונות בהקשר עברי</option><option value='12'>---מילים ערביות, טורקיות או פרסיות</option><option value='16'>---מילים עבריות על דרך היידיש</option><option value='11'>---מילים זרות אחרות</option><option value='05' style='color:Red'>שמות המספר</option><option value='10' style='color:Red'>צירופי מילים</option><option value='20' style='color:Red'>מילים משמות פרטיים</option><option value='21' style='color:Red'>כינויים</option><option value='22' style='color:Red'>מילות שאלה</option></select></div>
+													</li>
+												</ul>
+											</div>
+
+										</div>
+									</td>
+
+								</tr>
+
+								<tr>
+									<td>&nbsp;</td>
+									<td>&nbsp;</td>
+									<td>&nbsp;</td>
+									<td>
+										<ul id="ulSearchCrossSection">
+											<li class="btn"><a class="schSearchButton" title="חיפוש" onclick="MaagarimSinun.UpdateSinunBeforeFunc(SearchCrossSection);" ttlid="hipus">חיפוש</a></li>
+										</ul>
+										<table style="display: none" id="tableAddHatacToRciv">
+											<tr>
+												<td class="hasSep srAddCell">
+													<span class="sortable weighted">הוספה</span>
+													<ul class="srSortOptionsList" id="hatachList">
+														<li><a onclick="AddHatacToRciv(1);return false;">לרכיב 1</a></li>
+														<li><a onclick="AddHatacToRciv(2);return false;">לרכיב 2</a></li>
+														<li><a onclick="AddHatacToRciv(3);return false;">לרכיב 3</a></li>
+														<li><a onclick="AddHatacToRciv(4);return false;">לרכיב 4</a></li>
+														<li><a onclick="AddHatacToRciv(5);return false;">לרכיב 5</a></li>
+														<li><a onclick="AddHatacToRciv(6);return false;">לרכיב 6</a></li>
+													</ul>
+												</td>
+											</tr>
+										</table>
+										<table id="tableShchenut" style="display: none">
+											<tr>
+												<td class="hasSep srNeighboring">
+													<a onclick="AddHatacToShchenut(1);return false;" class="prev">השכנות הקודמת</a>
+													<a onclick="AddHatacToShchenut(2);return false;" class="next">השכנות הבאה</a>
+												</td>
+											</tr>
+										</table>
+									</td>
+								</tr>
+							</table>
+
+						</div>
+						<div id="wordSearch_combination" style="display: none">
+							<input type="hidden" id="hdRciv1" value="" />
+							<input type="hidden" id="hdRciv2" value="" />
+							<input type="hidden" id="hdRciv3" value="" />
+							<input type="hidden" id="hdRciv4" value="" />
+							<input type="hidden" id="hdRciv5" value="" />
+							<input type="hidden" id="hdRciv6" value="" />
+							<input type="hidden" id="hdSugRciv1" value="" />
+							<input type="hidden" id="hdSugRciv2" value="" />
+							<input type="hidden" id="hdSugRciv3" value="" />
+							<input type="hidden" id="hdSugRciv4" value="" />
+							<input type="hidden" id="hdSugRciv5" value="" />
+							<input type="hidden" id="hdSugRciv6" value="" />
+							<input type="hidden" id="hdDispRciv1" value="" />
+							<input type="hidden" id="hdDispRciv2" value="" />
+							<input type="hidden" id="hdDispRciv3" value="" />
+							<input type="hidden" id="hdDispRciv4" value="" />
+							<input type="hidden" id="hdDispRciv5" value="" />
+							<input type="hidden" id="hdDispRciv6" value="" />
+							<div style="display: block">
+								<div class="pannelContainer wdComb line2 wordSchOptionPannelGradient">
+									<div id="ovCmb-1" class="overlaySearch" style="">
+										<a class="close"></a>
+										<span class="ovPointer"></span>
+										<div class="ovContent shadow1">
+											חפשו מילה, שורש או חתך באזור החיפוש העליון, ובחרו את הרכיב הרצוי מתוך תוצאות החיפוש.
+                   
+										</div>
+									</div>
+									<div id="ovCmb-2" class="overlaySearch" style="">
+										<a class="close"></a>
+										<span class="ovPointer"></span>
+										<div class="ovContent shadow1">
+											חפשו מילה, שורש או חתך באזור החיפוש העליון, ובחרו את הרכיב הרצוי מתוך תוצאות החיפוש.
+                   
+										</div>
+									</div>
+									<div id="ovCmb-3" class="overlaySearch" style="">
+										<a class="close"></a>
+										<span class="ovPointer"></span>
+										<div class="ovContent shadow1">
+											חפשו מילה, שורש או חתך באזור החיפוש העליון, ובחרו את הרכיב הרצוי מתוך תוצאות החיפוש.
+                   
+										</div>
+									</div>
+									<div id="ovCmb-4" class="overlaySearch" style="">
+										<a class="close"></a>
+										<span class="ovPointer"></span>
+										<div class="ovContent shadow1">
+											חפשו מילה, שורש או חתך באזור החיפוש העליון, ובחרו את הרכיב הרצוי מתוך תוצאות החיפוש.
+                   
+										</div>
+									</div>
+									<div id="ovCmb-5" class="overlaySearch" style="">
+										<a class="close"></a>
+										<span class="ovPointer"></span>
+										<div class="ovContent shadow1">
+											חפשו מילה, שורש או חתך באזור החיפוש העליון, ובחרו את הרכיב הרצוי מתוך תוצאות החיפוש.
+                   
+										</div>
+									</div>
+
+
+									<ul class="schFieldRow cmbComponents">
+										<li class="title cmbCompRow">
+											<label>הצירוף:</label>
+											<a class="btnClearClass" style="float: left; margin-left: 10px;" title="ניקוי" onclick="ClearZerufRcivim();return false;" ttlid="nikuy">ניקוי</a>
+										</li>
+										<li class="selectField cmbCompRow" style="display: block" id="compRow1">
+											<label>רכיב 1</label>
+											<select name="componentSelector" id="cmbComponent-1" onchange="setHelpMsg(1)">
+												<option value="cmbCom-is">הוא (=)</option>
+												<option value="cmbCom-all">חופשי (*)</option>
+												<option value="cmbCom-not">אינו (&#8800;)</option>
+											</select>
+											<div class="componentValue" id="cmbCompVal-1">
+												<a rel="#ovCmb-1" class="valueAction arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+												<script type="text/javascript">
+													renderSchOverlay('#compRow1');
+												</script>
+											</div>
+											<a class="btnClearClass" style="float: left; margin-left: 10px;" title="ניקוי" onclick="ClearZerufRciv(1);return false;" ttlid="nikuy">ניקוי</a>
+										</li>
+										<li class="selectField cmbCompRow" style="display: none" id="compRow2">
+											<label>רכיב 2</label>
+											<select name="componentValues" id="cmbComponent-2" onchange="setHelpMsg(2)">
+												<option value="cmbCom-is">הוא (=)</option>
+												<option value="cmbCom-all">חופשי (*)</option>
+												<option value="cmbCom-not">אינו (&#8800;)</option>
+											</select>
+											<div class="componentValue" id="cmbCompVal-2">
+												<a rel="#ovCmb-2" class="valueAction arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+												<script type="text/javascript">
+													renderSchOverlay('#compRow2');
+												</script>
+											</div>
+											<a class="btnClearClass" style="float: left; margin-left: 10px;" title="ניקוי" onclick="ClearZerufRciv(2);return false;" ttlid="nikuy">ניקוי</a>
+										</li>
+										<li class="selectField cmbCompRow" style="display: none" id="compRow3">
+											<label>רכיב 3</label>
+											<select name="componentValues" id="cmbComponent-3" onchange="setHelpMsg(3)">
+												<option value="cmbCom-is">הוא (=)</option>
+												<option value="cmbCom-all">חופשי (*)</option>
+												<option value="cmbCom-not">אינו (&#8800;)</option>
+											</select>
+											<div class="componentValue" id="cmbCompVal-3">
+												<a rel="#ovCmb-3" class="valueAction arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+												<script type="text/javascript">
+													renderSchOverlay('#compRow3');
+												</script>
+											</div>
+											<a class="btnClearClass" style="float: left; margin-left: 10px;" title="ניקוי" onclick="ClearZerufRciv(3);return false;" ttlid="nikuy">ניקוי</a>
+										</li>
+										<li class="selectField cmbCompRow" style="display: none" id="compRow4">
+											<label>רכיב 4</label>
+											<select name="componentValues" id="cmbComponent-4" onchange="setHelpMsg(4)">
+												<option value="cmbCom-is">הוא (=)</option>
+												<option value="cmbCom-all">חופשי (*)</option>
+												<option value="cmbCom-not">אינו (&#8800;)</option>
+											</select>
+											<div class="componentValue" id="cmbCompVal-4">
+												<a rel="#ovCmb-4" class="valueAction arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+												<script type="text/javascript">
+													renderSchOverlay('#compRow4');
+												</script>
+											</div>
+											<a class="btnClearClass" style="float: left; margin-left: 10px;" title="ניקוי" onclick="ClearZerufRciv(4);return false;" ttlid="nikuy">ניקוי</a>
+										</li>
+										<li class="selectField cmbCompRow" style="display: none" id="compRow5">
+											<label>רכיב 5</label>
+											<select name="componentValues" id="cmbComponent-5" onchange="setHelpMsg(5)">
+												<option value="cmbCom-is">הוא (=)</option>
+												<option value="cmbCom-all">חופשי (*)</option>
+												<option value="cmbCom-not">אינו (&#8800;)</option>
+											</select>
+											<div class="componentValue" id="cmbCompVal-5">
+												<a rel="#ovCmb-5" class="valueAction arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+												<script type="text/javascript">
+													renderSchOverlay('#compRow5');
+												</script>
+											</div>
+											<a class="btnClearClass" style="float: left; margin-left: 10px;" title="ניקוי" onclick="ClearZerufRciv(5);return false;" ttlid="nikuy">ניקוי</a>
+										</li>
+										<li class="selectField cmbCompRow" style="display: none" id="compRow6">
+											<label>רכיב 6</label>
+											<select name="componentValues" id="cmbComponent-6" onchange="setHelpMsg(6)">
+												<option value="cmbCom-is">הוא (=)</option>
+												<option value="cmbCom-all">חופשי (*)</option>
+												<option value="cmbCom-not">אינו (&#8800;)</option>
+											</select>
+											<div class="componentValue" id="cmbCompVal-6">
+											</div>
+											<a class="btnClearClass" style="float: left; margin-left: 10px;" title="ניקוי" onclick="ClearZerufRciv(6);return false;" ttlid="nikuy">ניקוי</a>
+										</li>
+										<li id="addComponentPannel" class="addComponent selectField help btn lastline">
+											<a class="addComponentHead" onclick="AddNewRciv();return false;"><span></span>הוספת רכיב</a>
+											<fieldset>
+												<legend></legend>
+												<div id="ovCmbComp" class="overlaySearch" style="position: absolute; display: none;">
+													<a class="close"></a>
+													<span class="ovPointer"></span>
+													<div class="ovContent shadow1">
+														בבחירת פסקה יינתנו הרכיבים שנבחרו כשהם מופיעים בתוך הקשר תוכני אחד. החיפוש הזה אפשרי רק בחיבורים שהותקנו מכתבי יד (חיבורים עד שנת 1500). בחיבורים מאוחרים יותר החיפוש בפסקה יוחלף אוטומטית בחיפוש בטווח של 10 מילים.
+                   
+													</div>
+												</div>
+												<div id="ovWordsHelp" class="overlaySearch" style="position: absolute; display: none;">
+													<a class="close" style="right: 315px; top: 20px"></a>
+													<span class="ovPointer" style="right: 150px; top: 10px"></span>
+													<div class="ovContent shadow1" style="right: 110px; top: 10px">
+														מספר המילים הכולל מהמילה הראשונה עד לאחרונה, ועד בכלל.
+                   
+													</div>
+												</div>
+												<p>אורך הקטע המכיל את הרכיבים:<a class="valueAction arrHelpBtn" title="עזרה" rel="#ovWordsHelp" ttlid="ezra">עזרה</a></p>
+												<input type="radio" name="1" id="rbWords" checked="checked" onclick="wordsParagraphToggled();" />
+												<label>
+													עד
+               
+												</label>
+												<input id="selKetaLength" value="1" size="2" maxlength="2" />
+												<label>
+													מילים
+               
+												</label>
+												<input type="radio" name="1" id="rbParagraph" onclick="wordsParagraphToggled();" />
+												<label>פסקה</label>
+
+												<a class="valueAction arrHelpBtn" title="עזרה" rel="#ovCmbComp" ttlid="ezra">עזרה</a>
+												<span class="error" style="display: none" id="valKetaLength" data-i18n="messages.ketaLengthError"></span>
+												<script type="text/javascript">
+													$("#selKetaLength").blur(function (event) {
+														var numRcivim = getNumRcivim();
+														var ketaLength = document.getElementById("selKetaLength").value;
+														if (ketaLength < numRcivim) {
+															$("#valKetaLength").show(200);
+														}
+
+													})
+														.focus(function (event) {
+															$("#valKetaLength").hide(200);
+														})
+													renderSchOverlay('#addComponentPannel');
+													renderSchOverlay('#addComponentPannel');
+												</script>
+											</fieldset>
+											<fieldset>
+												<legend></legend>
+												<p>סדר הרכיבים בצירוף:</p>
+												<input type="radio" name="2" id="rbOrdered" checked="checked" />
+												<label>לפי הסדר הנבחר</label>
+												<input type="radio" name="2" id="rbFree" />
+												<label>סדר חופשי</label>
+											</fieldset>
+											<a class="schQuoteButton" title="הצגת מובאות" ttlid="muvaot" onclick="MaagarimSinun.UpdateSinunBeforeFunc(SearchZeruf);return false;">הצגת מובאות</a>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+						<div id="wordSearch_teva" class="pannelContainer wordSchOptionPannelGradientComb line1 wdComb" style="display: none">
+							<script type="text/javascript">
+
+								function PutSpecialCharacterT(c, belongsTo) {
+									if (acadActiveElement != null && acadActiveElement.id.indexOf(belongsTo) != -1) {
+										acadActiveElement.value = c;
+										$(acadActiveElement).addClass('wildcard');
+										var s = acadActiveElement.id;
+										var digit = parseInt(s.substr(s.length - 2, 1));
+										digit++;
+										if (digit < 10) {
+											document.getElementById(s.substr(0, s.length - 2) + digit + 't').focus();
+											acadActiveElement = document.getElementById(s.substr(0, s.length - 2) + digit + 't');
+										}
+									}
+								}
+
+								var resultAccordionTevaInitiliazed = false;
+
+								function changesForTeva(elem) {
+									var $elem = $(elem);
+									if ($elem.hasClass('wildcard')) {
+										return $elem.val().replace('ם', '_').replace('*', '%');
+									}
+									return $elem.val();
+								};
+
+
+								function SearchTeva(callerName, modeParam, menukadParam, zuraParam, kodimParam, zmanParam, sugerechParam, lfiKodimParam, sortParam, micivimParam, kotm) {
+									callerName = callerName || "";
+									var HatacText = "";
+
+									// teva: gam mnukedet
+									//        	var teva = '';
+									//        	$("#tabHatac li.schCrossPtrnField input").each(function ()
+									//        	{
+									//        		teva += changeMemToKav(this);
+									//        	});
+									//            document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura").value = teva;
+
+									var menukad = ''; var menukadArr = []; var i = 0;
+									$("#tabHatact li.schCrossAllField input").each(function () {
+										if (this.style.visibility === "hidden") return false;
+										menukad += changesForTeva(this);
+										if (this.value != "")
+											menukadArr[i] = this.value;
+										else
+											menukadArr[i] = "";
+										i++;
+									});
+									document.getElementById("ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad").value = menukad;
+
+									//hSugerech: 0 hakol, 1 poal, 2 shem+rshimot (lo poal)
+									//            if (zura != "")
+									//                HatacText += document.getElementById('lblTavnitMila').innerHTML + ": <strong>" + 
+									//                zura + "</strong>,";
+									if (menukad != "")
+										HatacText += " " + document.getElementById('lblTeva').innerHTML + ": " + menukad + ",";
+									if (kotm != null) {
+										HatacText = kotm;
+									}
+
+									HatacText = HatacText.substr(0, HatacText.length - 1);
+									//gridHatachim.Refresh();
+									var mode = $("#searchBy").val();
+
+									if ((menukad == "") && (menukadParam == "")) {
+										openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.chooseCrosssection"));
+										return;
+									}
+
+									var mode = modeParam || mode;
+									var menukad = menukadParam || menukad;
+
+									var strUrl = "ws/Arachim.asmx/HipusTevaHatach?mode=" + mode +
+										"&tevaLHipus=" + menukad +
+										"&sort=teva";
+									//alert(strUrl);
+									var strReturn = "";
+									var hipusTevaUrl = "ws/Arachim.asmx/HipusTevaHatach";
+									//            var hipusTevaParam = { mode: mode, tevaLHipus: encodeURI(menukad), sort: "teva" };
+									var hipusTevaParam = { mode: mode, tevaLHipus: encodeURIComponent(menukad), sort: "teva" };
+
+									var params = new Object();
+									params.searchMode = mode;
+									params.zura = menukad;
+									params.sort = "teva";
+									params.menukadArr = menukadArr;
+									params.kotm = HatacText;
+
+									if (callerName != "") {
+										if (callerName == "updateSinun") {
+											var url = window.location.href;
+											history.pushState(params, "חיפוש תיבה", url.substring(0, url.lastIndexOf("?")));
+										}
+									}
+
+									document.title = " תוצאות חיפוש תיבה - עמוד 1 | מפעל המילון ההיסטורי";
+
+									if (xhr != null) {
+										openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.requestInProcess"));
+										return;
+									}
+									//document.getElementById("imgSearchWordLoading").style.display = "block";
+									openDataTransferOverlay();
+									xhr = jQuery.ajax({
+										url: hipusTevaUrl,
+										data: hipusTevaParam,
+										success: function (data) {
+											xhr = null;
+											document.getElementById("resultTabTitle").innerHTML = "תוצאות חיפוש תיבה"; // + menukad;
+											document.getElementById("spanHipusTevaKot0").innerHTML = "תוצאות חיפוש תיבה: ";
+											document.getElementById("spanHipusTevaText0").innerText = HatacText;
+											ShowTextNipuy("0", "spanNipuyTevaText", "liNipuyTeva");
+											$srTabs = $("#srTabs").data("tabs");
+											$srTabs.click(0);
+											//document.getElementById("imgSearchWordLoading").style.display = "none";
+											closeDataTransferOverlay();
+
+											document.getElementById("welcomePar").style.display = "none";
+											document.getElementById("wordSearch_word_result").style.display = "none";
+											document.getElementById("wordSearch_root_result").style.display = "none";
+											document.getElementById("wordSearch_crossSection_result").style.display = "none";
+											document.getElementById("wordSearch_teva_result").style.display = "block";
+
+											document.getElementById("divRootSearchResults").innerHTML = "";
+											document.getElementById("divSearchWordResultUnknown").innerHTML = "";
+											document.getElementById("divSearchWordResultUnanalized").innerHTML = "";
+											document.getElementById("divSearchWordResultArachim").innerHTML = "";
+
+
+											document.getElementById("divTevaResults").innerHTML = data.documentElement.children[0].textContent;
+											$("#aTevaValue").text("תיבות (" + data.documentElement.children[1].textContent + ")");
+
+
+											if (!resultAccordionTevaInitiliazed) {
+												resultAccordionTevaInitiliazed = true;
+												$("#resultAccordionTeva").tabs("div.resultAccordion div.resAccPane", {
+													tabs: 'h3',
+													effect: 'slide',
+													initialIndex: 0
+												});
+
+												handleCloseAccordion();
+											}
+
+											document.getElementById("h2Neighbours").style.display = "none";
+											document.getElementById("srPane-1").style.display = "none";
+
+											titleTooltip();
+
+											$('#resultTabTitle').removeClass('tabTitleLogo');
+										},
+										async: true
+									});
+								}
+							</script>
+							<ul>
+								<li class="textFieldArray schCrossPtrnField">
+									<div id="ovSch1t" class="overlaySearch">
+										<span class="ovPointer"></span>
+										<div class="ovContent shadow1">
+											תבנית התיבה כפי שנכתבה בטקסט
+   
+										</div>
+									</div>
+									<table id="tabHatact">
+										<tr>
+											<td style="text-align: right; font-size: 14px">
+												<label id="lblTeva">תבנית התיבה</label></td>
+											<td style="text-align: right">
+												<ul>
+													<li class="textFieldArray schCrossAllField">
+														<div id="ovCross-2t" class="overlaySearch" style="position: relative;">
+															<a class="close"></a>
+															<span class="ovPointer"></span>
+															<div class="ovContent shadow1" id="divCross-2t">
+																תבנית התיבה כפי שנכתבה בטקסט
+																<br />
+															</div>
+														</div>
+														<table id="tabCrosst" class="arrayTable">
+															<tbody>
+																<tr>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll01t" name="wdCrossAll01t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll01t','wdCrossAll02t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll02t" name="wdCrossAll02t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll02t','wdCrossAll03t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll03t" name="wdCrossAll03t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll03t','wdCrossAll04t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll04t" name="wdCrossAll04t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll04t','wdCrossAll05t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll05t" name="wdCrossAll05t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll05t','wdCrossAll06t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll06t" name="wdCrossAll06t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll06t','wdCrossAll07t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll07t" name="wdCrossAll07t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll07t','wdCrossAll08t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll08t" name="wdCrossAll08t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll08t','wdCrossAll09t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+
+																	<td>
+																		<input type="text" value="" id="wdCrossAll09t" name="wdCrossAll09t" maxlength="1" title="אות וניקוד או סימן" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeyup="JumpToNextTBteva(event,'wdCrossAll09t','wdCrossAll10t');" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" />
+																	</td>
+																	
+																	<td>
+																		<input type="text" value="" id="wdCrossAll10t" name="wdCrossAll10" maxlength="1" style="font-weight: bold; text-align: center; font-size: 14px" onfocus="SetActiveElement(this);" onkeydown="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva); return false;}" /></td>
+
+																	<td class="schTxtArrBtn"><a href="javascript:PutSpecialCharacterT('ם','CrossAll')" class="anyCharBtn" title="אות כלשהי" ttlid="ot">אות</a></td>
+																	<td class="schTxtArrBtn"><a href="javascript:PutSpecialCharacterT('*','CrossAll')" class="charSqnBtn" title="רצף אותיות כלשהו" ttlid="rezefotiot">רצף אותיות</a></td>
+																	<td class="schTxtArrBtn"><a href="javascript:ClearTevaPattern()" class="charClrBtn" title="ניקוי" ttlid="nikuy">ניקוי</a></td>
+																	<td class="schTxtArrBtn">
+																		<a rel="#ovCross-2t" class="arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+																		<script type="text/javascript">
+																			renderSchOverlay('#tabCrosst');
+																		</script>
+																	</td>
+																</tr>
+															</tbody>
+														</table>
+													</li>
+												</ul>
+											</td>
+											<td>&nbsp;</td>
+										</tr>
+										<tr id="trNonPoalt" style="display: table-row">
+											<td>&nbsp;</td>
+											<td>
+												<div class="pannelContainer line2-2">
+													<ul class="schCrossPunctField">
+														<li class="btnArray schPunctField">
+															<a href="javascript:AddNikud(String.fromCharCode(1456))" title="שווא" ttlid="shva" class="punct01">01</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1457))" title="חטף סגול" ttlid="hatafSegol" class="punct02">02</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1458))" title="חטף פתח" ttlid="hatafPatah" class="punct03">03</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1459))" title="חטף קמץ" ttlid="hatafKamatz" class="punct04">04</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1460))" title="חיריק" ttlid="hirik" class="punct05">05</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1461))" title="צירה" ttlid="tsere" class="punct06">06</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1462))" title="סגול" ttlid="segol" class="punct07">07</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1463))" title="פתח" ttlid="patah" class="punct08">08</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1464))" title="קמץ" ttlid="kamats" class="punct09">09</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1467))" title="קובוץ" ttlid="kubuts" class="punct10">10</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1465),true)" title="חולם חסר" ttlid="holamHaser" class="punct11">11</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1465))" title="חולם מלא" ttlid="holamMale" class="punct12">12</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1468))" title="שורוק" ttlid="shuruk" class="punct13">13</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1468),true)" title="דגש" ttlid="dagesh" class="punct14">14</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1473))" title="שין ימנית" ttlid="shinYemanit" class="punct15">15</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1474))" title="שין שמאלית" ttlid="shinSmalit" class="punct16">16</a>
+														</li>
+														<li class="btnArray schPunctField2">
+															<a href="javascript:AddNikud(String.fromCharCode(1471))" title="רפה" ttlid="rafe" class="punct17">רפה</a>
+															<a href="javascript:AddNikud(String.fromCharCode(1469))" title="מתג" ttlid="meteg" class="punct18">מתג</a>
+														</li>
+													</ul>
+												</div>
+
+
+											</td>
+											<td>&nbsp;</td>
+										</tr>
+
+										<tr>
+											<td>&nbsp;</td>
+											<td>&nbsp;</td>
+											<td>&nbsp;</td>
+											<td>
+												<ul id="ulSearchCrossSectiont">
+													<li class="btn"><a class="schSearchButton" title="חיפוש" onclick="MaagarimSinun.UpdateSinunBeforeFunc(SearchTeva);" ttlid="hipus">חיפוש</a></li>
+												</ul>
+											</td>
+										</tr>
+									</table>
+								</li>
+							</ul>
+
+						</div>
+					</div>
+
+					<div id="tipPannelWord" class="tipPannel">
+						<div id="tipContentWord" class="tipContent">
+							<div id="tip_wordSearch_word" style="display: block; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש מילה בטקסטים שבמאגרים על פי
+
+ <b>הערך המילוני</b>
+								ועל פי
+  
+   <b>צורת המילה. </b>
+								לאחר קבלת תוצאות הביניים לחצו על איקון 
+   
+    <b>הצגת המובאות</b>
+								בשורה המתאימה. באזור ה<b>סינון</b>
+								מימין אפשר לצמצם את קורפוס הטקסטים לפני החיפוש.
+   
+							</div>
+							<div id="tip_wordSearch_root" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש מילים בטקסטים שבמאגרים על פי
+
+ <b>השורש. </b>
+								לאחר קבלת תוצאות הביניים לחצו על משמעות השורש הרצויה להצגת כל הערכים מן השורש ותוכלו להציג את המובאות לערך.
+באזור ה<b>סינון</b>
+								מימין אפשר לצמצם את קורפוס הטקסטים לפני החיפוש.
+   
+							</div>
+							<div id="tip_wordSearch_text" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש רצף מילים
+
+ <b>בדיוק כפי שהוקלד </b>
+								בטקסטים שבמאגרים. 
+השתמשו 
+  
+                                <b>בכוכבית
+								</b>
+								לסימון רצף אותיות כלשהו.
+לחיפוש חכם בחרו בסוג החיפוש:
+
+ <b>מילה</b>
+								או
+  
+   <b>צירוף חכם.</b>
+							</div>
+							<div id="tip_wordSearch_crossSection" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש מילים בטקסטים שבמאגרים על פי
+
+ <b>תבנית צורנית</b>
+								של מילה הכתובה בטקסט או של ערך מילוני. בכל ריבוע לבן הקלידו אות או הציבו סימן לאות כלשהי (ם) או רצף אותיות כלשהו (*).
+בחרו ב<b>סוג הערך</b>
+								להגדרת חתך דקדוקי מפורט יותר.
+   
+							</div>
+							<div id="tipSectionVerb" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש פעלים בטקסטים שבמאגרים על פי
+
+ <b>תבנית מילה</b>
+								(פועל נוטה)<b>, תבנית שורש, בניין וזמן</b>
+								. בכל ריבוע לבן הקלידו אות או הציבו סימן לאות כלשהי (ם) או רצף אותיות כלשהו (*). הגדירו חתך בניין וזמן בפקדים המתאימים. שנו את 
+       
+        <b>סוג הערך</b>
+								לחיפוש מילים שאינן פעלים או לחיפוש כללי של כל סוגי המילים.
+   
+							</div>
+							<div id="tipSectionNonVerb" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש מילים שאינן פעלים בטקסטים שבמאגרים על פי 
+       
+        <b>תבנית צורנית</b>
+								של מילה הכתובה בטקסט או של ערך מילוני. בכל ריבוע לבן הקלידו אות או הציבו סימן לאות כלשהי (ם) או רצף אותיות כלשהו (*).
+       
+        <b>סרגל הניקוד</b>
+								מאפשר לנקד את תבנית הערך.
+       
+        <b>הקבוצות המיוחדות</b>
+								כוללות מילים לועזיות, שמות פרטיים ועוד. שנו את
+       
+        <b>סוג הערך</b>
+								לחיפוש פעלים או לחיפוש כללי של כל סוגי המילים.
+   
+							</div>
+							<div id="tip_wordSearch_proximity" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש המילים אשר מופיעות
+       
+        <b>לפני או אחרי מילה</b>
+								מסוימת בטקסטים שבמאגרים. בחרו מילה ולאחר מכן  לחצו על איקון
+       
+        <b>שכנים מימין</b>
+								או
+       
+        <b>שכנים משמאל</b>
+								להצגת הצירופים ושכיחותם.
+   
+							</div>
+							<div id="tipProximityRoot" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש המילים אשר מופיעות
+       
+        <b>לפני או אחרי</b>
+								מילים מ<b>שורש</b>
+								מסוים בטקסטים שבמאגרים. בחרו שורש ולאחר מכן  לחצו על איקון
+       
+        <b>שכנים מימין</b>
+								או
+       
+        <b>שכנים משמאל</b>
+								להצגת הצירופים ושכיחותם.
+   
+							</div>
+							<div id="tipProximitySection" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש המילים אשר מופיעות
+       
+        <b>לפני או אחרי</b>
+								מילים מחתך ותבנית מסוימים בטקסטים שבמאגרים. בחרו חתך ותבנית ולאחר מכן  לחצו על איקון
+       
+        <b>שכנים מימין</b>
+								או
+       
+        <b>שכנים משמאל</b>
+								להצגת הצירופים ושכיחותם.
+   
+							</div>
+							<div id="tip_wordSearch_combination" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש משוכלל של צירופי מילים בטקסטים שבמאגרים. 
+       
+        <b>(1) </b>
+								קבעו את סוג הרכיב הראשון
+(<b>מילה, שורש</b>
+								או
+       
+        <b>חתך</b>), הקלידו בהתאם בתיבת החיפוש, ולחצו על איקון החיפוש. 
+       
+        <b>(2) </b>
+								בחרו את הרכיב הרצוי מתוך טבלת תוצאות החיפוש בלחיצה על
+       
+        <b>הוספה</b>. 
+       
+        <b>(3) </b>
+								המשיכו כך בקביעת הרכיבים האחרים בצירוף – הוספת רכיב חדש יכולה להיעשות
+       
+        <b>ישירות מתוצאות החיפוש</b>.
+       
+        <br>
+								<b>רכיב חופשי (*)</b>, המייצג מילה כלשהי, נוסף בלחיצה על הוספת רכיב.
+הנחיות והסברים נוספים תמצאו
+ב<b>כפתורי העזרה</b>.
+   
+							</div>
+
+							<div id="tip_wordSearch_teva" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								חיפוש מילים בטקסטים שבמאגרים על פי
+
+ <b>תבנית צורנית</b>
+								של מילה הכתובה בטקסט. בכל ריבוע לבן הקלידו אות או הציבו סימן לאות כלשהי (ם) או רצף אותיות כלשהו (*).
+
+   
+							</div>
+
+
+							<div id="tipHelp" style="display: none; padding-right: 30px;">
+								<span class="tooltipBolbLabel" style="right: 0px; top: -3px;"></span>
+								בבחירת פסקה יינתנו הרכיבים שנבחרו כשהם מופיעים בתוך הקשר תוכני אחד. החיפוש הזה אפשרי רק בחיבורים שהותקנו מכתבי יד (חיבורים עד שנת 1500). בחיבורים מאוחרים יותר החיפוש בפסקה יוחלף אוטומטית בחיפוש בטווח של 10 מילים.
+   
+							</div>
+						</div>
+
+						<span id="tipHandlerWord" class="tipHandler open"><a onclick="showHideWordTip();return false;">סגירה/פתיחה</a></span>
+						<span class="tooltipBolb"></span>
+
+					</div>
+
+					<!-- new - 1 -->
+					<div id="searchResultsAreaWord" class="searchResultsContainer">
+						<div id="srTabs">
+							<h2 class="resultTab">
+								<a href="#a"><span id="resultTabTitle" class="tabTitleLogo">ברוכים הבאים</span></a>
+							</h2>
+							<h2 id="h2Neighbours" class="resultTab" style="display: none">
+								<a href="#a"><span id="neighboursTitle">שכנויות</span></a>
+							</h2>
+							<div class="" id="refineTabsPannel">
+								<a class="closeTabsGroup" onclick="closeRefTabs();return false;"></a>
+								<div class="refineTabsContainer" id="refTab-1">
+								</div>
+							</div>
+							<h2 class="savedSearches" id="savedSearches">
+								<a href="#a"><span id="spanSavedMuvaot">מובאות שמורות</span></a>
+							</h2>
+
+							<div id="HideHipusWarning" class="overlaySearch">
+								<a class="close"></a>
+								<span class="ovPointer"></span>
+								<div class="ovContent shadow1">
+									<strong>תוצאות החיפוש שמורות בלשונית הזאת.<br />
+									</strong>
+									<label class="optOut milimback">
+										<input type="checkbox" />
+										ביטול הצגת הודעה זו בעתיד
+									</label>
+								</div>
+							</div>
+
+							<div id="HideMilaWarning" class="overlaySearch">
+								<a class="close"></a>
+								<div class="ovContent shadow1">
+									<strong>לקבלת פרטים מלאים על מילה בטקסט העבירו עליה את הסמן.<br />
+									</strong>
+									<label class="optOut hiburimback">
+										<input type="checkbox" />
+										ביטול הצגת הודעה זו בעתיד
+									</label>
+								</div>
+								<span class="ovPointer ovPointerDownWhite"></span>
+							</div>
+
+						</div>
+
+						<div id="srPanes">
+							<div id="srPane-0" class="resPane">
+								<div id="welcomePar" class="welcomePar" style="display: block">
+									
+									<div class="welcomeParContent" id="welcomeParContent" data-i18n="[html]divs.welcomeText">
+									</div>
+									
+									<br />
+									<h4>תאריך עדכון אחרון: ט' בשבט תשפ"ו, 27 בינואר 2026</h4>
+									
+								</div>
+								<div id="wordSearch_word_result" style="display: none" class="inline_link">
+									<ul class="sResDescription">
+										<li class="descriptionItem">
+											<img src="images/results/search.png" alt="Search results" />
+											<span id="spanHipusMilaKot0"></span>
+											<strong id="spanHipusMilaText0"></strong></li>
+										<li id="liNipuyMila0" class="descriptionItem">
+											<img src="images/results/screening.png" alt="Screening" />סינון לפי:
+         
+                                            <strong id="spanNipuyMilaText0"></strong></li>
+									</ul>
+									<div class="resultAccordion" id="resultAccordionMila">
+										<h3><a id="aUnknownValue">ערך לא מפורש</a></h3>
+										<div class="resAccPane" id="divSearchWordResultUnknown">
+										</div>
+										<h3 class="noVal"><a id="aUnregisteredValue">מילה שלא נרשם לה ערך</a></h3>
+										<div class="resAccPane" id="divSearchWordResultUnanalized">
+										</div>
+										<h3 class="lastTab"><a id="aValues">ערכים</a></h3>
+										<div class="resAccPane">
+											<div id="divSearchWordResultArachim"></div>
+										</div>
+									</div>
+								</div>
+								<div id="wordSearch_root_result" style="display: none">
+									<ul class="sResDescription">
+										<li class="descriptionItem">
+											<img src="images/results/search.png" alt="Search results" />
+											<span id="spanHipusSrsKot0"></span>
+											<strong id="spanHipusSrsText0"></strong></li>
+										<li id="liNipuySrs0" class="descriptionItem">
+											<img src="images/results/screening.png" alt="Screening" />סינון לפי:
+         
+                                            <strong id="spanNipuySrsText0"></strong></li>
+									</ul>
+									<div class="resultAccordion" id="divRootSearchResults">
+									</div>
+								</div>
+								<div id="wordSearch_crossSection_result" style="display: none">
+									<ul class="sResDescription">
+										<li class="descriptionItem">
+											<img src="images/results/search.png" alt="Search results" />
+											<span id="spanHipusHatacKot0"></span>
+											<span id="spanHipusHatacText0"></span>
+											<span id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_downloadBtnDiv"></span>
+										</li>
+										<li id="liNipuyHatac0" class="descriptionItem">
+											<img src="images/results/screening.png" alt="Screening" />סינון לפי:
+         
+                                            <strong id="spanNipuyHatacText0"></strong></li>
+									</ul>
+									<div class="resultAccordion" id="resultAccordionHatach">
+										<h3><a id="aCrossUnknownValue">ערך לא מפורש</a></h3>
+										<div class="resAccPane" id="divCrossSectionResultsUnknown">
+										</div>
+										<h3 class="noVal"><a id="aCrossUnregisteredValue">מילה שלא נרשם לה ערך</a></h3>
+										<div class="resAccPane" id="divCrossSectionResultsUnregsitered">
+										</div>
+										<h3 class="lastTab"><a id="aCrossValues">ערכים</a></h3>
+										<div class="resAccPane" id="divCrossSectionResults">
+										</div>
+									</div>
+								</div>
+								<div id="wordSearch_teva_result" style="display: none">
+									<ul class="sResDescription">
+										<li class="descriptionItem">
+											<img src="images/results/search.png" alt="Search results" />
+											<span id="spanHipusTevaKot0"></span>
+											<strong id="spanHipusTevaText0"></strong>
+										</li>
+										<li id="liNipuyTeva0" class="descriptionItem">
+											<img src="images/results/screening.png" alt="Screening" />סינון לפי:
+         
+                                            <strong id="spanNipuyTevaText0"></strong></li>
+									</ul>
+									<div class="resultAccordion" id="resultAccordionTeva">
+										<h3 class="noVal"><a id="aTevaValue">תיבות</a></h3>
+										<div class="resAccPane" id="divTevaResults">
+										</div>
+									</div>
+								</div>
+							</div>
+							<div id="srPane-1" class="resPane" style="display: none">
+							</div>
+							<div id="srPane-s" class="resSavedPane">
+								<div id="savedPaneHeader" class="resCtrlPannel">
+									<ul class="esResCtrlSettings last">
+										<li class="openCloseSrGroups">
+											<a class="openAllGroups" onclick="openAllGroups($(this)); return false;">פתיחת הכל
+											</a>
+											<a class="closeAllGroups" onclick="closeAllGroups($(this)); return false;">סגירת הכל
+											</a>
+
+										</li>
+
+										<li>
+											<ul class="srSavedSelectionOptions active">
+												<li>
+													<!--  
+          <input type="checkbox" onclick="javascript:$(this).parents('.srSavedSelectionOptions').toggleClass('active');"> -->
+													<label>
+														כל המובאות
+         
+													</label>
+												</li>
+												<li><a class="srOptprint" onclick="PrintOrEmailMuvaotGroup(this, 'xxx', '.resSavedPane', 1);">print</a></li>
+												<li><a class="srOptemail" onclick="PrintOrEmailMuvaotGroup(this, 'xxx', '.resSavedPane', 2);">email</a></li>
+												<li><a class="srOptdownload disabled">download</a></li>
+												<li><a class="srOptclose" onclick="DeleteMuvaot(this, '.resSavedPane');">close</a></li>
+											</ul>
+										</li>
+
+										<li>
+											<input type="checkbox" id="">
+											<label>
+												הצגת סרגל הגדרות ומיונים
+     
+											</label>
+										</li>
+
+
+										<li class="srEnlarge">
+											<a id="ResizeScreen" class="disabled" onclick="NewWindowMovaotShmurotOpen();" sugdisplay="1">
+												<!-- <a href="#" class=""> -->
+												הגדלה
+											</a>
+										</li>
+									</ul>
+								</div>
+								<div id="srSavedAllGroups" class="srSavedAllGroups"></div>
+							</div>
+						</div>
+					</div>
+
+
+
+					<!-- new - 2 -->
+
+				</div>
+
+				<div class="essaysSearchPane">
+					<ul class="searchPannelControls">
+						<li class="ctrl clearSearches" style="visibility: hidden"><a class="tooltipLeft" title="ניקוי" onclick="ClearEssaySearchParameters();" ttlid="nikuy">ניקוי</a></li>
+						<li class="ctrl savedSearches"><a class="tooltipLeft disabled" title="חיפושים שמורים" ttlid="hipusimshmurim">חיפושים שמורים</a></li>
+						<li class="ctrl latestSearches"><a class="tooltipLeft disabled" title="חיפושים אחרונים" ttlid="hipusimachronim">חיפושים אחרונים</a></li>
+					</ul>
+
+
+
+					<div class="pannelSchSelection"></div>
+
+
+
+					<div id="essaySchOptions" class="schOptionPannel essaySchOptionPannelGradient">
+
+						<script type="text/javascript" charset="utf-8">
+
+							function searchEssaysByMesira(kodktavy) {
+								var prm = new Object();
+								prm.kodmehaber = kodktavy;
+								prm.misyzira = "";
+								prm.shemyzira = "";
+								prm.shemmehaber = "";
+								prm.nPage = 1;
+								prm.nMaxPage = 1;
+								prm.sort = 1;
+								var myData = JSON.stringify(prm);
+								openDataTransferOverlay();
+								xhr = $.ajax({
+									type: "POST",
+									url: "ws/Arachim.asmx/GetChiburim",
+									data: myData,
+									dataType: "json",
+									contentType: "application/json; charset=utf-8",
+									success: function (data) {
+										xhr = null;
+
+
+										selectedKodMehaber = null;
+										document.getElementById("tbMehaber").value = "";
+
+										//document.getElementById("imgSearchWordLoading").style.display = "none";
+										closeDataTransferOverlay();
+										//                        document.getElementById("resultTabEssayTitle").innerHTML = "חיפוש חיבורים: " + authorToSearch + " " + essayNameToSearch + " " + essayNumberToSearch;
+										document.getElementById("resultTabEssayTitle").innerHTML = "תוצאות חיפוש חיבורים";
+										document.getElementById("esPane-1").innerHTML = data.d;
+										//                        document.getElementById("spanEsNipuyText").innerText = document.getElementById('hdNipuyText').value;
+										if (document.getElementById('hdNipuyText').value != "" &&
+											document.getElementById('hdNipuyText').value != "-")
+											$("#" + "spanEsNipuyText").text(document.getElementById('hdNipuyText').value);
+										else document.getElementById("liEsNipuy").style.display = "none";
+										$("#srTabsEssay").data("tabs").click(0);
+										titleTooltip();
+										$("#srDetailsOverlay").overlay().close();
+									},
+									error: function (request, status, error) {
+										//alert("1-error " + request.responseText + error);
+										xhr = null;
+										//document.getElementById("imgSearchWordLoading").style.display = "none";
+										closeDataTransferOverlay();
+										document.getElementById("resultTabEssayTitle").innerHTML = "חיפוש חיבורים: " + authorToSearch + " " + essayNameToSearch + " " + essayNumberToSearch;
+										document.getElementById("esPane-1").innerHTML = "אין תוצאות";
+										$("#srTabsEssay").data("tabs").click(0);
+									},
+									async: true
+								});
+							}
+						</script>
+
+						<h2 style="display: none">חיפוש החיבורים בתהליך שדרוג . 
+       
+        <br />
+							תוכלו להשתמש בינתיים בגרסה הקודמת בכתובת
+       
+        <a target="_blank" href="pIyunBachiburim.aspx">הזאת</a>
+							<br />
+						</h2>
+
+						<div>
+
+							<div class="pannelContainer schEssay line1" id="schEssayline1">
+
+								<a class="btnClearClass" style="margin-right: 2px; margin-top: 0px" title="ניקוי" ttlid="nikuy" onclick="ClearEssaySearchParameters();return false;">ניקוי</a>
+
+								<ul class="schFieldRow schEssayFields">
+									<li class="textField schEssayAuthorField">
+
+										<label for="tbMehaber">המחבר:</label>
+
+										<input type="text" id="tbMehaber"
+											placeholder="הקלדת שם המחבר"
+											onkeypress="if ((!disableEnterKey(event)) && (HipusHibur.KodMehaber > 0)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchEssay); return false;} else {return true;} " />
+
+										<div id="ovCmb-6" class="overlaySearch" style="">
+											<a class="close"></a>
+											<span class="ovPointer"></span>
+											<div class="ovContent shadow1">
+												בחירה מתוך רשימת המחברים הקיימים. נא המתינו להצגת השמות המתאימים לטקסט שהקלדתם.
+                   
+											</div>
+										</div>
+
+
+										<div class="componentValue" id="Div1">
+
+											<a rel="#ovCmb-6" class="valueAction arrHelpBtn" title="עזרה" ttlid="ezra">עזרה</a>
+											<script type="text/javascript">
+												renderSchOverlay('#schEssayline1');
+											</script>
+										</div>
+									</li>
+
+
+
+
+								</ul>
+
+
+							</div>
+
+							<div class="pannelContainer schEssay line2 lastLine">
+
+								<ul class="schFieldRow schEssayFields">
+
+									<li class="textField schEssayNameField">
+
+										<label for="essayNameInput">שם החיבור:</label>
+
+										<input type="text" value="" name="essayname" id="essayNameInput"
+											placeholder="הקלדה"
+											onkeypress="if (!disableEnterKey(event)) {MaagarimSinun.UpdateSinunBeforeFunc(SearchEssay); return false;} else {return true;} " />
+
+									</li>
+									<li id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_liSearchEssayByMisyzira" class="textField schEssayNumberField"></li>
+
+									<li class="btn"><a class="schSearchButton" title="חיפוש" onclick="MaagarimSinun.UpdateSinunBeforeFunc(SearchEssay);" ttlid="hipus">חיפוש</a></li>
+
+								</ul>
+
+							</div>
+
+						</div>
+
+
+
+						<div id="tipPannelEssay" class="tipPannel">
+
+							<div id="tipContentEssay" class="tipContent" style="display: block; padding-right: 30px">
+								<span class="tooltipBolbLabel" style="right: -5px; top: -3px;"></span>
+								חיפוש חיבור בקורפוס החיבורים שבמאגרים. 
+להצגת רשימת חיבורים על פי חתך תקופה וסוגה, הגדירו סינון (מימין) והשאירו את תיבות החיפוש ריקות.
+							</div>
+
+							<span id="tipHandlerEssay" class="tipHandler open"><a onclick="showHideEssayTip();return false;">סגירה/פתיחה</a></span>
+							<span class="tooltipBolb"></span>
+
+						</div>
+
+
+
+
+
+						<div id="searchResultsAreaEssay" class="searchResultsContainer">
+							<div id="srTabsEssay" style="">
+								<h2 class="resultTab" id="resultTabEssay" style="">
+									<a href="#a"><span id="resultTabEssayTitle">תוצאות חיפוש חיבורים</span></a>
+								</h2>
+								<div class="" id="refineTabsPannelEssay">
+									<a class="closeTabsGroup" onclick="closeEsTabs();return false;"></a>
+									<div class="refineTabsContainer" id="esTab-1">
+									</div>
+								</div>
+							</div>
+
+							<div id="srPanesEssay">
+								<div id="esPane-1" class="resPane" style="display: none;">
+									<div id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_permalinkEssayResult"></div>
+								</div>
+							</div>
+						</div>
+
+
+
+					</div>
+
+				</div>
+			</div>
+
+
+			<div id="srDetailsOverlay">
+				<a class="close"></a>
+				<h3 id="esDetTitle">תולדות האקדמיה ללשון עברית
+				</h3>
+				<div class="srEsTabContainer">
+					<ul class="srEsTabs" id="srEsTabs">
+						<li class="current">כללי
+						</li>
+						<li title="המסירות ששימשו להתקנת החיבור">מסירות
+						</li>
+						<li class="doubleLined" title="מסירות נוספות לחיבור שלא שימשו להתקנתו">
+							<span>מסירות
+							</span>
+							נוספות
+						</li>
+						<li title="המהדורות שלפיהם נקבע מראה המקום בפרסום">מהדורות
+						</li>
+						<li class="doubleLined" title="מהדורות נוספות לחיבור או לחלקו">
+							<span>מהדורות
+							</span>
+							נוספות
+						</li>
+						<li title="מחקרים על פרטי החיבור">מחקרים
+						</li>
+					</ul>
+					<div class="srEsTabsAddition">
+						<a class="srReadBtn" title="עיון בחיבור" ttlid="iyunhibur" id="lnkFullEssay">עיון
+						</a>
+					</div>
+
+					<ul class="srEsPanes" id="srEsPanes">
+						<li style="display: list-item;">
+							<div class="srEsDetOvHeader">
+							</div>
+							<div class="srEsPaneContainer">
+								<table class="srEsDetailsGeneral">
+									<tbody>
+										<tr id="esLnYear">
+											<th>שנה:
+											</th>
+											<td class="flex">
+												<div id="esDetYear">
+													תשמ"א
+               
+												</div>
+												<div class="hera" id="esDetYearHera">
+													תשמ"א
+             
+												</div>
+											</td>
+										</tr>
+										<tr id="esLnAuthor0">
+											<th id="esKotAuthor0">מחבר:
+											</th>
+											<td id="esDetAuthor0">חיים הזז
+											</td>
+										</tr>
+										<tr id="esLnAuthor1">
+											<th id="esKotAuthor1">מחבר:
+											</th>
+											<td id="esDetAuthor1">חיים הזז
+											</td>
+										</tr>
+										<tr id="esLnAuthor2">
+											<th id="esKotAuthor2">מחבר:
+											</th>
+											<td id="esDetAuthor2">חיים הזז
+											</td>
+										</tr>
+										<tr id="esLnAuthor3">
+											<th id="esKotAuthor3">מחבר:
+											</th>
+											<td id="esDetAuthor3">חיים הזז
+											</td>
+										</tr>
+										<tr id="esLnAuthor4">
+											<th id="esKotAuthor4">מחבר:
+											</th>
+											<td id="esDetAuthor4">חיים הזז
+											</td>
+										</tr>
+										<tr id="esLnSug">
+											<th>סוגה:
+											</th>
+											<td id="esDetSug">ספרות
+											</td>
+										</tr>
+										<tr id="esLnTatSug">
+											<th>סוגה משנית:
+											</th>
+											<td id="esDetTatSug">ספרות
+											</td>
+										</tr>
+										<tr id="esLnShemRashi">
+											<th>שם חיבור ראשי:
+											</th>
+											<td id="esDetShemRashi">ספרות
+											</td>
+										</tr>
+										<tr id="esLnShemMakor">
+											<th>שם חיבור ומחבר המופיעים במקור:
+											</th>
+											<td id="esDetShemMakor">ספרות
+											</td>
+										</tr>
+										<tr id="esLnDateMakor">
+											<th>תאריך המופיע במקור:
+											</th>
+											<td id="esDetDateMakor">ספרות
+											</td>
+										</tr>
+										<tr id="esLnMakom0">
+											<th id="esKotMakom0">מקום:
+											</th>
+											<td id="esDetMakom0">ספרות
+											</td>
+										</tr>
+										<tr id="esLnMakom1">
+											<th id="esKotMakom1">מקום:
+											</th>
+											<td id="esDetMakom1">ספרות
+											</td>
+										</tr>
+										<tr id="esLnMakom2">
+											<th id="esKotMakom2">מקום:
+											</th>
+											<td id="esDetMakom2">ספרות
+											</td>
+										</tr>
+										<tr id="esLnMakom3">
+											<th id="esKotMakom3">מקום:
+											</th>
+											<td id="esDetMakom3">ספרות
+											</td>
+										</tr>
+										<tr id="esLnMakom4">
+											<th id="esKotMakom4">מקום:
+											</th>
+											<td id="esDetMakom4">ספרות
+											</td>
+										</tr>
+										<tr id="esLnTevot">
+											<th>מספר מילים בחיבור:
+											</th>
+											<td id="esDetTevot">800
+											</td>
+										</tr>
+										<tr id="esLnMasoret">
+											<th>*&nbsp;מסורת&nbsp;
+											</th>
+											<td id="esDetMasoret">ספרות
+											</td>
+										</tr>
+										<tr id="esLnLashon">
+											<th>*&nbsp;נכתב&nbsp;
+											</th>
+											<td id="esDetLashon">ספרות
+											</td>
+										</tr>
+										<tr id="esLnTochen">
+											<th>*&nbsp;
+											</th>
+											<td id="esDetTochen">ספרות
+											</td>
+										</tr>
+										<tr id="esLnHeara">
+											<th>הערות:
+											</th>
+											<td id="esDetHeara">ספרות
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</li>
+						<li style="display: none;" id="liMsirot">
+							<div class="srEsDetOvHeader">
+								<h4>כתבי יד
+								</h4>
+							</div>
+							<div class="srEsPaneContainer">
+								<table class="resultsTable srEsDetailsDelivery">
+									<thead>
+										<tr>
+											<th class="colA">
+												<span class="sortable asc">מסירה
+												</span>
+											</th>
+											<th class="colB">כתב היד
+											</th>
+											<th class="colC">מראה מקום
+											</th>
+											<th class="colD">תאריך
+											</th>
+											<th class="last colE">הערה
+											</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr id="Tr1">
+											<td>0</td>
+											<td><span class="engTitle">Article title</span></td>
+											<td>1, 14-13, 19, 26, 36-33, 40, 42</td>
+											<td>1100 - 1200</td>
+											<td class="last">1. מה המלצת מיזמים משופרות צעד. עוד דת אינו אירועים גיאוגרפיה. אם היא ייִדיש התפתחות, אל אחר כלים מרצועת היסטוריה. קרן לכאן ערכים אקטואליה אל. התוכן רומנית הסביבה של ארץ, בידור ביוני שיתופית אתה מה.
+											</td>
+										</tr>
+										<tr id="Tr2">
+											<td>1</td>
+											<td class="openDeChild"><span class="engTitle">
+												<a class="openClose" onclick="showHideSrChild('#tblesDet-001rw-002', '#tblesDet-001rw-002-cl');return false;">
+													<span></span>Article title English                    
+												</a>
+											</span>
+											</td>
+											<td>1, 14-13, 19, 26, 36-33, 40, 42</td>
+											<td>1100 - 1200</td>
+											<td class="last"></td>
+										</tr>
+										<tr class="childRow" id="Tr3">
+											<td colspan="5" class="fullWidthDetails">
+												<div class="fullWidtContainer">
+													<h6>article Title
+													</h6>
+													<ul class="esScanLink">
+														<li class="esScanLinkReport"><a onclick="openFeedbackOverlay();return false;" ttlid="reportError">דווח
+														</a></li>
+														<li class="esScanLinkSearch"><a>חפש
+														</a></li>
+														<li class="esScanLinkScan"><a>סריקה
+														</a></li>
+													</ul>
+
+
+
+												</div>
+												<table>
+													<tbody>
+														<tr>
+															<th>תאריך למיון:
+															</th>
+															<td>1896
+															</td>
+														</tr>
+														<tr>
+															<th>תאריך עברי:
+															</th>
+															<td>מר חשון - ב' באדר תרנ"ז
+															</td>
+														</tr>
+														<tr class="lastRow">
+															<th>תאריך לועזי:
+															</th>
+															<td>אוקטובר 1896 - מארס 1897
+															</td>
+														</tr>
+													</tbody>
+												</table>
+											</td>
+										</tr>
+										<tr id="Tr4">
+											<td>2</td>
+											<td>כותרת</td>
+											<td>1, 14-13, 19, 26, 36-33, 40, 42</td>
+											<td>1100 - 1200</td>
+											<td class="last">1. מה המלצת מיזמים משופרות צעד. עוד דת אינו אירועים גיאוגרפיה. אם היא ייִדיש התפתחות, אל אחר כלים מרצועת היסטוריה. קרן לכאן ערכים אקטואליה אל. התוכן רומנית הסביבה של ארץ, בידור ביוני שיתופית אתה מה.
+											</td>
+										</tr>
+										<tr id="Tr5">
+											<td>3</td>
+											<td>כותרת</td>
+											<td>1, 14-13, 19, 26, 36-33, 40, 42</td>
+											<td>1100 - 1200</td>
+											<td class="last">1. מה המלצת מיזמים משופרות צעד. עוד דת אינו אירועים גיאוגרפיה. אם היא ייִדיש התפתחות, אל אחר כלים מרצועא ייִדיש התפתחות, אל אחר כלים מרצועת היסטוריה. קרן לכאן ערכים אקטואליה אל. התוכן רומנית הסביבה של ארץ, בידור ביוני שיתופית אתה מה.
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</li>
+						<li class="doubleLined" style="display: none;" id="liMsirotNosafot">מסירות נוספות
+						</li>
+						<li style="display: none;" id="liMahadurot">מהדורות
+						</li>
+						<li style="display: none;" id="liMahadurotnosafot">מהדורות נוספות
+						</li>
+						<li style="display: none;" id="liMehkarim">מחקרים
+						</li>
+					</ul>
+
+
+
+					<a class="close bottom">סגירה
+					</a>
+				</div>
+			</div>
+
+
+
+			<div id="hiddenFields">
+				<input type="hidden" id="hdLastRefTab" value="1" />
+				<input type="hidden" id="hdLastEsTab" value="1" />
+
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hdWordToSearch" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdWordToSearch" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hdArachim" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdArachim" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hdZurot" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdZurot" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hdSort" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hdSort" value="standart" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hMenukad" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hMenukad" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hZura" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZura" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hKodim" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hKodim" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hZman" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hZman" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hSugerech" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hSugerech" />
+				<input name="ctl00$ctl00$ContentPlaceHolder1$ContentPlaceHolder1$hLfiKodim" type="hidden" id="ctl00_ctl00_ContentPlaceHolder1_ContentPlaceHolder1_hLfiKodim" />
+				<input type="hidden" id="hdmkodeierech" />
+				<input type="hidden" id="hdmkodeierechzura" />
+				<input type="hidden" id="hdmkodeierechzman" />
+				<input type="hidden" id="hdmkodeierechzurazman" />
+				<input type="hidden" id="hdmtype" />
+				<input type="hidden" id="hdmzurot" />
+				<input type="hidden" id="hdmcmaxdist" />
+				<input type="hidden" id="hdmamaxdist" />
+				<input type="hidden" id="hdmsql1exp" />
+				<input type="hidden" id="hdmsql1sug" />
+				<input type="hidden" id="hdmsql2exp" />
+				<input type="hidden" id="hdmsql2sug" />
+				<input type="hidden" id="hdmsql3exp" />
+				<input type="hidden" id="hdmsql3sug" />
+				<input type="hidden" id="hdmsql4exp" />
+				<input type="hidden" id="hdmsql4sug" />
+				<input type="hidden" id="hdmsql5exp" />
+				<input type="hidden" id="hdmsql5sug" />
+				<input type="hidden" id="hdmsql6exp" />
+				<input type="hidden" id="hdmsql6sug" />
+				<input type="hidden" id="hdmdistance" />
+				<input type="hidden" id="hdmsederzeruf" />
+				<input type="hidden" id="hdmsort" />
+				<input type="hidden" id="hdmkod1" />
+				<input type="hidden" id="hdmsug1" />
+				<input type="hidden" id="hdmkod2" />
+				<input type="hidden" id="hdmtnua" />
+				<input type="hidden" id="hdmyear" />
+				<input type="hidden" id="hdmlifney" value="0" />
+				<input type="hidden" id="hdmacharey" value="0" />
+				<input type="hidden" id="hdhkodmehaber" />
+				<input type="hidden" id="hdhshemyzira" />
+				<input type="hidden" id="hdhmisyzira" />
+				<input type="hidden" id="hdhsort" />
+			</div>
+
+		</div>
+	</div>
+
+	<div id="dataTransferOverlay" style="left: 480.5px; position: fixed; top: 61.5px; display: none;">
+		<a class="close" style="display: none;"></a>
+		<h2>טוען נתונים
+		</h2>
+		<img src="images/ajax-loader.gif" /><br>
+		<a href="javascript:closeDataTransferOverlay();" style="display: none;">ביטול הפעולה
+		</a>
+	</div>
+
+	<div id="termsOverlay">
+		<div style="direction: rtl">
+			<h2 style="color: Maroon">השימוש במאגרים</h2>
+			<p>זכויות היוצרים לאתר ולתכניו על כל מרכיביהם שמורות לאקדמיה ללשון העברית</p>
+			<p>השימוש במאגרי האקדמיה מותר לצורכי עיון, לימוד ומחקר. אין לעשות שימוש מסחרי במאגרי האקדמיה אלא ברשות בכתב.</p>
+			<p>חובה לציין בכל פרסום שנעשה בו שימוש במאגרי האקדמיה, שהחומר מובא מתוך מפעל המילון ההיסטורי של האקדמיה ללשון העברית.</p>
+			<p>אפשר לרכוש טקסטים שלמים מן המאגר לצרכי מחקר, עיון או לימוד. את הבקשה יש להפנות לנציגנו בכתובת maagarim@hebrew-academy.org.il.</p>
+		</div>
+		<div style="direction: ltr">
+			<h2 style="color: Maroon">Use of the Ma'agarim Database</h2>
+			<p>All rights to the site, including software and database content, are reserved to the Academy of the Hebrew Language.</p>
+			<p>The Academy database is primarily intended for study and for research. No commercial use may be made of the database without prior written permission.</p>
+			<p>In citing material from the Academy databases, publications must credit the Historical Dictionary Project of the Academy of the Hebrew Language.</p>
+			<p>Entire texts may be purchased from the database for research or other non-commercial purposes. Requests should be addressed to our customer service representative at: maagarim@hebrew-academy.org.il.</p>
+		</div>
+	</div>
+
+	<div id="srOccurOverlay">
+		<a class="close"></a>
+		<h3 id="h3Occur">דבר [פיעל], בינוני </h3>
+		<div class="srOccOvStatBy">
+			<h4 id="h4StatTitle">סטטיסטיקה לפי סוגה</h4>
+			<a id="lnkChangeStatSug" onclick="renderCharts();return false;">להצגת סטטיסטיקה לפי תקופה</a>
+		</div>
+		<div class="graph">
+			<h5>היקרויות במאגר
+			</h5>
+			<div id="divStat" style="width: 335px; height: 350px;"></div>
+		</div>
+		<div class="graph last">
+			<h5 id="srOccOvStatByTitle">שכיחות המילה ביחס לכלל המילים בתקופה
+			</h5>
+			<div id="divRelStat" style="width: 400px; height: 350px; direction: ltr; text-align: left;"></div>
+		</div>
+	</div>
+	<div class="modal fade history_modal dialog" id="history" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none; background-color: white; width: 2000px; left: 0; border: black solid 1px">
+		<div class="modal-dialog" id="historyDialog">
+			<div class="modal-content" style="width: 2000px; background-color: white">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h4 class="modal-title">היסטוריה לתיבה:</h4>
+				</div>
+				<div class="modal-body">
+					<div class="bootstrap-dialog-body row" id="hist">
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="feedbackOverlay" class="feedbackOverlay shadow1" style="display: none">
+		<a class="close"></a>
+		<h2>דיווח על שגיאה בנתונים
+		</h2>
+		<table>
+			<tbody>
+				<tr>
+					<th>סוג הפריט:
+					</th>
+					<td id="tdFeedbackType">מילה/מסירה
+					</td>
+				</tr>
+				<tr>
+					<th>הנתונים:
+					</th>
+					<td id="tdTitle">&nbsp;
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2" id="tdData"></td>
+				</tr>
+				<tr class="fbOvError">
+					<th>שגיאה ב:
+					</th>
+					<td>
+						<input type="radio" name="fbErrorType" id="fbErrorType1" value="אותיות הטקסט" checked="checked">
+						אותיות הטקסט
+          &nbsp;&nbsp;<input type="radio" name="fbErrorType" id="fbErrorType2" value="רישום הערך">
+						רישום הערך
+					</td>
+				</tr>
+				<tr class="fbOvDescription">
+					<th>תיאור:
+					</th>
+					<td>
+						<label for="fbOvTextMsg" class="inFieldValue">נא להקליד כאן..</label>
+						<textarea cols="20" rows="8" id="fbOvTextMsg" class="defaultValue"></textarea>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<div id="fbOvErrorMessage" style="display: none">
+			טקסט הודעת שגיאה
+ 
+		</div>
+		<div class="fbOvFooter">
+			<a class="close bottom">ביטול
+			</a>
+			<a class="submitBtn" onclick='sendFeedback();'>שליחה
+			</a>
+
+		</div>
+		<script type="text/javascript" charset="utf-8">
+			fieldDefaultValue($('#feedbackOverlay label.inFieldValue'));
+		</script>
+	</div>
+
+	<div id="feedbackRecievedOverlay" class="feedbackOverlay shadow1" style="display: none;">
+		<a class="close"></a>
+		<h2 id="h2feedback">תודה לך!
+		</h2>
+		<div id="divFeedback">
+			המשוב שלך הועבר אלינו באקדמיה ללשון עברית.
+    הערותיך תיבחנה ותישקלנה על ידי המומחים שלנו.
+   
+		</div>
+	</div>
+
+	<div id="yesNoOverlay" class="modalOverlay shadow1" style="display: none;">
+		<h2 id="h2YesNo"></h2>
+		<div id="divYesNo"></div>
+		<div>
+			<button class="editMuvaaYes close">כן</button>
+			<button class="editMuvaaNo close">לא</button>
+		</div>
+		<br />
+	</div>
+
+	<div id="ovSrSavedGroupInfo" class="ovSrSavedGroupInfo overlaySearch">
+		<a class="close" onclick="changeMuvaotGroupName();"></a>
+		<span class="ovPointer"></span>
+		<div class="ovContent shadow1">
+			<div class="ovHeader">
+				<input id="txtSavedGroupCaption" style="background: transparent; width: 200px; border: 0; color: #fff" type="text" value="" />
+				
+			</div>
+			<input type="hidden" id="hdOldMuvaotGroupName" value="" />
+			<div class="ovContainer">
+				<p>
+					סוג חיפוש
+       
+        <br>
+					מילותח יפוש:
+     
+				</p>
+				<p>
+					<strong>סינון:
+					</strong>
+					<br>
+					מחברים
+       
+        <br>
+					שנים 
+       
+        <br>
+				</p>
+				<p>
+					סוג חיפוש
+       
+        <br>
+					מילותח יפוש:
+     
+				</p>
+			</div>
+		</div>
+	</div>
+	<div id="ovSavedItemNote" class="ovSavedItemNote overlaySearch">
+		<a class="close" onclick="updateMuvaotHeara();"></a>
+		<!-- <a class="close" onclick="alert($('#ovSvNoteText').val());" href="#"></a>  -->
+		<input type="hidden" id="hdKodMuvaa" />
+		<input type="hidden" id="hdOldHeara" />
+
+		<span class="ovPointer"></span>
+		<div class="ovContent shadow1">
+			<div class="ovHeader">
+				<span id="CaptionHearot">הערות
+				</span>
+			</div>
+
+			<div class="ovContainer">
+				<textarea id="ovSvNoteText" style="width: 100%; height: 95%; resize: none; background: transparent; border: 0;"></textarea>
+			</div>
+		</div>
+	</div>
+	<script>
+		$(function () {
+			$.ajax({
+				type: "POST",
+				url: "ws/Arachim.asmx/GetSavedMuvaot",
+				data: "{}",
+				dataType: "json",
+				contentType: "application/json; charset=utf-8",
+				async: true
+			}).done(loadSavedMuvaotGroup);
+		});
+	</script>
+	<script type="text/javascript">
+		$(document).ajaxError(function (event, request, settings, errorString) {
+			//Server Error - Shgia Sharat
+			closeDataTransferOverlay();
+			openFeedbackSubmitOverlay(0, i18n.t("messages.error"), i18n.t("messages.ajaxError"));
+		});
+	</script>
+
+
+	<div id="textWelcome" style="display: none" data-i18n="[html]divs.aboutText">
+		<h3>אתר "מאגרים" נפתח לקהל הרחב בשנים 2015-2014 בתמיכת תכנית מורשת במשרד ראש הממשלה.</h3>
+		<br />
+		האתר בגרסתו הנוכחית נחנך בשנת 2014, והוא מתעדכן מעת לעת מן
+    <a target="_blank" href="http://hebrew-academy.org.il/%D7%94%D7%9E%D7%99%D7%9C%D7%95%D7%9F/%D7%94%D7%A2%D7%91%D7%95%D7%93%D7%94-%D7%91%D7%9E%D7%A4%D7%A2%D7%9C-%D7%94%D7%9E%D7%99%D7%9C%D7%95%D7%9F-%D7%94%D7%94%D7%99%D7%A1%D7%98%D7%95%D7%A8%D7%99/">העבודה במפעל המילון ההיסטורי
+	</a>.        
+    <br />
+		על הפרסומים הקודמים של מפעל המילון ההיסטורי קראו
+    <a target="_blank" href="http://hebrew-academy.org.il/topic/%D7%9E%D7%A4%D7%A2%D7%9C-%D7%94%D7%9E%D7%99%D7%9C%D7%95%D7%9F/%D7%AA%D7%95%D7%9C%D7%93%D7%95%D7%AA-%D7%9E%D7%A4%D7%A2%D7%9C-%D7%94%D7%9E%D7%99%D7%9C%D7%95%D7%9F-%D7%94%D7%94%D7%99%D7%A1%D7%98%D7%95%D7%A8%D7%99/">כאן
+	</a>.   
+       <br />
+		<br />
+		<h3>האתר הוקם באקדמיה ללשון העברית:
+		</h3>
+		<table class="welcomeTable">
+			<tr>
+				<td>מפתח ראשי</td>
+				<td>תכנון האתר וניהול המיזם</td>
+			</tr>
+			<tr>
+				<td><b>אפרים ברקוביץ'</b></td>
+				<td><b>דורית לרר</b></td>
+			</tr>
+			<tr style="height: 20px"></tr>
+			<tr>
+				<td>צוות הפיתוח בהקמה</td>
+				<td>תמיכת מפעל המילון ההיסטורי</td>
+			</tr>
+			<tr>
+				<td><b>אביטל כ"ץ, רחל רוזנברג, איתן פפאו, שולי זינגר</b></td>
+				<td><b>איילת הראל, דורון רובינשטיין</b></td>
+			</tr>
+		</table>
+		<br />
+		<br />
+		<h3>האקדמיה מודה לשותפיה בהקמה:
+		</h3>
+		<table class="welcomeTable">
+			<tr>
+				<td>עיצוב גרפי </td>
+				<td>עיצוב web </td>
+				<td>ייעוץ שימושיות ומנשק משתמש</td>
+			</tr>
+			<tr>
+				<td><a target="_blank" href="http://www.halely.co.il/">הללי אלעזר  
+				</a></td>
+				<td><a target="_blank" href="http://www.comediagroup.com/">קומדיה גרופ
+				</a></td>
+				<td><a target="_blank" href="mailto:eilotim@yahoo.com">עינת לוטן קוכן
+				</a></td>
+		</table>
+		<br />
+		<br />
+		<h3>תחזוקה והמשך פיתוח:
+		</h3>
+		<table class="welcomeTable">
+			<tr>
+				<td>במדור המחשוב </td>
+				<td>במפעל המילון ההיסטורי </td>
+			</tr>
+			<tr>
+				<td><b>בני מאלב, רחל רוזנברג, מיכאל אנקין, איתן פפאו</b></td>
+				<td><b>איילת הראל</b></td>
+		</table>
+	</div>
+	<div id="textTerms" style="display: none">
+		<div style="direction: rtl">
+			<h2 style="color: Maroon">השימוש במאגרים</h2>
+			<ul>
+				<li>זכויות היוצרים לאתר ולתכניו על כל מרכיביהם שמורות לאקדמיה ללשון העברית</li>
+				<li>השימוש במאגרי האקדמיה מותר לצורכי עיון, לימוד ומחקר. אין לעשות שימוש מסחרי במאגרי האקדמיה אלא ברשות בכתב.</li>
+				<li>חובה לציין בכל פרסום שנעשה בו שימוש במאגרי האקדמיה, שהחומר מובא מתוך מפעל המילון ההיסטורי של האקדמיה ללשון העברית.</li>
+				<li>אפשר לרכוש טקסטים שלמים מן המאגר לצרכי מחקר, עיון או לימוד. את הבקשה יש להפנות לנציגנו בכתובת maagarim@hebrew-academy.org.il.</li>
+			</ul>
+		</div>
+		<div style="direction: ltr">
+			<h2 style="color: Maroon">Use of the Ma'agarim Database</h2>
+			<ul>
+				<li>All rights to the site, including software and database content, are reserved to the Academy of the Hebrew Language.</li>
+				<li>The Academy database is primarily intended for study and for research. No commercial use may be made of the database without prior written permission.</li>
+				<li>In citing material from the Academy databases, publications must credit the Historical Dictionary Project of the Academy of the Hebrew Language.</li>
+				<li>Entire texts may be purchased from the database for research or other non-commercial purposes. Requests should be addressed to our customer service representative at: maagarim@hebrew-academy.org.il.</li>
+			</ul>
+		</div>
+	</div>
+
+	<div id="divManipulate" style="display: none;"></div>
+
+
+<script type="text/javascript">
+    function openScreeningPannelOverlay() {
+
+        $("#overlayScr1").overlay({
+            fixed: false,
+            top: "$('#screeningPannel').offset().top", 
+            left: "=0",
+            onLoad: function () {
+                closer(this, 6000);
+            }
+        });
+
+        $("#overlayScr1").overlay().load();
+    };
+
+    $(document).ready(function () {
+    	$("#HideNipuyWarning").click(function () {
+    		$.cookie('HideNipuyWarning', '1', { expires: 365,path: '/' });
+    		var prm = new Object();
+    		prm.checkboxName = 'HideNipuyWarning';
+    		$.ajax({
+    			url: "ws/MaagarimSvc.asmx/SetHideWarning",
+    			data: JSON.stringify(prm),
+    			dataType: "json",
+    			type: "POST",
+    			contentType: "application/json; charset=utf-8",
+    			success: function (data) {
+    			}
+    		});
+    	});
+    })
+
+    $(document).ready(function () {
+
+        /*$(window).resize(function () {
+            tabWidth();
+            tabWidthEssay();
+        }).resize();*/
+
+        // Tooltips
+        //titleTooltip();
+
+        //overlays
+        $("#screeningPannel a[rel]").overlay({
+            fixed: false,
+            top: "$('#screeningPannel').offset().top",
+            left: "=0",
+            onLoad: function () {
+                closer(this, 6000);
+            }
+        });
+
+        // setup ul.tabs to work as tabs for each div directly under div.panes
+        $("ul.searchTabs").tabs("div.searchPanes > div", {
+            effect: 'fade',
+            fadeOutSpeed: 50,
+            history: true
+        });
+
+        //search results tabs
+        $("#srTabs").tabs("div#srPanes > div", {
+            tabs: 'h2',
+            history: true
+        });
+
+        //search results tabs
+        $("#srTabsEssay").tabs("div#srPanesEssay > div", {
+            tabs: 'h2',
+            history: true
+        });
+
+        //search results accordion
+        $("div.resultAccordion").tabs("div.resultAccordion div.resAccPane", {
+            tabs: 'h3',
+            effect: 'slide',
+            initialIndex: -1
+
+        });
+
+        handleCloseAccordion();
+
+    });
+
+    function closer(obj, val) {
+        setTimeout(function () { obj.close() }, val);
+    }
+    </script>
+
+    <input type="hidden" id="hdNipuyText" />
+        <script src="/Pages/js/sederViewJs?v=aftM2sL8Q_6m7PQFZNYKEivpfM96CaFJjfjrcyM7-Ek1"></script>
+
+
+
+			</div>
+
+			<div class="footer">
+				<ul class="footerMenu">
+					<li class="item dict"><a href="http://hebrew-academy.org.il/%D7%94%D7%9E%D7%99%D7%9C%D7%95%D7%9F/%D7%94%D7%A2%D7%91%D7%95%D7%93%D7%94-%D7%91%D7%9E%D7%A4%D7%A2%D7%9C-%D7%94%D7%9E%D7%99%D7%9C%D7%95%D7%9F-%D7%94%D7%94%D7%99%D7%A1%D7%98%D7%95%D7%A8%D7%99/" target="_blank" data-i18n="divs.aboutHamilon">על מפעל המילון</a></li>
+					<li class="item site"><a onclick="changeWelcomeText('על אתר המאגרים','textWelcome');" data-i18n="divs.aboutMaagarim">על אתר מאגרים</a></li>
+					<li class="item dict"><a onclick="changeWelcomeText('תנאי השימוש','textTerms');" data-i18n="divs.terms">תנאי השימוש</a></li>
+					<li class="item contact"><a href="mailto:maagarim@hebrew-academy.org.il" target="_blank" data-i18n="divs.contactUs">צרו קשר</a></li>
+				</ul>
+				<span class="copyright">מאגרים 3.0 - כל הזכויות שמורות לאקדמיה ללשון העברית</span>
+			</div>
+
+		</div>
+	
+
+<script type="text/javascript">
+//<![CDATA[
+MaagarimSugot.resolve([{"title":"מקרא","titleSug":"מקרא","titleTatSug":"","sug":5,"tatsug":0,"isTatSug":false},{"title":"אפיגרפיה","titleSug":"אפיגרפיה","titleTatSug":"","sug":10,"tatsug":0,"isTatSug":false},{"title":"אפיגרפיה - כתובות","titleSug":"אפיגרפיה","titleTatSug":"כתובות","sug":10,"tatsug":1,"isTatSug":true},{"title":"אפיגרפיה - מטבעות, חותמות ולוחיות משקל","titleSug":"אפיגרפיה","titleTatSug":"מטבעות, חותמות ולוחיות משקל","sug":10,"tatsug":2,"isTatSug":true},{"title":"אפיגרפיה - קמעות וקערות השבעה","titleSug":"אפיגרפיה","titleTatSug":"קמעות וקערות השבעה","sug":10,"tatsug":3,"isTatSug":true},{"title":"אפיגרפיה - קולופונים","titleSug":"אפיגרפיה","titleTatSug":"קולופונים","sug":10,"tatsug":4,"isTatSug":true},{"title":"תעודות מדבר יהודה","titleSug":"תעודות מדבר יהודה","titleTatSug":"","sug":20,"tatsug":0,"isTatSug":false},{"title":"איגרות","titleSug":"איגרות","titleTatSug":"","sug":25,"tatsug":0,"isTatSug":false},{"title":"תלמוד ומדרש","titleSug":"תלמוד ומדרש","titleTatSug":"","sug":30,"tatsug":0,"isTatSug":false},{"title":"ספרות הגאונים","titleSug":"ספרות הגאונים","titleTatSug":"","sug":40,"tatsug":0,"isTatSug":false},{"title":"ספרות הגאונים - שאלות ותשובות","titleSug":"ספרות הגאונים","titleTatSug":"שאלות ותשובות","sug":40,"tatsug":1,"isTatSug":true},{"title":"ספרות הגאונים - פירושים לתלמוד","titleSug":"ספרות הגאונים","titleTatSug":"פירושים לתלמוד","sug":40,"tatsug":2,"isTatSug":true},{"title":"ספרות הגאונים - חיבורים","titleSug":"ספרות הגאונים","titleTatSug":"חיבורים","sug":40,"tatsug":3,"isTatSug":true},{"title":"בלשנות: מסורה, דקדוק ומילונות","titleSug":"בלשנות: מסורה, דקדוק ומילונות","titleTatSug":"","sug":50,"tatsug":0,"isTatSug":false},{"title":"שטרות","titleSug":"שטרות","titleTatSug":"","sug":55,"tatsug":0,"isTatSug":false},{"title":"ספרות הקראים","titleSug":"ספרות הקראים","titleTatSug":"","sug":60,"tatsug":0,"isTatSug":false},{"title":"פיוט ותפילה","titleSug":"פיוט ותפילה","titleTatSug":"","sug":70,"tatsug":0,"isTatSug":false},{"title":"פיוט ותפילה - פיוטים למחברים ידועים","titleSug":"פיוט ותפילה","titleTatSug":"פיוטים למחברים ידועים","sug":70,"tatsug":1,"isTatSug":true},{"title":"פיוט ותפילה - פיוטים למחברים עלומי שם","titleSug":"פיוט ותפילה","titleTatSug":"פיוטים למחברים עלומי שם","sug":70,"tatsug":2,"isTatSug":true},{"title":"שירת ספרד","titleSug":"שירת ספרד","titleTatSug":"","sug":73,"tatsug":0,"isTatSug":false},{"title":"ספרות רבנית","titleSug":"ספרות רבנית","titleTatSug":"","sug":110,"tatsug":0,"isTatSug":false},{"title":"ספרות רבנית - תשובות","titleSug":"ספרות רבנית","titleTatSug":"תשובות","sug":110,"tatsug":1,"isTatSug":true},{"title":"ספרות רבנית - פרשנות","titleSug":"ספרות רבנית","titleTatSug":"פרשנות","sug":110,"tatsug":2,"isTatSug":true},{"title":"ספרות רבנית - חיבורים עצמאיים","titleSug":"ספרות רבנית","titleTatSug":"חיבורים עצמאיים","sug":110,"tatsug":3,"isTatSug":true},{"title":"ספרות התרגומים מערבית","titleSug":"ספרות התרגומים מערבית","titleTatSug":"","sug":150,"tatsug":0,"isTatSug":false},{"title":"ספרות יפה","titleSug":"ספרות יפה","titleTatSug":"","sug":201,"tatsug":0,"isTatSug":false},{"title":"ספרות מדע","titleSug":"ספרות מדע","titleTatSug":"","sug":202,"tatsug":0,"isTatSug":false},{"title":"עיון, עיתונות ופובליציסטיקה","titleSug":"עיון, עיתונות ופובליציסטיקה","titleTatSug":"","sug":203,"tatsug":0,"isTatSug":false},{"title":"מכתבים","titleSug":"מכתבים","titleTatSug":"","sug":204,"tatsug":0,"isTatSug":false},{"title":"יומנים","titleSug":"יומנים","titleTatSug":"","sug":300,"tatsug":0,"isTatSug":false}]);Sinun.resolve(JSON.parse('{"shana":{"From":-300,"To":2000,"IsEmpty":true},"suga":{"sugot":[],"Rak":true,"IsEmpty":true},"mehabrim":{"codes":[],"Rak":true,"IsEmpty":true},"hiburim":{"codes":[],"Rak":true,"IsEmpty":true}}'));//]]>
+</script>
+</form>
+	<script>
+		var $srTabs;
+
+		$(document).ready(function () {
+			$("a[rel]").overlay();
+
+			initWordContextMenu();
+			initMesiraContextMenu();
+
+		});
+	</script>
+</body>
+</html>
