@@ -43,11 +43,13 @@ def _tag_to_form_type(tag: str) -> str:
       N;SG;PSSD;PSS1S → possessive
       N;PL;PSSD;PSS3S;MASC → possessive_pl
     """
-    if 'PSS' in tag and 'PSSD' in tag:
+    # Check for possessor tags (PSS1S, PSS2S, PSS3S, PSS1P, PSS2P, PSS3P)
+    has_possessor = any(f'PSS{d}' in tag for d in '123')
+    if has_possessor:
         # Possessive forms (N;SG;PSSD;PSS1S or N;PL;PSSD;PSS3S;MASC)
         return 'possessive_pl' if 'PL' in tag else 'possessive'
     if 'PSSD' in tag:
-        # Construct state (N;SG;PSSD or N;PL;PSSD)
+        # Construct state (N;SG;PSSD or N;PL;PSSD) — no specific possessor
         return 'construct_pl' if 'PL' in tag else 'construct'
     if 'DEF' in tag and 'NDEF' not in tag:
         return 'plural_def' if 'PL' in tag else 'definite'
