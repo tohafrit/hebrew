@@ -65,6 +65,12 @@ def identify_binyan(hebrew: str, root: list[str]) -> int:
     root_str = ''.join(root)
     root_class = classify_root(root)
 
+    # Pe-yod roots: infinitive drops the yod (לדעת not לידעת, לשבת not לישבת)
+    # The remaining after ל starts with the SECOND root letter
+    # Check root[0] directly since classify_root may return lamed_alef/lamed_he instead
+    if root[0] == 'י' and len(remaining) >= 2 and remaining[0] == root[1]:
+        return 1  # Pa'al pe-yod
+
     # Hollow roots (middle ו/י) are always Pa'al when they keep the weak letter
     if root_class == 'hollow':
         return 1  # Pa'al hollow
@@ -144,6 +150,56 @@ def conj_paal_regular(root, word_id):
         R("imperative", "2fs", "f", "s", f"{p}{e}{l}י"),
         R("imperative", "2mp", "m", "p", f"{p}{e}{l}ו"),
         R("imperative", "2fp", "f", "p", f"{p}{e}{l}נה"),
+    ]
+    return rows
+
+
+# ─── Pa'al Pe-Yod (initial י drops in future/imperative) ──────────────────
+
+def conj_paal_pe_yod(root, word_id):
+    """Pa'al for pe-yod roots (e.g., י.ד.ע → לדעת, י.ש.ב → לשבת)."""
+    p, e, l = root  # p is always י
+    R = lambda t, pe, g, n, f: _row(word_id, 1, t, pe, g, n, f)
+    rows = []
+
+    # Past: same as regular (yod retained: ידעתי, ישבתי)
+    rows += [
+        R("past", "1s", "mf", "s", f"{p}{e}{l}תי"),
+        R("past", "2ms", "m", "s", f"{p}{e}{l}ת"),
+        R("past", "2fs", "f", "s", f"{p}{e}{l}ת"),
+        R("past", "3ms", "m", "s", f"{p}{e}{l}"),
+        R("past", "3fs", "f", "s", f"{p}{e}{l}ה"),
+        R("past", "1p", "mf", "p", f"{p}{e}{l}נו"),
+        R("past", "2mp", "m", "p", f"{p}{e}{l}תם"),
+        R("past", "2fp", "f", "p", f"{p}{e}{l}תן"),
+        R("past", "3p", "mf", "p", f"{p}{e}{l}ו"),
+    ]
+    # Present: yoXeX pattern (יודע, יושב, יוצא, יורד)
+    rows += [
+        R("present", "ms", "m", "s", f"{p}ו{e}{l}"),
+        R("present", "fs", "f", "s", f"{p}ו{e}{l}ת"),
+        R("present", "mp", "m", "p", f"{p}ו{e}{l}ים"),
+        R("present", "fp", "f", "p", f"{p}ו{e}{l}ות"),
+    ]
+    # Future: yod drops — prefix + EL (אדע, אשב, אצא, ארד)
+    rows += [
+        R("future", "1s", "mf", "s", f"א{e}{l}"),
+        R("future", "2ms", "m", "s", f"ת{e}{l}"),
+        R("future", "2fs", "f", "s", f"ת{e}{l}י"),
+        R("future", "3ms", "m", "s", f"י{e}{l}"),
+        R("future", "3fs", "f", "s", f"ת{e}{l}"),
+        R("future", "1p", "mf", "p", f"נ{e}{l}"),
+        R("future", "2mp", "m", "p", f"ת{e}{l}ו"),
+        R("future", "2fp", "f", "p", f"ת{e}{l}נה"),
+        R("future", "3mp", "m", "p", f"י{e}{l}ו"),
+        R("future", "3fp", "f", "p", f"ת{e}{l}נה"),
+    ]
+    # Imperative: short stem (דע, שב, צא, רד)
+    rows += [
+        R("imperative", "2ms", "m", "s", f"{e}{l}"),
+        R("imperative", "2fs", "f", "s", f"{e}{l}י"),
+        R("imperative", "2mp", "m", "p", f"{e}{l}ו"),
+        R("imperative", "2fp", "f", "p", f"{e}{l}נה"),
     ]
     return rows
 
@@ -548,8 +604,11 @@ def generate_conjugations(word_id: int, hebrew: str, root_str: str) -> list[dict
     binyan = identify_binyan(hebrew, root)
 
     if binyan == 1:  # Pa'al
+        is_pe_yod = (root[0] == 'י')
         if root_class == 'hollow':
             return conj_paal_hollow(root, word_id)
+        elif is_pe_yod:
+            return conj_paal_pe_yod(root, word_id)
         elif root_class == 'lamed_he':
             return conj_paal_lamed_he(root, word_id)
         else:
@@ -577,6 +636,11 @@ if __name__ == "__main__":
         (999, "להתלבש", "ל.ב.ש", "מתלבש"),
         (729, "להתמודד", "מ.ד.ד", "מתמודד"),
         (954, "להיחשב", "ח.ש.ב", "נחשב"),
+        # Pe-yod Pa'al:
+        (1955, "לדעת", "י.ד.ע", "יודע"),
+        (1939, "לשבת", "י.ש.ב", "יושב"),
+        (1938, "לצאת", "י.צ.א", "יוצא"),
+        (8260, "לרדת", "י.ר.ד", "יורד"),
     ]
     for wid, heb, root, expected_present in tests:
         forms = generate_conjugations(wid, heb, root)
@@ -585,3 +649,11 @@ if __name__ == "__main__":
             got = present_ms[0]['form_he']
             match = '✓' if got == expected_present else '✗'
             print(f"  {match} {heb} ({root}): {got} {'== ' + expected_present if match == '✓' else '!= ' + expected_present}")
+        # Also show past 3p and future 1s for pe-yod verbs
+        if root.startswith('י.'):
+            past_3p = [f for f in forms if f['tense'] == 'past' and f['person'] == '3p']
+            fut_1s = [f for f in forms if f['tense'] == 'future' and f['person'] == '1s']
+            if past_3p:
+                print(f"      past 3p: {past_3p[0]['form_he']}")
+            if fut_1s:
+                print(f"      future 1s: {fut_1s[0]['form_he']}")
