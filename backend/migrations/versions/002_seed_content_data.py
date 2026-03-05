@@ -68,6 +68,23 @@ def upgrade() -> None:
         cursor.execute(sql)
         cursor.close()
 
+    # Create default admin user
+    conn.execute(sa.text("""
+        INSERT INTO users (id, email, password_hash, display_name, native_lang, current_level, xp, streak_days, created_at)
+        VALUES (
+            'a0000000-0000-0000-0000-000000000001',
+            'admin@ulpan.ai',
+            '$2b$12$5gOdtGXwFiALNjLTU1Q5LeSFcrx2sPt1aqN526gLv1a4VdlolpOZm',
+            'Admin',
+            'ru',
+            1,
+            0,
+            0,
+            NOW()
+        )
+        ON CONFLICT (email) DO NOTHING
+    """))
+
     # Reset all sequences to max(id) + 1
     for table in SEED_TABLES:
         seq_name = f'{table}_id_seq'
