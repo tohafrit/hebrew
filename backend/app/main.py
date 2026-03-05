@@ -3,9 +3,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
-from app.routers import auth, health, words, srs, alphabet, grammar, lessons, dialogues, gamification, topics, tts, reader
+from app.routers import auth, health, words, srs, alphabet, grammar, lessons, dialogues, gamification, topics, tts, reader, learning_path
 from app.routers import settings as settings_router
 
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Ulpan AI", version="0.2.0", lifespan=lifespan)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,3 +46,4 @@ app.include_router(settings_router.router, prefix="/api")
 app.include_router(topics.router, prefix="/api")
 app.include_router(tts.router, prefix="/api")
 app.include_router(reader.router, prefix="/api")
+app.include_router(learning_path.router, prefix="/api")

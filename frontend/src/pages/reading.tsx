@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useReadingTexts, useReadingText } from "@/hooks/use-lessons";
 import { useUrlNumParam } from "@/hooks/use-url-state";
 import { HebrewText } from "@/components/hebrew-text";
+import { TTSControls, useTTS } from "@/components/tts-controls";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,21 +18,31 @@ const CAT_LABELS: Record<string, string> = {
 function VocabWord({ word }: {
   word: { he: string; ru: string; translit?: string };
 }) {
+  const { speak } = useTTS();
   return (
-    <Link
-      to={`/dictionary?search=${encodeURIComponent(word.he)}`}
-      className="flex items-center gap-2 p-2 rounded border text-sm hover:bg-accent hover:border-primary/30 transition-colors"
-      title="Найти в словаре"
-    >
-      <HebrewText size="sm" className="font-bold">
-        {word.he}
-      </HebrewText>
-      {word.translit && (
-        <span className="text-muted-foreground text-xs">{word.translit}</span>
-      )}
-      <span className="text-xs">— {word.ru}</span>
-      <span className="text-xs text-muted-foreground ml-auto shrink-0">→</span>
-    </Link>
+    <div className="flex items-center gap-2 p-2 rounded border text-sm hover:bg-accent hover:border-primary/30 transition-colors">
+      <button
+        className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
+        onClick={() => speak(word.he)}
+        title="Прослушать"
+      >
+        ▶
+      </button>
+      <Link
+        to={`/dictionary?search=${encodeURIComponent(word.he)}`}
+        className="flex items-center gap-2 flex-1 min-w-0"
+        title="Найти в словаре"
+      >
+        <HebrewText size="sm" className="font-bold">
+          {word.he}
+        </HebrewText>
+        {word.translit && (
+          <span className="text-muted-foreground text-xs">{word.translit}</span>
+        )}
+        <span className="text-xs">— {word.ru}</span>
+        <span className="text-xs text-muted-foreground ml-auto shrink-0">→</span>
+      </Link>
+    </div>
   );
 }
 
@@ -133,6 +144,9 @@ export function ReadingPage() {
             {CAT_LABELS[textDetail.category] || textDetail.category}
           </Badge>
         </div>
+
+        {/* Play entire text */}
+        <TTSControls text={textDetail.content_he} size="default" label="Прослушать текст" />
 
         {/* Vocabulary */}
         {textDetail.vocabulary_json && (

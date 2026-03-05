@@ -21,6 +21,7 @@ import { CulturePage } from "@/pages/culture";
 import { SettingsPage } from "@/pages/settings";
 import { TopicsPage } from "@/pages/topics";
 import { ReaderPage } from "@/pages/reader";
+import { PathPage } from "@/pages/path";
 import { NotFoundPage } from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -58,6 +59,7 @@ export default function App() {
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/topics" element={<TopicsPage />} />
                 <Route path="/reader" element={<ReaderPage />} />
+                <Route path="/path" element={<PathPage />} />
               </Route>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />

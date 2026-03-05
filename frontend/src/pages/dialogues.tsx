@@ -120,6 +120,7 @@ function DialoguePlayer({ dialogueId, onBack }: {
       setRevealedLines((prev) => new Set(prev).add(currentLine));
       // Auto-play TTS for NPC line
       if (currentLineData.text_he) {
+        clearTimeout(ttsTimerRef.current);
         ttsTimerRef.current = setTimeout(() => speak(currentLineData.text_he), 300);
       }
     }

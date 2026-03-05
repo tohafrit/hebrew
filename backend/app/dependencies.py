@@ -30,7 +30,8 @@ async def get_current_user(
         except HTTPException:
             raise
         except Exception:
-            pass  # If Redis is down, allow the request through
+            # If Redis is down, reject the request to prevent blacklisted tokens from working
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Auth service temporarily unavailable")
 
     sub = payload.get("sub")
     if not sub:

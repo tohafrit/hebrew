@@ -25,7 +25,7 @@ async def get_recommendations(
     5. Unseen lessons
     """
     user_id = user.id
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     today = date.today()
     recommendations: list[dict] = []
 

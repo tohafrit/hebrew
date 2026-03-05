@@ -4,6 +4,7 @@ import { useWord } from "@/hooks/use-words";
 import { useConjugations } from "@/hooks/use-grammar";
 import { useCreateCards } from "@/hooks/use-srs";
 import { HebrewText } from "@/components/hebrew-text";
+import { TTSControls } from "@/components/tts-controls";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -136,13 +137,14 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
-        <div>
+        <div className="space-y-1">
           <HebrewText size="2xl" className="block font-bold">
             {word.hebrew}
           </HebrewText>
           {word.transliteration && (
             <p className="text-muted-foreground">{word.transliteration}</p>
           )}
+          <TTSControls text={word.hebrew} size="sm" />
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           &times;

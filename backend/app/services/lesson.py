@@ -140,7 +140,7 @@ async def save_exercise_result(
         answer_json=answer_json,
         is_correct=is_correct,
         time_ms=time_ms,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(result)
     await db.flush()

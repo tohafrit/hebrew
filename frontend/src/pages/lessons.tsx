@@ -61,9 +61,7 @@ function FillBlankExercise({ exercise, onAnswer }: {
   return (
     <div className="space-y-3">
       <p className="font-medium">{prompt.context || "Заполните пропуск"}</p>
-      <p className="text-lg">
-        <HebrewText size="lg">{prompt.sentence_ru}</HebrewText>
-      </p>
+      <p className="text-lg">{prompt.sentence_ru}</p>
       {prompt.hint && (
         <p className="text-sm text-muted-foreground">Подсказка: {prompt.hint}</p>
       )}
@@ -266,6 +264,7 @@ function TranslateRuHeExercise({ exercise, onAnswer }: {
       {prompt.hint && (
         <p className="text-sm text-muted-foreground">
           Подсказка: <HebrewText size="sm">{prompt.hint}</HebrewText>
+          <TTSControls text={prompt.hint} size="sm" className="inline-flex ml-2" />
         </p>
       )}
       <div className="flex gap-2">
@@ -330,14 +329,17 @@ function ExerciseCard({ exercise, onDone }: {
             {result.correct && ` +${result.points_earned} XP`}
           </p>
           {!result.correct && result.correct_answer && (
-            <p className="text-sm mt-1">
-              Правильный ответ:{" "}
+            <div className="text-sm mt-1">
+              <span>Правильный ответ:{" "}</span>
               <span className="font-medium">
                 {typeof result.correct_answer === "string"
                   ? result.correct_answer
                   : JSON.stringify(result.correct_answer)}
               </span>
-            </p>
+              {typeof result.correct_answer === "string" && /[\u0590-\u05FF]/.test(result.correct_answer) && (
+                <TTSControls text={result.correct_answer} size="sm" className="inline-flex ml-2" />
+              )}
+            </div>
           )}
           {result.explanation && (
             <p className="text-sm text-muted-foreground mt-2">{result.explanation}</p>

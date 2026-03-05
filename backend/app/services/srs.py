@@ -22,7 +22,7 @@ def sm2_update(
 
     Returns (new_interval, new_ease, new_reps, new_lapses).
     """
-    if quality >= 2:  # correct
+    if quality >= 3:  # correct (SM-2 standard threshold)
         if repetitions == 0:
             new_interval = 1.0
         elif repetitions == 1:
@@ -53,7 +53,7 @@ async def create_cards_for_words(
     card_types: list[str],
 ) -> int:
     """Create SRS cards for given words. Skip duplicates."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Batch-fetch all words at once
     words_result = await db.execute(
@@ -125,7 +125,7 @@ async def get_session_cards(
     limit: int = 20,
 ) -> tuple[list[dict], int, int]:
     """Get cards due for review. Returns (cards, total_due, new_count)."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Count total due
     total_due = await db.scalar(
@@ -224,7 +224,7 @@ async def review_card(
     schedule.ease_factor = new_ease
     schedule.repetitions = new_reps
     schedule.lapses = new_lapses
-    schedule.next_review = datetime.utcnow() + timedelta(days=new_interval)
+    schedule.next_review = datetime.now(timezone.utc) + timedelta(days=new_interval)
 
     await db.flush()
 
@@ -267,7 +267,7 @@ async def get_leech_cards(
 async def get_srs_stats(db: AsyncSession, user: User) -> dict:
     """Get SRS statistics for a user."""
     user_id = user.id
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     total = await db.scalar(

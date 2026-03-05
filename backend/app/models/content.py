@@ -45,7 +45,7 @@ class ExerciseResult(Base):
     is_correct: Mapped[bool] = mapped_column()
     time_ms: Mapped[int | None] = mapped_column(nullable=True)
     attempt: Mapped[int] = mapped_column(default=1)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class ReadingText(Base):

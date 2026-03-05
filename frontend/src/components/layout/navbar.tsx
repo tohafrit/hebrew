@@ -20,6 +20,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Учить",
     items: [
+      { path: "/path", label: "Путь" },
       { path: "/alphabet", label: "Алфавит" },
       { path: "/grammar", label: "Грамматика" },
       { path: "/lessons", label: "Уроки" },

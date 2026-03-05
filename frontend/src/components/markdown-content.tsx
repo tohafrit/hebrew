@@ -1,12 +1,31 @@
+import { Fragment } from "react";
+
+function parseInline(text: string): (string | JSX.Element)[] {
+  const parts: (string | JSX.Element)[] = [];
+  const regex = /\*\*(.*?)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(<strong key={match.index}>{match[1]}</strong>);
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
+
 export function MarkdownContent({ content }: { content: string }) {
   const lines = content.split("\n");
   const elements: JSX.Element[] = [];
   let tableRows: string[][] = [];
   let inTable = false;
-
-  const processInline = (text: string) => {
-    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  };
 
   const flushTable = (key: string) => {
     if (tableRows.length === 0) return;
@@ -17,7 +36,7 @@ export function MarkdownContent({ content }: { content: string }) {
             <tr>
               {tableRows[0].map((h, j) => (
                 <th key={j} className="border px-3 py-1.5 bg-muted text-left font-medium">
-                  <span dangerouslySetInnerHTML={{ __html: processInline(h) }} />
+                  {parseInline(h)}
                 </th>
               ))}
             </tr>
@@ -27,7 +46,7 @@ export function MarkdownContent({ content }: { content: string }) {
               <tr key={ri}>
                 {row.map((cell, ci) => (
                   <td key={ci} className="border px-3 py-1.5">
-                    <span dangerouslySetInnerHTML={{ __html: processInline(cell) }} />
+                    {parseInline(cell)}
                   </td>
                 ))}
               </tr>
@@ -65,31 +84,31 @@ export function MarkdownContent({ content }: { content: string }) {
     } else if (line.startsWith("#### ")) {
       elements.push(
         <h4 key={i} className="text-sm font-semibold mt-3 mb-1">
-          <span dangerouslySetInnerHTML={{ __html: processInline(line.slice(5)) }} />
+          {parseInline(line.slice(5))}
         </h4>
       );
     } else if (line.startsWith("### ")) {
       elements.push(
         <h3 key={i} className="text-base font-semibold mt-4 mb-1">
-          <span dangerouslySetInnerHTML={{ __html: processInline(line.slice(4)) }} />
+          {parseInline(line.slice(4))}
         </h3>
       );
     } else if (line.startsWith("## ")) {
       elements.push(
         <h2 key={i} className="text-lg font-bold mt-5 mb-2">
-          <span dangerouslySetInnerHTML={{ __html: processInline(line.slice(3)) }} />
+          {parseInline(line.slice(3))}
         </h2>
       );
     } else if (line.startsWith("- ")) {
       elements.push(
         <li key={i} className="ml-4 text-sm list-disc">
-          <span dangerouslySetInnerHTML={{ __html: processInline(line.slice(2)) }} />
+          {parseInline(line.slice(2))}
         </li>
       );
     } else {
       elements.push(
         <p key={i} className="text-sm">
-          <span dangerouslySetInnerHTML={{ __html: processInline(line) }} />
+          {parseInline(line)}
         </p>
       );
     }

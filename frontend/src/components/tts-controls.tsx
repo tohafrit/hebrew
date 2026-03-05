@@ -134,8 +134,16 @@ export function TTSControls({
 
 // Hook for TTS
 export function useTTS(lang = "he-IL") {
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const speak = useCallback(
     async (text: string, rate = 1) => {
+      // Stop any currently playing audio
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
+
       // Try server TTS first
       try {
         const token = localStorage.getItem("access_token");
@@ -148,7 +156,15 @@ export function useTTS(lang = "he-IL") {
             const blob = await resp.blob();
             const audioUrl = URL.createObjectURL(blob);
             const audio = new Audio(audioUrl);
-            audio.onended = () => URL.revokeObjectURL(audioUrl);
+            currentAudioRef.current = audio;
+            audio.onended = () => {
+              URL.revokeObjectURL(audioUrl);
+              currentAudioRef.current = null;
+            };
+            audio.onerror = () => {
+              URL.revokeObjectURL(audioUrl);
+              currentAudioRef.current = null;
+            };
             await audio.play();
             return;
           }
@@ -169,7 +185,22 @@ export function useTTS(lang = "he-IL") {
   );
 
   const stop = useCallback(() => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
     window.speechSynthesis.cancel();
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
+      window.speechSynthesis.cancel();
+    };
   }, []);
 
   return { speak, stop };

@@ -1,5 +1,6 @@
 """Interactive reader — analyze Hebrew text and annotate words with dictionary data."""
 
+import asyncio
 import re
 import time
 from urllib.parse import quote
@@ -22,6 +23,7 @@ _cache_word: dict[str, dict] | None = None
 _cache_form: dict[str, dict] | None = None
 _cache_conj: dict[str, dict] | None = None
 _cache_time: float = 0
+_cache_lock = asyncio.Lock()
 _CACHE_TTL = 300  # 5 minutes
 
 # Hebrew punctuation / connectors to strip when matching
@@ -92,10 +94,13 @@ async def analyze_text(
     global _cache_word, _cache_form, _cache_conj, _cache_time
     now = time.time()
     if _cache_word is None or (now - _cache_time) > _CACHE_TTL:
-        _cache_word = await _build_word_cache(db)
-        _cache_form = await _build_form_cache(db)
-        _cache_conj = await _build_conjugation_cache(db)
-        _cache_time = now
+        async with _cache_lock:
+            # Double-check after acquiring lock
+            if _cache_word is None or (time.time() - _cache_time) > _CACHE_TTL:
+                _cache_word = await _build_word_cache(db)
+                _cache_form = await _build_form_cache(db)
+                _cache_conj = await _build_conjugation_cache(db)
+                _cache_time = time.time()
     word_cache = _cache_word
     form_cache = _cache_form
     conj_cache = _cache_conj

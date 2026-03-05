@@ -48,6 +48,8 @@ async def check_achievements(
 ):
     """Check and award any new achievements. Returns list of newly unlocked codes."""
     newly_unlocked = await check_and_award_achievements(db, user)
+    if newly_unlocked:
+        await db.commit()
     return newly_unlocked
 
 

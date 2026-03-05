@@ -50,6 +50,9 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        // Clear Zustand auth state
+        const { useAuthStore } = await import("@/stores/auth-store");
+        useAuthStore.setState({ user: null, isAuthenticated: false });
         window.location.href = "/login";
       }
     }

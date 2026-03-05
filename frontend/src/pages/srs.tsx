@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useSRSSession, useSRSStats, useReviewCard, useSRSLeeches, type SRSCard } from "@/hooks/use-srs";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
 import { HebrewText } from "@/components/hebrew-text";
+import { TTSControls, useTTS } from "@/components/tts-controls";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,13 +26,26 @@ export function SRSPage() {
   const [revealed, setRevealed] = useState(false);
   const [sessionDone, setSessionDone] = useState(false);
   const [reviewed, setReviewed] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
   const startTimeRef = useRef<number>(Date.now());
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { speak } = useTTS();
 
   const currentCard = session?.cards[currentIndex];
 
+  // Auto-focus for keyboard shortcuts
+  useEffect(() => {
+    containerRef.current?.focus();
+  }, [currentIndex, sessionDone]);
+
   const handleReveal = useCallback(() => {
     setRevealed(true);
-  }, []);
+    // Auto-play Hebrew audio on reveal
+    if (autoPlay && currentCard) {
+      const hebrewText = currentCard.back_json.hebrew || currentCard.front_json.hebrew;
+      if (hebrewText) speak(hebrewText);
+    }
+  }, [autoPlay, currentCard, speak]);
 
   const handleRate = useCallback(
     async (quality: number) => {
@@ -100,7 +114,7 @@ export function SRSPage() {
   }
 
   return (
-    <div className="space-y-6" tabIndex={0} onKeyDown={handleKeyDown}>
+    <div className="space-y-6" tabIndex={0} ref={containerRef} onKeyDown={handleKeyDown} style={{ outline: "none" }}>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">SRS-карточки</h1>
         {stats && (
@@ -193,9 +207,12 @@ export function SRSPage() {
               {/* Front */}
               <div className="space-y-2">
                 {currentCard.front_json.hebrew && (
-                  <HebrewText size="2xl" className="block font-bold text-3xl">
-                    {currentCard.front_json.hebrew}
-                  </HebrewText>
+                  <>
+                    <HebrewText size="2xl" className="block font-bold text-3xl">
+                      {currentCard.front_json.hebrew}
+                    </HebrewText>
+                    <TTSControls text={currentCard.front_json.hebrew} size="sm" />
+                  </>
                 )}
                 {currentCard.front_json.transliteration && (
                   <p className="text-muted-foreground">
@@ -223,9 +240,12 @@ export function SRSPage() {
               ) : (
                 <div className="space-y-4 pt-4 border-t">
                   {currentCard.back_json.hebrew && (
-                    <HebrewText size="xl" className="block font-bold text-2xl">
-                      {currentCard.back_json.hebrew}
-                    </HebrewText>
+                    <div className="space-y-1">
+                      <HebrewText size="xl" className="block font-bold text-2xl">
+                        {currentCard.back_json.hebrew}
+                      </HebrewText>
+                      <TTSControls text={currentCard.back_json.hebrew} size="sm" />
+                    </div>
                   )}
                   {currentCard.back_json.transliteration && (
                     <p className="text-muted-foreground">
@@ -262,9 +282,18 @@ export function SRSPage() {
             </div>
           )}
 
-          <p className="text-xs text-center text-muted-foreground">
-            Нажмите Enter для показа ответа, 1-4 для оценки
-          </p>
+          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            <span>Нажмите Enter для показа ответа, 1-4 для оценки</span>
+            <button
+              className={cn(
+                "px-2 py-1 rounded text-xs transition-colors",
+                autoPlay ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+              )}
+              onClick={() => setAutoPlay(!autoPlay)}
+            >
+              {autoPlay ? "🔊 Авто" : "🔇 Авто"}
+            </button>
+          </div>
         </>
       )}
     </div>

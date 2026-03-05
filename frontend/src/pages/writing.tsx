@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useLessons, useLesson, useCheckExercise, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
 import { HebrewText } from "@/components/hebrew-text";
+import { TTSControls } from "@/components/tts-controls";
 import { HebrewKeyboard } from "@/components/hebrew-keyboard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -181,12 +182,15 @@ function WritingExerciseCard({ exercise, onDone }: {
             {result.correct && ` +${result.points_earned} XP`}
           </p>
           {!result.correct && result.correct_answer && (
-            <p className="text-sm mt-1">
-              Правильный ответ:{" "}
+            <div className="text-sm mt-1 space-y-1">
+              <span>Правильный ответ:{" "}</span>
               <HebrewText size="lg" className="font-bold">
                 {String(result.correct_answer)}
               </HebrewText>
-            </p>
+              {/[\u0590-\u05FF]/.test(String(result.correct_answer)) && (
+                <TTSControls text={String(result.correct_answer)} size="sm" />
+              )}
+            </div>
           )}
           {result.explanation && (
             <p className="text-sm text-muted-foreground mt-2">{result.explanation}</p>

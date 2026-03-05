@@ -1,5 +1,6 @@
 import type { WordBrief } from "@/hooks/use-words";
 import { HebrewText } from "@/components/hebrew-text";
+import { useTTS } from "@/components/tts-controls";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,8 @@ interface WordCardProps {
 }
 
 export function WordCard({ word, onClick, onRootClick, selected }: WordCardProps) {
+  const { speak } = useTTS();
+
   return (
     <Card
       className={cn(
@@ -50,9 +53,18 @@ export function WordCard({ word, onClick, onRootClick, selected }: WordCardProps
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <HebrewText size="xl" className="block font-bold">
-              {word.hebrew}
-            </HebrewText>
+            <div className="flex items-center gap-1.5">
+              <HebrewText size="xl" className="block font-bold">
+                {word.hebrew}
+              </HebrewText>
+              <button
+                className="shrink-0 text-muted-foreground hover:text-primary transition-colors text-sm"
+                onClick={(e) => { e.stopPropagation(); speak(word.hebrew); }}
+                title="Прослушать"
+              >
+                ▶
+              </button>
+            </div>
             {word.transliteration && (
               <p className="text-sm text-muted-foreground mt-0.5">
                 {word.transliteration}
