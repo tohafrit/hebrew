@@ -53,6 +53,7 @@ async def check_answer(
     xp_amount = 20 if is_correct else 2
     await award_xp(db, user, xp_amount, "dialogue_done")
     await check_and_award_achievements(db, user)
+    await db.commit()
 
     return DialogueCheckResponse(
         correct=is_correct,

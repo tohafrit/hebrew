@@ -68,7 +68,7 @@ function TranslateExercise({ exercise, onAnswer }: {
   const [value, setValue] = useState("");
   const prompt = exercise.prompt_json as {
     prompt_ru: string;
-    hint: string;
+    hint?: string;
     target_he: string;
   };
 
@@ -308,7 +308,7 @@ export function WritingPage() {
             <Card>
               <CardHeader>
                 <Badge variant="outline" className="self-start">
-                  {currentExercise!.type === "hebrew_typing" ? "Набор текста" : "Перевод RU→HE"}
+                  {exercise_type_label(currentExercise!.type)}
                 </Badge>
               </CardHeader>
               <CardContent>
@@ -377,4 +377,19 @@ export function WritingPage() {
       </div>
     </div>
   );
+}
+
+function exercise_type_label(type: string): string {
+  switch (type) {
+    case "hebrew_typing": return "Набор текста";
+    case "translate_ru_he": return "Перевод RU→HE";
+    case "multiple_choice": return "Выбор ответа";
+    case "fill_blank": return "Заполните пропуск";
+    case "match_pairs": return "Соединить пары";
+    case "word_order": return "Порядок слов";
+    case "dictation": return "Диктант";
+    case "minimal_pairs": return "Минимальные пары";
+    case "listening_comprehension": return "Аудирование";
+    default: return type;
+  }
 }

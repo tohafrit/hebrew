@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TTSControls } from "@/components/tts-controls";
+import { HebrewKeyboard } from "@/components/hebrew-keyboard";
 import { cn } from "@/lib/utils";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -201,6 +203,93 @@ function WordOrderExercise({ exercise, onAnswer }: {
   );
 }
 
+function DictationExercise({ exercise, onAnswer }: {
+  exercise: Exercise;
+  onAnswer: (answer: any) => void;
+}) {
+  const [value, setValue] = useState("");
+  const prompt = exercise.prompt_json as {
+    word_he: string;
+    word_translit?: string;
+    hint?: string;
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-muted-foreground text-sm">Прослушайте и запишите на иврите</p>
+      {prompt.hint && <p className="text-sm text-muted-foreground">Подсказка: {prompt.hint}</p>}
+      <TTSControls text={prompt.word_he} size="lg" label="Прослушать" />
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <Input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Введите слово на иврите..."
+            dir="rtl"
+            className="font-hebrew text-lg"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && value.trim()) onAnswer(value.trim());
+            }}
+          />
+          <Button
+            onClick={() => value.trim() && onAnswer(value.trim())}
+            disabled={!value.trim()}
+          >
+            Проверить
+          </Button>
+        </div>
+        <HebrewKeyboard
+          onKey={(key) => setValue((v) => v + key)}
+          onBackspace={() => setValue((v) => v.slice(0, -1))}
+          onSpace={() => setValue((v) => v + " ")}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TranslateRuHeExercise({ exercise, onAnswer }: {
+  exercise: Exercise;
+  onAnswer: (answer: any) => void;
+}) {
+  const [value, setValue] = useState("");
+  const prompt = exercise.prompt_json as {
+    prompt_ru: string;
+    hint?: string;
+    target_he: string;
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="font-medium">Переведите на иврит:</p>
+      <p className="text-2xl font-bold">{prompt.prompt_ru}</p>
+      {prompt.hint && (
+        <p className="text-sm text-muted-foreground">
+          Подсказка: <HebrewText size="sm">{prompt.hint}</HebrewText>
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          dir="rtl"
+          className="font-hebrew text-xl"
+          placeholder="הקלד כאן..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && value.trim()) onAnswer(value.trim());
+          }}
+        />
+        <Button
+          onClick={() => value.trim() && onAnswer(value.trim())}
+          disabled={!value.trim()}
+        >
+          Проверить
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function ExerciseCard({ exercise, onDone }: {
   exercise: Exercise;
   onDone: () => void;
@@ -270,6 +359,10 @@ function ExerciseCard({ exercise, onDone }: {
       return <MatchPairsExercise exercise={exercise} onAnswer={handleAnswer} />;
     case "word_order":
       return <WordOrderExercise exercise={exercise} onAnswer={handleAnswer} />;
+    case "translate_ru_he":
+      return <TranslateRuHeExercise exercise={exercise} onAnswer={handleAnswer} />;
+    case "dictation":
+      return <DictationExercise exercise={exercise} onAnswer={handleAnswer} />;
     default:
       return <p className="text-muted-foreground">Неизвестный тип упражнения: {exercise.type}</p>;
   }
@@ -535,6 +628,11 @@ function exercise_type_label(type: string): string {
     case "fill_blank": return "Заполните пропуск";
     case "match_pairs": return "Соединить пары";
     case "word_order": return "Порядок слов";
+    case "translate_ru_he": return "Перевод на иврит";
+    case "dictation": return "Диктант";
+    case "hebrew_typing": return "Набор текста";
+    case "minimal_pairs": return "Минимальные пары";
+    case "listening_comprehension": return "Аудирование";
     default: return type;
   }
 }

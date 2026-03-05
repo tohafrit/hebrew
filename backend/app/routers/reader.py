@@ -303,21 +303,34 @@ def _lookup_word(
         if clean in _WORD_OVERRIDES:
             exact = {**exact, **_WORD_OVERRIDES[clean]}
         exact_level = exact.get("level_id") or 99
-        # Check if word_forms has the same string mapped to a more basic word
-        # (e.g. ישנות lv4 "old age" vs ישנות form of ישן lv1 "old")
-        if exact_level > 3 and clean in form_cache:
-            form_level = form_cache[clean].get("level_id") or 99
-            if form_level < exact_level:
-                return {**form_cache[clean], "match_type": "form"}
         # If exact match is a common word (level 1-3), return immediately
         if exact_level <= 3:
             return {**exact, "match_type": "exact"}
-        # For high-level exact matches, check if conjugation is more common
+        # High-level exact: check forms, conjugations, AND suffix stripping for lower-level alternatives
+        # (e.g. ערבים lv5 "twilight" vs plural of ערב lv1 "evening",
+        #        רחובות lv4 "Rehovot" vs plural of רחוב lv1 "street",
+        #        ישנות lv4 "old age" vs form of ישן lv1 "old")
+        best_alt = None
+        best_alt_level = exact_level
+        if clean in form_cache:
+            fl = form_cache[clean].get("level_id") or 99
+            if fl < best_alt_level:
+                best_alt = {**form_cache[clean], "match_type": "form"}
+                best_alt_level = fl
         if clean in conj_cache:
-            conj_level = conj_cache[clean].get("level_id") or 99
-            if conj_level < exact_level:
-                return {**conj_cache[clean], "match_type": "conjugation"}
-        # No better match found, use the exact match
+            cl = conj_cache[clean].get("level_id") or 99
+            if cl < best_alt_level:
+                best_alt = {**conj_cache[clean], "match_type": "conjugation"}
+                best_alt_level = cl
+        # Try suffix stripping — plural of a common word beats obscure exact match
+        suffix_match = _find_suffix_match(clean, word_cache)
+        if suffix_match:
+            sl = suffix_match.get("level_id") or 99
+            if sl < best_alt_level:
+                best_alt = {**suffix_match, "match_type": "form"}
+                best_alt_level = sl
+        if best_alt and best_alt_level < exact_level:
+            return best_alt
         return {**exact, "match_type": "exact"}
 
     # 2. Match in word_forms
@@ -369,18 +382,29 @@ def _lookup_word(
                 stem_ut = stem + 'ות'
                 if stem_ut in word_cache:
                     return {**word_cache[stem_ut], "match_type": "form"}
-            # Direct stem match first (מקצועות→מקצוע)
-            if stem in word_cache:
-                return {**word_cache[stem], "match_type": "form"}
-            # Feminine ות→stem+ה (מדינות→מדינ→מדינה, תוצאות→תוצא→תוצאה)
+            # For ות suffix: collect candidates from both direct stem and stem+ה,
+            # pick the lowest level (ארוחות: ארוח lv4 vs ארוחה lv1 → pick ארוחה)
             if suffix == "ות" and stem:
+                candidates_4 = []
+                if stem in word_cache:
+                    candidates_4.append(word_cache[stem])
                 stem_h = stem + 'ה'
                 if stem_h in word_cache:
-                    return {**word_cache[stem_h], "match_type": "form"}
-            # Sofit letter adjustments (ארצות→ארצ→ארץ)
-            w = _match_stem(stem, word_cache)
-            if w:
-                return {**w, "match_type": "form"}
+                    candidates_4.append(word_cache[stem_h])
+                s = _match_stem(stem, word_cache)
+                if s:
+                    candidates_4.append(s)
+                if candidates_4:
+                    candidates_4.sort(key=lambda x: x.get("level_id") or 99)
+                    return {**candidates_4[0], "match_type": "form"}
+            else:
+                # Non-ות suffixes: direct stem match
+                if stem in word_cache:
+                    return {**word_cache[stem], "match_type": "form"}
+                # Sofit letter adjustments (ארצים→ארצ→ארץ)
+                w = _match_stem(stem, word_cache)
+                if w:
+                    return {**w, "match_type": "form"}
             # Suffix + construct state: הולדתו→הולדת+ו→הולדה
             if stem and stem.endswith('ת') and len(stem) > 2:
                 construct = stem[:-1] + 'ה'

@@ -204,7 +204,7 @@ def upgrade() -> None:
     )
     op.create_table('user_daily_activity',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.Uuid(), nullable=False),
     sa.Column('date', sa.Date(), nullable=False),
     sa.Column('xp_earned', sa.Integer(), nullable=False),
     sa.Column('exercises_done', sa.Integer(), nullable=False),

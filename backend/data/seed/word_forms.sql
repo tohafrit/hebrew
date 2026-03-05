@@ -8358,4 +8358,15 @@ INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, translite
 INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8358, 31664, 'plural', 'הנצעות', NULL, NULL, NULL);
 INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8359, 31665, 'plural', 'השויות', NULL, NULL, NULL);
 INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8360, 31666, 'plural', 'הנשגות', NULL, NULL, NULL);
-SELECT pg_catalog.setval('public.word_forms_id_seq', 5874, true);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8361, 1906, 'plural', 'ימים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8362, 2100, 'plural', 'מילים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8363, 1228, 'plural', 'נשים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8364, 1312, 'plural', 'אנשים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8365, 1841, 'plural', 'ערים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8366, 1909, 'plural', 'שנים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8367, 1254, 'plural', 'פיות', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8368, 1266, 'plural', 'בתים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8369, 1251, 'plural', 'ראשים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8370, 1914, 'plural', 'ערבים', NULL, NULL, NULL);
+INSERT INTO public.word_forms (id, word_id, form_type, hebrew, nikkud, transliteration, description) VALUES (8371, 1254, 'plural', 'פיפיות', NULL, NULL, NULL);
+SELECT pg_catalog.setval('public.word_forms_id_seq', 8361, false);
