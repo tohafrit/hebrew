@@ -25,7 +25,7 @@ _cache_time: float = 0
 _CACHE_TTL = 300  # 5 minutes
 
 # Hebrew punctuation / connectors to strip when matching
-_STRIP_RE = re.compile(r'[.,!?;:"\'"״""«»()\[\]{}\u200F\u200E]')
+_STRIP_RE = re.compile(r'[.,!?;:"\'"״""«»()\[\]{}/\\\u200F\u200E]')
 # Number patterns (plain digits, or digits with Hebrew prefix like ב-2, ו-50)
 _NUMBER_RE = re.compile(r'^[בכלמוה]?-?[\d]+[,.]?[\d]*$')
 # Common Hebrew prefixes (ב, כ, ל, מ, ה, ו, ש)
@@ -323,12 +323,15 @@ def _lookup_word(
                 best_alt = {**conj_cache[clean], "match_type": "conjugation"}
                 best_alt_level = cl
         # Try suffix stripping — plural of a common word beats obscure exact match
-        suffix_match = _find_suffix_match(clean, word_cache)
-        if suffix_match:
-            sl = suffix_match.get("level_id") or 99
-            if sl < best_alt_level:
-                best_alt = {**suffix_match, "match_type": "form"}
-                best_alt_level = sl
+        # Only for words long enough that suffix stripping is reliable (4+ chars)
+        # Avoids false positives like לחן (melody lv4) → לח (moist lv1)
+        if len(clean) >= 4:
+            suffix_match = _find_suffix_match(clean, word_cache)
+            if suffix_match:
+                sl = suffix_match.get("level_id") or 99
+                if sl < best_alt_level:
+                    best_alt = {**suffix_match, "match_type": "form"}
+                    best_alt_level = sl
         if best_alt and best_alt_level < exact_level:
             return best_alt
         return {**exact, "match_type": "exact"}
