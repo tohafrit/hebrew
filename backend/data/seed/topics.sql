@@ -47,4 +47,4 @@ INSERT INTO public.topics (id, name_ru, name_he, icon, level_id, "order") VALUES
 INSERT INTO public.topics (id, name_ru, name_he, icon, level_id, "order") VALUES (47, 'Бизнес', 'עסקים', '💰', 6, 5);
 INSERT INTO public.topics (id, name_ru, name_he, icon, level_id, "order") VALUES (48, 'Литературный', 'ספרותי', '✒️', 6, 6);
 INSERT INTO public.topics (id, name_ru, name_he, icon, level_id, "order") VALUES (49, 'Археология', 'ארכיאולוגיה', '🏺', 6, 7);
-SELECT pg_catalog.setval('public.topics_id_seq', 49, true);
+SELECT pg_catalog.setval('public.topics_id_seq', 50, false);

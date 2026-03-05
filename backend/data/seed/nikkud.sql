@@ -10,4 +10,4 @@ INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, ex
 INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (10, 'ֲ', 'חֲטַף פַּתַח', 'Хатаф-Патах', 'короткое а', 'אֲנִי', 'анИ');
 INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (11, 'ֱ', 'חֲטַף סֶגוֹל', 'Хатаф-Сеголь', 'короткое э', 'אֱלֹהִים', 'элохИм');
 INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (12, 'ֳ', 'חֲטַף קָמָץ', 'Хатаф-Камац', 'короткое о', 'חֳדָשִׁים', 'ходашИм');
-SELECT pg_catalog.setval('public.nikkud_id_seq', 12, true);
+SELECT pg_catalog.setval('public.nikkud_id_seq', 13, false);

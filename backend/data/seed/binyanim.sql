@@ -5,4 +5,4 @@ INSERT INTO public.binyanim (id, name_he, name_ru, description, pattern, example
 INSERT INTO public.binyanim (id, name_he, name_ru, description, pattern, example_root, level_id) VALUES (5, 'הִפְעִיל', 'Хифъиль', 'Каузатив, побуждение к действию', 'הִקְטִיל', 'ז.כ.ר', 2);
 INSERT INTO public.binyanim (id, name_he, name_ru, description, pattern, example_root, level_id) VALUES (6, 'הוּפְעַל', 'Хуфъаль', 'Пассив от Хифъиль', 'הוּקְטַל', 'ז.כ.ר', 3);
 INSERT INTO public.binyanim (id, name_he, name_ru, description, pattern, example_root, level_id) VALUES (7, 'הִתְפַּעֵל', 'Хитпаэль', 'Возвратное действие, взаимное действие', 'הִתְקַטֵּל', 'ל.ב.ש', 2);
-SELECT pg_catalog.setval('public.binyanim_id_seq', 1, false);
+SELECT pg_catalog.setval('public.binyanim_id_seq', 8, false);

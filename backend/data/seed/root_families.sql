@@ -254,4 +254,4 @@ INSERT INTO public.root_families (id, root, meaning_ru, description) VALUES (253
 INSERT INTO public.root_families (id, root, meaning_ru, description) VALUES (254, 'תקל', NULL, NULL);
 INSERT INTO public.root_families (id, root, meaning_ru, description) VALUES (255, 'תקן', NULL, NULL);
 INSERT INTO public.root_families (id, root, meaning_ru, description) VALUES (256, 'תקף', NULL, NULL);
-SELECT pg_catalog.setval('public.root_families_id_seq', 256, true);
+SELECT pg_catalog.setval('public.root_families_id_seq', 257, false);

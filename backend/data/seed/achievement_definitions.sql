@@ -51,4 +51,4 @@ INSERT INTO public.achievement_definitions (id, code, title_ru, description_ru, 
 INSERT INTO public.achievement_definitions (id, code, title_ru, description_ru, icon, category, condition_json) VALUES (51, 'culture_1', 'Первая статья', 'Прочитайте первую статью о культуре', '🕎', 'culture', '{"type": "culture_read", "count": 1}');
 INSERT INTO public.achievement_definitions (id, code, title_ru, description_ru, icon, category, condition_json) VALUES (52, 'culture_5', '5 статей', 'Прочитайте 5 статей о культуре', '🇮🇱', 'culture', '{"type": "culture_read", "count": 5}');
 INSERT INTO public.achievement_definitions (id, code, title_ru, description_ru, icon, category, condition_json) VALUES (53, 'culture_all', 'Знаток культуры', 'Прочитайте все статьи о культуре', '🏛️', 'culture', '{"type": "culture_read", "count": 15}');
-SELECT pg_catalog.setval('public.achievement_definitions_id_seq', 53, true);
+SELECT pg_catalog.setval('public.achievement_definitions_id_seq', 54, false);

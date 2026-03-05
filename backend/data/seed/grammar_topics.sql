@@ -7219,4 +7219,4 @@ INSERT INTO public.grammar_topics (id, title_ru, title_he, level_id, "order", co
 - **Йеhуда Амихай:** смешение библейского и современного
 Продвинутая стилистика — вершина владения языком, открывающая полный доступ к культуре и литературе Израиля.
 ', 'Высший уровень стилистики иврита: авторский стиль, интертекстуальность, ирония, подтекст, стилистические приёмы в журналистике и литературе.');
-SELECT pg_catalog.setval('public.grammar_topics_id_seq', 130, true);
+SELECT pg_catalog.setval('public.grammar_topics_id_seq', 131, false);

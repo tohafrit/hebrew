@@ -45,7 +45,7 @@ _WORD_OVERRIDES: dict[str, dict] = {
 # ים- (masculine plural), ות- (feminine plural), ת- (feminine singular),
 # ה- (feminine/directional), י- (construct/possessive 1s), ן- (archaic feminine plural)
 # ך- (possessive 2ms), כם- (possessive 2mp)
-_SUFFIXES = ["ים", "ות", "ית", "ת", "ה", "י", "יים", "ויות", "יהם", "יהן", "נו", "הם", "הן", "ן", "ם", "ך", "כם", "כן", "ו"]
+_SUFFIXES = ["ים", "ויות", "ות", "ית", "ת", "ה", "י", "יים", "יהם", "יהן", "נו", "הם", "הן", "ן", "ם", "ך", "כם", "כן", "ו"]
 
 # Reverse sofit map — to convert final forms back to medial when stripping suffixes
 _SOFIT_TO_REGULAR = {'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ'}
@@ -260,11 +260,15 @@ def _find_suffix_match(clean: str, cache: dict) -> dict | None:
                 stem_ut = stem + 'ות'
                 if stem_ut in cache:
                     return cache[stem_ut]
-            # ות→ה before sofit (prefer מדינה over מדין)
+            # Direct match first
+            if stem in cache:
+                return cache[stem]
+            # ות→ה (prefer מדינה over מדין via sofit)
             if suffix == "ות" and stem:
                 stem_h = stem + 'ה'
                 if stem_h in cache:
                     return cache[stem_h]
+            # Sofit adjustments
             w = _match_stem(stem, cache)
             if w:
                 return w
@@ -330,18 +334,21 @@ def _lookup_word(
     for prefix in ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]:
         if clean.startswith(prefix) and len(clean) > 2:
             stem = clean[len(prefix):]
-            # Find the best prefix-stripped match (word or conjugation)
+            # Find the best prefix-stripped match (word, form, or conjugation)
             prefix_match = None
             prefix_level = 99
+            # Check all three caches and pick the lowest level
+            candidates = []
+            if stem in word_cache:
+                candidates.append((word_cache[stem].get("level_id") or 99, word_cache[stem], "prefix"))
+            if stem in form_cache:
+                candidates.append((form_cache[stem].get("level_id") or 99, form_cache[stem], "prefix"))
             if stem in conj_cache:
-                conj_level = conj_cache[stem].get("level_id") or 99
-                word_level = word_cache[stem].get("level_id", 99) if stem in word_cache else 99
-                if conj_level <= word_level:
-                    prefix_match = {**conj_cache[stem], "match_type": "prefix"}
-                    prefix_level = conj_level
-            if prefix_match is None and stem in word_cache:
-                prefix_match = {**word_cache[stem], "match_type": "prefix"}
-                prefix_level = word_cache[stem].get("level_id") or 99
+                candidates.append((conj_cache[stem].get("level_id") or 99, conj_cache[stem], "prefix"))
+            if candidates:
+                candidates.sort(key=lambda x: x[0])
+                prefix_level, best, match_type = candidates[0]
+                prefix_match = {**best, "match_type": match_type}
             if prefix_match:
                 # Before accepting, check if suffix stripping gives a match at same or better level
                 # Suffix stripping is more reliable than prefix stripping
@@ -362,12 +369,15 @@ def _lookup_word(
                 stem_ut = stem + 'ות'
                 if stem_ut in word_cache:
                     return {**word_cache[stem_ut], "match_type": "form"}
+            # Direct stem match first (מקצועות→מקצוע)
+            if stem in word_cache:
+                return {**word_cache[stem], "match_type": "form"}
             # Feminine ות→stem+ה (מדינות→מדינ→מדינה, תוצאות→תוצא→תוצאה)
-            # Check BEFORE _match_stem to prefer מדינה over מדין via sofit
             if suffix == "ות" and stem:
                 stem_h = stem + 'ה'
                 if stem_h in word_cache:
                     return {**word_cache[stem_h], "match_type": "form"}
+            # Sofit letter adjustments (ארצות→ארצ→ארץ)
             w = _match_stem(stem, word_cache)
             if w:
                 return {**w, "match_type": "form"}
@@ -379,17 +389,18 @@ def _lookup_word(
 
     # 4b. Construct state: ת at end of word → try replacing with ה
     # (ארוחת→ארוחה, משפחת→משפחה, תוכנת→תוכנה)
-    if clean.endswith('ת') and len(clean) > 2:
+    # Skip words ending in ות (plural) — handled by suffix stripping above
+    if clean.endswith('ת') and not clean.endswith('ות') and len(clean) > 2:
         construct_stem = clean[:-1] + 'ה'
         if construct_stem in word_cache:
             return {**word_cache[construct_stem], "match_type": "form"}
 
     # 4c. Single-letter prefix + construct state: בשנת = ב + שנת → שנה
-    # (Placed after suffix stripping so בולטת→בולט wins over ב+ולטת→ולטה)
+    # Skip words ending in ות (plural) — those are handled by suffix stripping
     for prefix in ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]:
         if clean.startswith(prefix) and len(clean) > 3:
             stem = clean[len(prefix):]
-            if stem.endswith('ת') and len(stem) > 2:
+            if stem.endswith('ת') and not stem.endswith('ות') and len(stem) > 2:
                 construct = stem[:-1] + 'ה'
                 if construct in word_cache:
                     return {**word_cache[construct], "match_type": "prefix"}
@@ -434,13 +445,24 @@ def _lookup_word(
             for suffix in _SUFFIXES:
                 if after_prefix.endswith(suffix) and len(after_prefix) > len(suffix) + 1:
                     inner = after_prefix[:-len(suffix)]
-                    # ות→stem+ה before sofit (prefer מדינה over מדין)
+                    # ויות→stem+ות (הרשויות = ה + רש + ויות → רשות)
+                    if suffix == "ויות" and inner:
+                        inner_ut = inner + 'ות'
+                        if inner_ut in word_cache:
+                            return {**word_cache[inner_ut], "match_type": "prefix"}
+                    # Direct stem match first (מקצועות → מקצוע)
+                    if inner in word_cache:
+                        return {**word_cache[inner], "match_type": "prefix"}
+                    if inner in form_cache:
+                        return {**form_cache[inner], "match_type": "prefix"}
+                    # ות→stem+ה (מדינות → מדינ → מדינה)
                     if suffix == "ות" and inner:
                         inner_h = inner + 'ה'
                         if inner_h in word_cache:
                             return {**word_cache[inner_h], "match_type": "prefix"}
                         if inner_h in form_cache:
                             return {**form_cache[inner_h], "match_type": "prefix"}
+                    # Sofit letter adjustments
                     w = _match_stem(inner, word_cache)
                     if w:
                         return {**w, "match_type": "prefix"}

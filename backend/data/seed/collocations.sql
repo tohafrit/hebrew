@@ -1028,4 +1028,4 @@ INSERT INTO public.collocations (id, word_id, phrase_he, phrase_ru, frequency) V
 INSERT INTO public.collocations (id, word_id, phrase_he, phrase_ru, frequency) VALUES (1029, 7240, 'לרקום יחסים', 'выстраивать отношения', 2);
 INSERT INTO public.collocations (id, word_id, phrase_he, phrase_ru, frequency) VALUES (1030, 7245, 'להתכתש בכנסת', 'схватываться в Кнессете', 1);
 INSERT INTO public.collocations (id, word_id, phrase_he, phrase_ru, frequency) VALUES (1031, 7245, 'להתכתש מילולית', 'вступать в словесную перепалку', 1);
-SELECT pg_catalog.setval('public.collocations_id_seq', 1031, true);
+SELECT pg_catalog.setval('public.collocations_id_seq', 1032, false);

@@ -25,4 +25,4 @@ INSERT INTO public.alphabet_letters (id, letter, name_ru, translit, sound_descri
 INSERT INTO public.alphabet_letters (id, letter, name_ru, translit, sound_description, numeric_value, is_sofit, sofit_of, "order") VALUES (25, 'ן', 'Нун-софит', 'n', 'н (конечная форма Нун)', 700, true, 'נ', 25);
 INSERT INTO public.alphabet_letters (id, letter, name_ru, translit, sound_description, numeric_value, is_sofit, sofit_of, "order") VALUES (26, 'ף', 'Пей-софит', 'f', 'ф (конечная форма Пей)', 800, true, 'פ', 26);
 INSERT INTO public.alphabet_letters (id, letter, name_ru, translit, sound_description, numeric_value, is_sofit, sofit_of, "order") VALUES (27, 'ץ', 'Цади-софит', 'ts', 'ц (конечная форма Цади)', 900, true, 'צ', 27);
-SELECT pg_catalog.setval('public.alphabet_letters_id_seq', 27, true);
+SELECT pg_catalog.setval('public.alphabet_letters_id_seq', 28, false);
