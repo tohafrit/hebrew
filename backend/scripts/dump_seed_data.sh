@@ -19,7 +19,7 @@ for table in "${TABLES[@]}"; do
   echo "Dumping $table..."
   docker compose exec -T db pg_dump -U ulpan -d ulpan \
     --data-only --column-inserts --table="$table" --no-owner --no-privileges \
-    | grep -E "^(INSERT INTO|SELECT pg_catalog.setval)" \
+    | sed '/^SET /d; /^SELECT pg_catalog.set_config/d; /^--/d; /^$/d; /^\\[a-z]/d' \
     > "$SEED_DIR/${table}.sql"
 done
 
