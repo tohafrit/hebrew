@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useLessons, useLesson, useCheckExercise, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
+import { useAutoCompleteStep } from "@/hooks/use-path";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls, useTTS } from "@/components/tts-controls";
 import { HebrewKeyboard } from "@/components/hebrew-keyboard";
@@ -251,6 +252,9 @@ export function ListeningPage() {
   const { data: lessonDetail } = useLesson(selectedLessonId);
   const [currentExIdx, setCurrentExIdx] = useState(0);
   const [lessonDone, setLessonDone] = useState(false);
+
+  // Auto-complete learning path step when lesson is done
+  useAutoCompleteStep("exercise", selectedLessonId, lessonDone);
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;

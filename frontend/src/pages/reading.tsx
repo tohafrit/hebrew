@@ -110,8 +110,31 @@ export function ReadingPage() {
   const selectedTextId = textIdParam ? Number(textIdParam) : null;
   const { data: textDetail } = useReadingText(selectedTextId);
   const [showTranslation, setShowTranslation] = useState(false);
-  const [readingDone, setReadingDone] = useState(false);
   const [levelFilter, setLevelFilter] = useUrlNumParam("level");
+
+  // Persist read texts in localStorage
+  const readTextsKey = "hebrew-read-texts";
+  const isAlreadyRead = (() => {
+    if (!selectedTextId) return false;
+    try {
+      const stored = JSON.parse(localStorage.getItem(readTextsKey) || "[]");
+      return stored.includes(selectedTextId);
+    } catch { return false; }
+  })();
+  const [readingDone, setReadingDone] = useState(isAlreadyRead);
+
+  const markAsRead = () => {
+    setReadingDone(true);
+    if (selectedTextId) {
+      try {
+        const stored: number[] = JSON.parse(localStorage.getItem(readTextsKey) || "[]");
+        if (!stored.includes(selectedTextId)) {
+          stored.push(selectedTextId);
+          localStorage.setItem(readTextsKey, JSON.stringify(stored));
+        }
+      } catch { /* ignore */ }
+    }
+  };
 
   // Auto-complete learning path step when text is marked as read
   useAutoCompleteStep("reading", selectedTextId, readingDone);
@@ -201,7 +224,7 @@ export function ReadingPage() {
 
         {/* Mark as read */}
         {!readingDone && (
-          <Button className="w-full" onClick={() => setReadingDone(true)}>
+          <Button className="w-full" onClick={markAsRead}>
             Прочитано
           </Button>
         )}
@@ -230,6 +253,12 @@ export function ReadingPage() {
       </div>
     );
   }
+
+  // Read texts from localStorage for list badges
+  const readTextIds = new Set<number>((() => {
+    try { return JSON.parse(localStorage.getItem(readTextsKey) || "[]"); }
+    catch { return []; }
+  })());
 
   // ── Text list view ──
   return (
@@ -272,7 +301,12 @@ export function ReadingPage() {
                 <Badge variant="secondary">{LEVEL_LABELS[text.level_id]}</Badge>
                 <Badge variant="outline">{CAT_LABELS[text.category] || text.category}</Badge>
               </div>
-              <CardTitle className="text-base">{text.title_ru}</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                {text.title_ru}
+                {readTextIds.has(text.id) && (
+                  <Badge variant="secondary" className="text-green-700 text-[10px]">Прочитано</Badge>
+                )}
+              </CardTitle>
               <HebrewText size="sm" className="text-muted-foreground">
                 {text.title_he}
               </HebrewText>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 const QUALITY_LABELS = [
   { value: 0, label: "Не помню", color: "bg-red-500 hover:bg-red-600", key: "1" },
@@ -62,7 +63,11 @@ export function SRSPage() {
           response_time_ms: responseTime,
         });
       } catch {
-        // Allow the user to continue even on error
+        toast({
+          title: "Ответ не сохранён",
+          description: "Ошибка сети — продолжайте, повторение будет доступно снова",
+          variant: "destructive",
+        });
       }
 
       // Play sound effect based on quality
@@ -280,6 +285,11 @@ export function SRSPage() {
                     <Badge variant="outline" className="text-xs">
                       {currentCard.back_json.source_word}
                     </Badge>
+                  )}
+                  {currentCard.back_json.level && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Уровень: {currentCard.back_json.level}
+                    </p>
                   )}
                 </div>
               )}

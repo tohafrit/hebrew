@@ -128,18 +128,20 @@ async def create_cards_for_words(
             if (word_id, card_type) in existing_set:
                 continue
 
+            level_label = {1: "Алеф", 2: "Бет", 3: "Гимель", 4: "Далет", 5: "Хей", 6: "Вав"}.get(word.level_id)
+
             if card_type == "word_he_ru":
                 front = {"hebrew": word.hebrew, "transliteration": word.transliteration}
-                back = {"translation": word.translation_ru, "pos": word.pos, "root": word.root}
+                back = {"translation": word.translation_ru, "pos": word.pos, "root": word.root, "level": level_label}
             elif card_type == "word_ru_he":
                 front = {"translation": word.translation_ru, "pos": word.pos}
-                back = {"hebrew": word.hebrew, "transliteration": word.transliteration, "root": word.root}
+                back = {"hebrew": word.hebrew, "transliteration": word.transliteration, "root": word.root, "level": level_label}
             elif card_type == "cloze":
                 front = {"hint": word.translation_ru, "pos": word.pos}
-                back = {"hebrew": word.hebrew, "transliteration": word.transliteration}
+                back = {"hebrew": word.hebrew, "transliteration": word.transliteration, "level": level_label}
             else:
                 front = {"hebrew": word.hebrew}
-                back = {"translation": word.translation_ru}
+                back = {"translation": word.translation_ru, "level": level_label}
 
             card = SRSCard(
                 user_id=user_id,
@@ -225,6 +227,11 @@ async def get_session_cards(
             "repetitions": schedule.repetitions,
             "lapses": schedule.lapses,
         })
+
+    # Order cards so word cards come before their sentence cards (same content_id).
+    # This ensures the user sees the word first, then its sentence for reinforcement.
+    _type_order = {"word_he_ru": 0, "word_ru_he": 1, "cloze": 2, "sentence_he_ru": 3, "sentence_ru_he": 4}
+    cards.sort(key=lambda c: (c["content_id"], _type_order.get(c["card_type"], 5)))
 
     return cards, total_due, new_count
 

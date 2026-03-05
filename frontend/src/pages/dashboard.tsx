@@ -267,6 +267,15 @@ export function DashboardPage() {
       {/* Quick links */}
       <div className="flex flex-wrap gap-2">
         <Button asChild variant="outline" size="sm">
+          <Link to="/path">Путь обучения</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/srs">SRS-карточки</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/writing">Письмо</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
           <Link to="/achievements">Достижения</Link>
         </Button>
         <Button asChild variant="outline" size="sm">

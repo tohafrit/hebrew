@@ -118,12 +118,17 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
 
   if (!word) return null;
 
+  const hasExamples = word.examples.length > 0;
+
   const handleAddToSRS = async () => {
     try {
       const result = await createCards.mutateAsync({ word_ids: [word.id] });
+      const desc = hasExamples
+        ? `Создано ${result.created} карточек (включая предложения)`
+        : `Создано ${result.created} карточек`;
       toast({
         title: "Добавлено в карточки",
-        description: `Создано ${result.created} карточек`,
+        description: desc,
       });
     } catch {
       toast({

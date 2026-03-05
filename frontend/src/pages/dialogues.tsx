@@ -217,6 +217,24 @@ function DialoguePlayer({ dialogueId, onBack }: {
         </div>
       )}
 
+      {/* Replay all TTS */}
+      {revealedLines.size > 1 && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const hebrewTexts = lines
+              .filter((_, i) => revealedLines.has(i) && (lines[i] as DialogueLine).text_he)
+              .map((l) => (l as DialogueLine).text_he);
+            if (hebrewTexts.length > 0) {
+              speak(hebrewTexts.join(". "));
+            }
+          }}
+        >
+          Прослушать весь диалог
+        </Button>
+      )}
+
       {/* Chat area */}
       <Card>
         <CardContent className="p-4">
