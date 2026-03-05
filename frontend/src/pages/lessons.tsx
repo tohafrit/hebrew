@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useLessons, useLesson, useCheckExercise, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
+import { useAutoCompleteStep } from "@/hooks/use-path";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
 import { HebrewText } from "@/components/hebrew-text";
 import { MarkdownContent } from "@/components/markdown-content";
@@ -389,6 +390,10 @@ export function LessonsPage() {
     setCurrentExIdx(0);
     setPhase("content");
   }, [lessonIdParam]);
+
+  // Auto-complete learning path step when lesson is done
+  useAutoCompleteStep("exercise", selectedLessonId, phase === "done");
+  useAutoCompleteStep("vocabulary", selectedLessonId, phase === "done");
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;

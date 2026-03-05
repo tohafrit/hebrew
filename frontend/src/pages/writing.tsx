@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useLessons, useLesson, useCheckExercise, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
+import { useCheckWriting, type WritingFeedback } from "@/hooks/use-writing";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls } from "@/components/tts-controls";
 import { HebrewKeyboard } from "@/components/hebrew-keyboard";
@@ -113,9 +114,92 @@ function TranslateExercise({ exercise, onAnswer }: {
 
 // ── Free writing ──────────────────────────────────────────────────────────
 
+function WritingFeedbackPanel({ feedback }: { feedback: WritingFeedback }) {
+  const pctColor = feedback.known_pct >= 80 ? "bg-green-500" : feedback.known_pct >= 60 ? "bg-yellow-500" : "bg-red-500";
+
+  return (
+    <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+      {/* Score bar */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium">Знакомые слова</span>
+          <span>{feedback.known_pct}%</span>
+        </div>
+        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+          <div className={cn("h-full rounded-full transition-all", pctColor)} style={{ width: `${feedback.known_pct}%` }} />
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="flex gap-3 text-xs text-muted-foreground">
+        <span>{feedback.word_count} слов</span>
+        <span>{feedback.sentence_count} предл.</span>
+        <span>{feedback.known_count} известных</span>
+        <span>{feedback.unknown_count} неизвестных</span>
+      </div>
+
+      {/* Level breakdown */}
+      {Object.keys(feedback.level_breakdown).length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">По уровням:</p>
+          <div className="flex gap-1">
+            {Object.entries(feedback.level_breakdown).sort(([a], [b]) => Number(a) - Number(b)).map(([lvl, count]) => (
+              <Badge key={lvl} variant="secondary" className="text-xs">
+                L{lvl}: {count}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Unknown words */}
+      {feedback.unknown_words.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Неизвестные слова:</p>
+          <div className="space-y-1">
+            {feedback.unknown_words.map((w, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <HebrewText size="sm" className="font-medium">{w.token}</HebrewText>
+                {w.suggestion && (
+                  <span className="text-xs text-muted-foreground">
+                    → <HebrewText size="sm">{w.suggestion}</HebrewText>?
+                  </span>
+                )}
+                {w.dictionary_url && (
+                  <a href={w.dictionary_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                    словарь
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Feedback tips */}
+      {feedback.feedback.length > 0 && (
+        <div className="space-y-1">
+          {feedback.feedback.map((tip, i) => (
+            <p key={i} className="text-sm text-muted-foreground">
+              {tip}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FreeWritingExercise() {
   const [text, setText] = useState("");
+  const checkWriting = useCheckWriting();
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+
+  const handleCheck = useCallback(() => {
+    if (wordCount >= 3) {
+      checkWriting.mutate(text);
+    }
+  }, [text, wordCount, checkWriting]);
 
   return (
     <div className="space-y-4">
@@ -137,11 +221,26 @@ function FreeWritingExercise() {
         <span>{text.length} символов</span>
       </div>
 
+      <div className="flex gap-2">
+        <Button
+          onClick={handleCheck}
+          disabled={wordCount < 3 || checkWriting.isPending}
+          className="flex-1"
+        >
+          {checkWriting.isPending ? "Проверяю..." : "Проверить текст"}
+        </Button>
+        {text.trim() && (
+          <TTSControls text={text} size="default" label="Прослушать" />
+        )}
+      </div>
+
       <HebrewKeyboard
         onKey={(key) => setText((v) => v + key)}
         onBackspace={() => setText((v) => v.slice(0, -1))}
         onSpace={() => setText((v) => v + " ")}
       />
+
+      {checkWriting.data && <WritingFeedbackPanel feedback={checkWriting.data} />}
     </div>
   );
 }

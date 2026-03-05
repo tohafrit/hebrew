@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 
@@ -43,4 +44,33 @@ export function useCompleteStep() {
       qc.invalidateQueries({ queryKey: ["learning-path"] });
     },
   });
+}
+
+/**
+ * Auto-complete a learning path step when content is finished.
+ * Finds the step matching (stepType, contentId) and marks it complete.
+ * @param stepType - e.g. "vocabulary", "exercise", "reading", "dialogue"
+ * @param contentId - the content_id of the completed content
+ * @param isDone - trigger: set to true when the content is done
+ */
+export function useAutoCompleteStep(
+  stepType: string,
+  contentId: number | null,
+  isDone: boolean,
+) {
+  const { data } = useLearningPath();
+  const completeStep = useCompleteStep();
+  const completedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isDone || !contentId || !data || completedRef.current) return;
+
+    const step = data.steps.find(
+      (s) => s.step_type === stepType && s.content_id === contentId && !s.completed,
+    );
+    if (step) {
+      completedRef.current = true;
+      completeStep.mutate(step.id);
+    }
+  }, [isDone, contentId, data, stepType, completeStep]);
 }

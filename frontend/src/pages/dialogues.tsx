@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useDialogues, useDialogue, useCheckDialogue, type DialogueLine } from "@/hooks/use-dialogues";
+import { useAutoCompleteStep } from "@/hooks/use-path";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls, useTTS } from "@/components/tts-controls";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -86,6 +87,9 @@ function DialoguePlayer({ dialogueId, onBack }: {
   const [localLines, setLocalLines] = useState<any[]>([]);
   const ttsTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Auto-complete learning path step when dialogue is done
+  useAutoCompleteStep("dialogue", dialogueId, dialogueDone);
 
   // Clean up timers on unmount
   useEffect(() => {

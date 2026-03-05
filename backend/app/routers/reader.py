@@ -56,6 +56,27 @@ _SOFIT_TO_REGULAR = {'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ'}
 _REGULAR_TO_SOFIT = {'כ': 'ך', 'מ': 'ם', 'נ': 'ן', 'פ': 'ף', 'צ': 'ץ'}
 
 
+class CheckWritingRequest(BaseModel):
+    text: str = Field(..., max_length=5000)
+
+
+class UnknownWord(BaseModel):
+    token: str
+    suggestion: str | None = None
+    dictionary_url: str | None = None
+
+
+class CheckWritingResponse(BaseModel):
+    word_count: int
+    sentence_count: int
+    known_count: int
+    unknown_count: int
+    known_pct: int
+    level_breakdown: dict[str, int]
+    unknown_words: list[UnknownWord]
+    feedback: list[str]
+
+
 class AnalyzeRequest(BaseModel):
     text: str = Field(..., max_length=10000)
 
@@ -78,6 +99,149 @@ class TokenAnnotation(BaseModel):
 class AnalyzeResponse(BaseModel):
     tokens: list[TokenAnnotation]
     stats: dict  # known_count, unknown_count, total_words
+
+
+def _levenshtein(s: str, t: str) -> int:
+    """Compute Levenshtein edit distance between two strings."""
+    if len(s) < len(t):
+        return _levenshtein(t, s)
+    if not t:
+        return len(s)
+    prev = list(range(len(t) + 1))
+    for i, sc in enumerate(s):
+        curr = [i + 1]
+        for j, tc in enumerate(t):
+            cost = 0 if sc == tc else 1
+            curr.append(min(curr[j] + 1, prev[j + 1] + 1, prev[j] + cost))
+        prev = curr
+    return prev[-1]
+
+
+def _find_spelling_suggestion(token: str, word_cache: dict, max_dist: int = 2) -> str | None:
+    """Find the closest word in the cache by Levenshtein distance."""
+    best = None
+    best_dist = max_dist + 1
+    for hebrew in word_cache:
+        if abs(len(hebrew) - len(token)) > max_dist:
+            continue
+        d = _levenshtein(token, hebrew)
+        if d < best_dist:
+            best_dist = d
+            best = hebrew
+            if d == 1:
+                break  # good enough
+    return best if best_dist <= max_dist else None
+
+
+@router.post("/reader/check-writing", response_model=CheckWritingResponse)
+async def check_writing(
+    req: CheckWritingRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Rule-based writing feedback: word analysis, spelling suggestions, level breakdown."""
+    text = req.text.strip()
+    if not text:
+        return CheckWritingResponse(
+            word_count=0, sentence_count=0, known_count=0, unknown_count=0,
+            known_pct=0, level_breakdown={}, unknown_words=[], feedback=[],
+        )
+
+    # Build caches
+    global _cache_word, _cache_form, _cache_conj, _cache_time
+    now = time.time()
+    if _cache_word is None or (now - _cache_time) > _CACHE_TTL:
+        async with _cache_lock:
+            if _cache_word is None or (time.time() - _cache_time) > _CACHE_TTL:
+                _cache_word = await _build_word_cache(db)
+                _cache_form = await _build_form_cache(db)
+                _cache_conj = await _build_conjugation_cache(db)
+                _cache_time = time.time()
+    word_cache = _cache_word
+    form_cache = _cache_form
+    conj_cache = _cache_conj
+
+    # Count sentences (split by period, exclamation, question mark, or newline)
+    sentence_count = max(1, len(re.split(r'[.!?\n]+', text.strip())))
+
+    # Tokenize
+    raw_tokens = re.split(r'(\s+)', text)
+    known_count = 0
+    total_words = 0
+    level_counts: dict[str, int] = {}
+    unknown_words: list[UnknownWord] = []
+
+    for raw in raw_tokens:
+        if not raw or raw.isspace():
+            continue
+        clean = _STRIP_RE.sub("", raw)
+        if not clean:
+            continue
+        total_words += 1
+
+        if _NUMBER_RE.match(clean):
+            known_count += 1
+            continue
+
+        annotation = _lookup_word(clean, word_cache, form_cache, conj_cache)
+
+        if annotation:
+            known_count += 1
+            level = str(annotation.get("level_id") or "?")
+            level_counts[level] = level_counts.get(level, 0) + 1
+        else:
+            # Try to find a spelling suggestion
+            suggestion = _find_spelling_suggestion(clean, word_cache)
+            dict_url = _dictionary_url(clean)
+            unknown_words.append(UnknownWord(
+                token=clean,
+                suggestion=suggestion,
+                dictionary_url=dict_url,
+            ))
+
+    known_pct = round(known_count * 100 / total_words) if total_words > 0 else 0
+
+    # Generate feedback
+    feedback: list[str] = []
+    if unknown_words:
+        has_suggestions = sum(1 for w in unknown_words if w.suggestion)
+        if has_suggestions:
+            feedback.append(
+                f"{len(unknown_words)} слов не найдены в словаре — возможно, ошибки в написании"
+            )
+        else:
+            feedback.append(
+                f"{len(unknown_words)} слов не найдены в словаре"
+            )
+
+    if known_pct >= 80:
+        feedback.append("Отличный уровень: большинство слов вам знакомы")
+    elif known_pct >= 60:
+        feedback.append("Хороший уровень: больше половины слов знакомы")
+    elif total_words > 0:
+        feedback.append("Много незнакомых слов — попробуйте использовать более простую лексику")
+
+    if total_words < 5:
+        feedback.append("Попробуйте написать больше — хотя бы несколько предложений")
+    elif total_words >= 20:
+        feedback.append("Хороший объём текста!")
+
+    # Encourage variety
+    if level_counts:
+        max_level = max(level_counts, key=lambda k: level_counts[k])
+        if max_level in ("1", "2") and len(level_counts) < 3:
+            feedback.append("Попробуйте использовать более разнообразную лексику")
+
+    return CheckWritingResponse(
+        word_count=total_words,
+        sentence_count=sentence_count,
+        known_count=known_count,
+        unknown_count=len(unknown_words),
+        known_pct=known_pct,
+        level_breakdown=level_counts,
+        unknown_words=unknown_words,
+        feedback=feedback,
+    )
 
 
 @router.post("/reader/analyze", response_model=AnalyzeResponse)

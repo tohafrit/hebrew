@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useReadingTexts, useReadingText } from "@/hooks/use-lessons";
+import { useAutoCompleteStep } from "@/hooks/use-path";
 import { useUrlNumParam } from "@/hooks/use-url-state";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls, useTTS } from "@/components/tts-controls";
@@ -109,7 +110,11 @@ export function ReadingPage() {
   const selectedTextId = textIdParam ? Number(textIdParam) : null;
   const { data: textDetail } = useReadingText(selectedTextId);
   const [showTranslation, setShowTranslation] = useState(false);
+  const [readingDone, setReadingDone] = useState(false);
   const [levelFilter, setLevelFilter] = useUrlNumParam("level");
+
+  // Auto-complete learning path step when text is marked as read
+  useAutoCompleteStep("reading", selectedTextId, readingDone);
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;
@@ -193,6 +198,16 @@ export function ReadingPage() {
             </Card>
           )}
         </div>
+
+        {/* Mark as read */}
+        {!readingDone && (
+          <Button className="w-full" onClick={() => setReadingDone(true)}>
+            Прочитано
+          </Button>
+        )}
+        {readingDone && (
+          <p className="text-center text-sm text-green-600 font-medium">Отмечено как прочитанное</p>
+        )}
 
         {/* Cross-links */}
         <div className="flex flex-wrap gap-2">

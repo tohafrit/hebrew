@@ -101,11 +101,16 @@ export function useSRSLeeches(threshold = 5) {
 export function useCreateCards() {
   const queryClient = useQueryClient();
 
-  return useMutation<{ created: number }, Error, { word_ids: number[]; card_types?: string[] }>({
+  return useMutation<{ created: number }, Error, { word_ids: number[]; card_types?: string[]; include_sentences?: boolean }>({
     mutationFn: async (body) => {
+      const types = body.card_types || ["word_he_ru", "word_ru_he"];
+      if (body.include_sentences !== false) {
+        if (!types.includes("sentence_he_ru")) types.push("sentence_he_ru");
+        if (!types.includes("sentence_ru_he")) types.push("sentence_ru_he");
+      }
       const { data } = await api.post("/srs/cards", {
         word_ids: body.word_ids,
-        card_types: body.card_types || ["word_he_ru", "word_ru_he"],
+        card_types: types,
       });
       return data;
     },

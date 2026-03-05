@@ -7,6 +7,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.srs import SRSCard, SRSReview, SRSSchedule
+from app.models.sentence import ExampleSentence
 from app.models.user import User
 from app.models.word import Word
 
@@ -22,7 +23,7 @@ def sm2_update(
 
     Returns (new_interval, new_ease, new_reps, new_lapses).
     """
-    if quality >= 3:  # correct (SM-2 standard threshold)
+    if quality >= 2:  # correct — 2 ("remember") and 3 ("easy") advance the card
         if repetitions == 0:
             new_interval = 1.0
         elif repetitions == 1:
@@ -71,6 +72,17 @@ async def create_cards_for_words(
     )
     existing_set = {(row.content_id, row.card_type) for row in existing_result}
 
+    # Pre-fetch example sentences for sentence card types
+    sentence_types = {"sentence_he_ru", "sentence_ru_he"}
+    need_sentences = bool(sentence_types & set(card_types))
+    sentences_by_word: dict[int, list[ExampleSentence]] = {}
+    if need_sentences:
+        sent_result = await db.execute(
+            select(ExampleSentence).where(ExampleSentence.word_id.in_(word_ids))
+        )
+        for sent in sent_result.scalars().all():
+            sentences_by_word.setdefault(sent.word_id, []).append(sent)
+
     created = 0
     for word_id in word_ids:
         word = words_map.get(word_id)
@@ -78,6 +90,41 @@ async def create_cards_for_words(
             continue
 
         for card_type in card_types:
+            if card_type in sentence_types:
+                # Create one card per example sentence
+                examples = sentences_by_word.get(word_id, [])
+                for ex in examples:
+                    if (word_id, card_type) in existing_set:
+                        continue
+                    if card_type == "sentence_he_ru":
+                        front = {"hebrew": ex.hebrew, "type": "sentence"}
+                        back = {"translation": ex.translation_ru, "source_word": word.hebrew}
+                    else:  # sentence_ru_he
+                        front = {"translation": ex.translation_ru, "hint_word": word.hebrew, "type": "sentence"}
+                        back = {"hebrew": ex.hebrew}
+
+                    card = SRSCard(
+                        user_id=user_id,
+                        card_type=card_type,
+                        content_id=word_id,
+                        front_json=front,
+                        back_json=back,
+                    )
+                    db.add(card)
+                    await db.flush()
+
+                    schedule = SRSSchedule(
+                        card_id=card.id,
+                        next_review=now,
+                        interval_days=1.0,
+                        ease_factor=2.5,
+                        repetitions=0,
+                        lapses=0,
+                    )
+                    db.add(schedule)
+                    created += 1
+                continue
+
             if (word_id, card_type) in existing_set:
                 continue
 

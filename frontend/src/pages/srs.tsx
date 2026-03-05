@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const QUALITY_LABELS = [
-  { value: 0, label: "Забыл", color: "bg-red-500 hover:bg-red-600", key: "1" },
-  { value: 1, label: "Трудно", color: "bg-orange-500 hover:bg-orange-600", key: "2" },
-  { value: 2, label: "Нормально", color: "bg-yellow-500 hover:bg-yellow-600", key: "3" },
+  { value: 0, label: "Не помню", color: "bg-red-500 hover:bg-red-600", key: "1" },
+  { value: 1, label: "Еле вспомнил", color: "bg-orange-500 hover:bg-orange-600", key: "2" },
+  { value: 2, label: "Помню", color: "bg-blue-500 hover:bg-blue-600", key: "3" },
   { value: 3, label: "Легко", color: "bg-green-500 hover:bg-green-600", key: "4" },
 ];
 
@@ -32,6 +32,8 @@ export function SRSPage() {
   const { speak } = useTTS();
 
   const currentCard = session?.cards[currentIndex];
+  const isSentenceCard = currentCard?.card_type.startsWith("sentence_") ||
+    currentCard?.front_json.type === "sentence";
 
   // Auto-focus for keyboard shortcuts
   useEffect(() => {
@@ -200,6 +202,10 @@ export function SRSPage() {
                   ? "Иврит → Русский"
                   : currentCard.card_type === "word_ru_he"
                   ? "Русский → Иврит"
+                  : currentCard.card_type === "sentence_he_ru"
+                  ? "Предложение HE → RU"
+                  : currentCard.card_type === "sentence_ru_he"
+                  ? "Предложение RU → HE"
                   : currentCard.card_type}
               </Badge>
             </CardHeader>
@@ -208,7 +214,10 @@ export function SRSPage() {
               <div className="space-y-2">
                 {currentCard.front_json.hebrew && (
                   <>
-                    <HebrewText size="2xl" className="block font-bold text-3xl">
+                    <HebrewText
+                      size={isSentenceCard ? "xl" : "2xl"}
+                      className={cn("block font-bold", isSentenceCard ? "text-xl" : "text-3xl")}
+                    >
                       {currentCard.front_json.hebrew}
                     </HebrewText>
                     <TTSControls text={currentCard.front_json.hebrew} size="sm" />
@@ -220,10 +229,17 @@ export function SRSPage() {
                   </p>
                 )}
                 {currentCard.front_json.translation && (
-                  <p className="text-xl">{currentCard.front_json.translation}</p>
+                  <p className={isSentenceCard ? "text-lg" : "text-xl"}>
+                    {currentCard.front_json.translation}
+                  </p>
                 )}
                 {currentCard.front_json.pos && (
                   <Badge variant="secondary">{currentCard.front_json.pos}</Badge>
+                )}
+                {isSentenceCard && currentCard.front_json.hint_word && (
+                  <Badge variant="outline" className="text-xs">
+                    {currentCard.front_json.hint_word}
+                  </Badge>
                 )}
               </div>
 
@@ -260,6 +276,11 @@ export function SRSPage() {
                       Корень: <HebrewText size="sm">{currentCard.back_json.root}</HebrewText>
                     </p>
                   )}
+                  {currentCard.back_json.source_word && (
+                    <Badge variant="outline" className="text-xs">
+                      {currentCard.back_json.source_word}
+                    </Badge>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -267,19 +288,26 @@ export function SRSPage() {
 
           {/* Rating buttons */}
           {revealed && (
-            <div className="grid grid-cols-4 gap-2">
-              {QUALITY_LABELS.map((q) => (
-                <Button
-                  key={q.value}
-                  className={cn("text-white", q.color)}
-                  onClick={() => handleRate(q.value)}
-                  disabled={reviewCard.isPending}
-                >
-                  <span className="text-xs opacity-70 mr-1">{q.key}</span>
-                  {q.label}
-                </Button>
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-4 gap-2">
+                {QUALITY_LABELS.map((q) => (
+                  <Button
+                    key={q.value}
+                    className={cn("text-white", q.color)}
+                    onClick={() => handleRate(q.value)}
+                    disabled={reviewCard.isPending}
+                  >
+                    <span className="text-xs opacity-70 mr-1">{q.key}</span>
+                    {q.label}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <span>← сброс</span>
+                <span className="text-border">|</span>
+                <span>продвижение →</span>
+              </div>
+            </>
           )}
 
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
