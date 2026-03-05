@@ -1,0 +1,13 @@
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (1, 'ַ', 'פַּתַח', 'Патах', 'а', 'בַּת', 'бат');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (2, 'ָ', 'קָמָץ', 'Камац', 'а (долгое)', 'שָׁלוֹם', 'шалом');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (3, 'ֶ', 'סֶגוֹל', 'Сеголь', 'э', 'יֶלֶד', 'йЕлед');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (4, 'ֵ', 'צֵרֵי', 'Цере', 'э (долгое)', 'בֵּן', 'бен');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (5, 'ִ', 'חִירִיק', 'Хирик', 'и', 'סִפְרִיָּה', 'сифрийА');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (6, 'ֹ', 'חוֹלָם', 'Холам', 'о', 'שָׁלוֹם', 'шалом');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (7, 'ֻ', 'קוּבּוּץ', 'Куббуц', 'у', 'סֻכָּה', 'суккА');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (8, 'וּ', 'שׁוּרוּק', 'Шурук', 'у (долгое)', 'שׁוּק', 'шук');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (9, 'ְ', 'שְׁוָא', 'Шва', 'короткое э / немое', 'בְּרֵאשִׁית', 'берешИт');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (10, 'ֲ', 'חֲטַף פַּתַח', 'Хатаф-Патах', 'короткое а', 'אֲנִי', 'анИ');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (11, 'ֱ', 'חֲטַף סֶגוֹל', 'Хатаф-Сеголь', 'короткое э', 'אֱלֹהִים', 'элохИм');
+INSERT INTO public.nikkud (id, symbol, name_he, name_ru, sound, example_word, example_translit) VALUES (12, 'ֳ', 'חֲטַף קָמָץ', 'Хатаф-Камац', 'короткое о', 'חֳדָשִׁים', 'ходашИм');
+SELECT pg_catalog.setval('public.nikkud_id_seq', 12, true);

@@ -8,13 +8,17 @@ Usage:
 """
 import argparse
 import json
+import os
 import sys
 import time
 
 import httpx
 import psycopg2
 
-DB_URL = "postgresql://ulpan:change_me@localhost:5432/ulpan"
+DB_URL = os.environ.get(
+    "SYNC_DATABASE_URL",
+    "postgresql://ulpan:change_me@db:5432/ulpan",
+)
 MAX_BATCH_CHARS = 400  # Max combined text chars per batch
 
 client = httpx.Client(timeout=15, headers={'User-Agent': 'Mozilla/5.0'})

@@ -40,6 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Словарь",
     items: [
       { path: "/dictionary", label: "Словарь" },
+      { path: "/dictionary?tab=roots", label: "Корни" },
       { path: "/srs", label: "Карточки SRS" },
     ],
   },
@@ -99,8 +100,9 @@ function ThemeToggle() {
   );
 }
 
-function DesktopDropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
-  const isActive = group.items.some((item) => pathname === item.path);
+function DesktopDropdown({ group, pathname, search }: { group: NavGroup; pathname: string; search: string }) {
+  const fullPath = pathname + search;
+  const isActive = group.items.some((item) => pathname === item.path || fullPath === item.path);
 
   return (
     <div className="relative group">
@@ -121,7 +123,7 @@ function DesktopDropdown({ group, pathname }: { group: NavGroup; pathname: strin
               to={item.path}
               className={cn(
                 "block rounded-sm px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
-                pathname === item.path && "bg-accent/50 font-medium"
+                (pathname === item.path || fullPath === item.path) && "bg-accent/50 font-medium"
               )}
             >
               {item.label}
@@ -168,7 +170,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                     to={item.path}
                     className={cn(
                       "block rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent",
-                      location.pathname === item.path && "bg-accent font-medium"
+                      (location.pathname === item.path || location.pathname + location.search === item.path) && "bg-accent font-medium"
                     )}
                   >
                     {item.label}
@@ -211,7 +213,7 @@ export function Navbar() {
           {isAuthenticated && (
             <div className="hidden sm:flex items-center gap-1">
               {NAV_GROUPS.map((group) => (
-                <DesktopDropdown key={group.title} group={group} pathname={location.pathname} />
+                <DesktopDropdown key={group.title} group={group} pathname={location.pathname} search={location.search} />
               ))}
             </div>
           )}

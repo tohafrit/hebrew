@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCultureArticles, useCultureArticle } from "@/hooks/use-gamification";
+import { MarkdownContent } from "@/components/markdown-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -10,69 +11,6 @@ const CATEGORIES = [
   { value: "slang", label: "Сленг" },
   { value: "abbreviations", label: "Аббревиатуры" },
 ];
-
-function MarkdownRenderer({ content }: { content: string }) {
-  // Simple markdown rendering: headers, bold, lists, paragraphs
-  const lines = content.split("\n");
-  const elements: JSX.Element[] = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    if (line.startsWith("### ")) {
-      elements.push(
-        <h3 key={i} className="text-lg font-semibold mt-4 mb-2">
-          {line.slice(4)}
-        </h3>
-      );
-    } else if (line.startsWith("## ")) {
-      elements.push(
-        <h2 key={i} className="text-xl font-bold mt-6 mb-2">
-          {line.slice(3)}
-        </h2>
-      );
-    } else if (line.startsWith("# ")) {
-      elements.push(
-        <h1 key={i} className="text-2xl font-bold mt-6 mb-3">
-          {line.slice(2)}
-        </h1>
-      );
-    } else if (line.startsWith("- ") || line.startsWith("* ")) {
-      const items: string[] = [];
-      while (i < lines.length && (lines[i].startsWith("- ") || lines[i].startsWith("* "))) {
-        items.push(lines[i].slice(2));
-        i++;
-      }
-      elements.push(
-        <ul key={`ul-${i}`} className="list-disc list-inside space-y-1 my-2">
-          {items.map((item, j) => (
-            <li key={j} dangerouslySetInnerHTML={{ __html: formatInline(item) }} />
-          ))}
-        </ul>
-      );
-      continue;
-    } else if (line.trim() === "") {
-      // skip blank lines
-    } else {
-      elements.push(
-        <p
-          key={i}
-          className="my-2 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: formatInline(line) }}
-        />
-      );
-    }
-    i++;
-  }
-
-  return <div className="prose-content">{elements}</div>;
-}
-
-function formatInline(text: string): string {
-  // Bold **text**
-  return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-}
 
 export function CulturePage() {
   const [category, setCategory] = useState("");
@@ -102,7 +40,7 @@ export function CulturePage() {
             </p>
           </CardHeader>
           <CardContent>
-            <MarkdownRenderer content={article.content_md} />
+            <MarkdownContent content={article.content_md} />
           </CardContent>
         </Card>
       </div>

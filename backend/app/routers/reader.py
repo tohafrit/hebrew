@@ -32,6 +32,15 @@ _NUMBER_RE = re.compile(r'^[בכלמוה]?-?[\d]+[,.]?[\d]*$')
 _PREFIXES = ["ו", "ה", "ב", "כ", "ל", "מ", "ש", "וה", "וב", "וכ", "ול", "ומ", "וש",
              "שה", "שב", "שכ", "של", "שמ", "מה", "בה", "כש", "לה"]
 
+# Override translations for common function words where the dictionary
+# entry is misleading (e.g. את as "you(f)" vs accusative marker)
+_WORD_OVERRIDES: dict[str, dict] = {
+    "את": {
+        "translation_ru": "(предлог прямого дополнения); ты (ж.)",
+        "pos": "particle",
+    },
+}
+
 # Common Hebrew suffixes for noun/adjective inflection
 # ים- (masculine plural), ות- (feminine plural), ת- (feminine singular),
 # ה- (feminine/directional), י- (construct/possessive 1s), ן- (archaic feminine plural)
@@ -137,6 +146,16 @@ async def analyze_text(
             else:
                 tokens.append(TokenAnnotation(token=raw, clean=clean))
 
+    # Second pass: aggressive proper noun detection for remaining unknowns
+    # Check if text has any confirmed proper nouns (context clue)
+    has_names = any(t.match_type == "proper_noun" for t in tokens)
+    for i, t in enumerate(tokens):
+        if t.is_space or not t.clean or t.word_id is not None or t.match_type:
+            continue
+        if _is_likely_proper_noun_aggressive(t.clean, has_names):
+            tokens[i] = t.model_copy(update={"match_type": "proper_noun"})
+            known_count += 1
+
     return AnalyzeResponse(
         tokens=tokens,
         stats={
@@ -158,15 +177,49 @@ def _dictionary_url(hebrew: str, pos: str | None = None) -> str:
 
 
 def _is_likely_proper_noun(raw: str) -> bool:
-    """Detect transliterated foreign names (very conservative).
+    """Detect transliterated foreign names.
 
-    Checks the RAW token (before punctuation stripping) for embedded
-    geresh (׳) or apostrophe (') which are common in transliterated
-    names like אנג׳לס (Angeles), ג׳ון (John).
+    Checks for:
+    1. Embedded geresh (׳) or apostrophe — אנג׳לס, ג׳ון
+    2. Double-vav (וו) or double-yod (יי) — common in transliterations
+    3. Rare letter combinations that don't occur in native Hebrew words
     """
-    # Strip edge punctuation/quotes — we only care about embedded geresh
     inner = raw.strip("'׳\"״.,!?;:()")
     if '׳' in inner or "'" in inner:
+        return True
+    # Double letters common in transliteration: וו (W), יי (double-Y)
+    if 'וו' in inner or 'יי' in inner:
+        return True
+    # Sequences rare/impossible in native Hebrew
+    if any(combo in inner for combo in ['אא', 'ייד', 'יידס']):
+        return True
+    return False
+
+
+# Common short Hebrew words to exclude from proper noun guessing
+_COMMON_SHORT = {
+    "גם", "רק", "כל", "עם", "אם", "אז", "פה", "שם", "מי", "מה", "זה", "זו", "זאת",
+    "לא", "כן", "עד", "יש", "אל", "אף", "אך", "או", "כי", "בו", "לו", "בה", "לה",
+    "לך", "בי", "לי", "די", "דם", "גב", "חג", "גן", "עז", "רב", "רע", "טל", "נא",
+}
+
+
+def _is_likely_proper_noun_aggressive(clean: str, context_has_names: bool) -> bool:
+    """More aggressive proper noun detection for unmatched words.
+
+    Called only after ALL dictionary lookups fail. Considers:
+    - Short words (2-3 letters) that aren't common Hebrew words
+    - Words near other detected proper nouns (context_has_names)
+    - Transliteration patterns
+    """
+    if len(clean) <= 1:
+        return False
+    # Short unknown words adjacent to proper nouns are likely names too
+    # (e.g. "לוס אנג׳לס" — לוס is unknown, אנג׳לס is proper noun)
+    if context_has_names and len(clean) <= 4 and clean not in _COMMON_SHORT:
+        return True
+    # Words ending in unusual-for-Hebrew patterns
+    if clean.endswith('רס') or clean.endswith('נס') or clean.endswith('לס'):
         return True
     return False
 
@@ -210,17 +263,43 @@ def _lookup_word(
     """
 
     # 1. Exact match in words table
-    if clean in word_cache:
-        return {**word_cache[clean], "match_type": "exact"}
+    exact = word_cache.get(clean)
+    if exact:
+        # Apply overrides for common function words
+        if clean in _WORD_OVERRIDES:
+            exact = {**exact, **_WORD_OVERRIDES[clean]}
+        exact_level = exact.get("level_id") or 99
+        # If exact match is a common word (level 1-3), return immediately
+        if exact_level <= 3:
+            return {**exact, "match_type": "exact"}
+        # Otherwise, check if a more common prefix-stripped match exists
+        # (e.g. הענק as verb lv4 vs ה+ענק "giant" lv2)
+        for prefix in ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]:
+            if clean.startswith(prefix) and len(clean) > 2:
+                stem = clean[len(prefix):]
+                if stem in word_cache:
+                    stem_level = word_cache[stem].get("level_id") or 99
+                    if stem_level < exact_level:
+                        return {**word_cache[stem], "match_type": "prefix"}
+        # No better prefix match found, use the exact match
+        return {**exact, "match_type": "exact"}
 
     # 2. Match in word_forms
     if clean in form_cache:
         return {**form_cache[clean], "match_type": "form"}
 
     # 3. Single-letter prefix → word_cache (catches ל+בית, ה+ילדים, ב+ירושלים)
+    #    For ש prefix, also check conjugations (שעברה = ש + עברה conjugation of עבר)
     for prefix in ["ה", "ו", "ב", "כ", "ל", "מ", "ש"]:
         if clean.startswith(prefix) and len(clean) > 2:
             stem = clean[len(prefix):]
+            # For ש/ו prefixes, prefer verb conjugation over noun when both exist
+            # (שעברה → ש+עברה as conjugation of עבר, not noun עברה "sin")
+            if prefix in ("ש", "ו", "כש") and stem in conj_cache:
+                conj_level = conj_cache[stem].get("level_id") or 99
+                word_level = word_cache[stem].get("level_id", 99) if stem in word_cache else 99
+                if conj_level <= word_level:
+                    return {**conj_cache[stem], "match_type": "prefix"}
             if stem in word_cache:
                 return {**word_cache[stem], "match_type": "prefix"}
 

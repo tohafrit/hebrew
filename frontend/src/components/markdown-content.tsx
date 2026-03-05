@@ -58,7 +58,9 @@ export function MarkdownContent({ content }: { content: string }) {
       flushTable(`table-${i}`);
     }
 
-    if (line.trim() === "") {
+    if (/^-{3,}$/.test(line.trim()) || /^\*{3,}$/.test(line.trim())) {
+      elements.push(<hr key={i} className="my-4 border-border" />);
+    } else if (line.trim() === "") {
       elements.push(<div key={i} className="h-2" />);
     } else if (line.startsWith("#### ")) {
       elements.push(
