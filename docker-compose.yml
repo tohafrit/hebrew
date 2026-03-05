@@ -32,7 +32,6 @@ services:
       - ./backend/app:/app/app
       - ./backend/migrations:/app/migrations
       - ./backend/data/seed:/app/data/seed:ro
-      - ./hebrew_bet_smart_dictionary.xlsx:/app/data/dictionary.xlsx:ro
       - tts_audio:/app/audio
     depends_on:
       db:

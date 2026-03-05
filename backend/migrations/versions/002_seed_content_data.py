@@ -46,27 +46,6 @@ SEED_TABLES = [
 ]
 
 
-def _split_sql_statements(sql: str) -> list[str]:
-    """Split SQL text into individual statements.
-
-    Handles multi-line INSERT statements where text values contain newlines.
-    Statements end with ');' at the end of a line.
-    """
-    statements = []
-    current = []
-    for line in sql.split('\n'):
-        current.append(line)
-        stripped = line.rstrip()
-        if stripped.endswith(');'):
-            statements.append('\n'.join(current))
-            current = []
-    if current:
-        remainder = '\n'.join(current).strip()
-        if remainder:
-            statements.append(remainder)
-    return [s for s in statements if s.strip()]
-
-
 def upgrade() -> None:
     seed_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'seed')
     seed_dir = os.path.abspath(seed_dir)
@@ -84,8 +63,10 @@ def upgrade() -> None:
         if not sql:
             continue
 
-        for stmt in _split_sql_statements(sql):
-            conn.exec_driver_sql(stmt)
+        # Execute entire file as a single batch via raw DBAPI cursor
+        cursor = conn.connection.dbapi_connection.cursor()
+        cursor.execute(sql)
+        cursor.close()
 
     # Reset all sequences to max(id) + 1
     for table in SEED_TABLES:

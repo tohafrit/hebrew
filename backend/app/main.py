@@ -5,23 +5,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import async_session
-from app.routers import auth, health, seed, words, srs, alphabet, grammar, lessons, dialogues, gamification, topics, tts, reader
+from app.routers import auth, health, words, srs, alphabet, grammar, lessons, dialogues, gamification, topics, tts, reader
 from app.routers import settings as settings_router
-from app.scripts.seed_dictionary import seed_dictionary
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-seed dictionary on startup if DB is empty
-    try:
-        async with async_session() as db:
-            result = await seed_dictionary(db)
-            logger.info("Seed result: %s", result)
-    except Exception as e:
-        logger.error("Seed failed: %s", e)
     yield
     # Cleanup on shutdown
     from app.services.auth import _redis
@@ -41,7 +32,6 @@ app.add_middleware(
 
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
-app.include_router(seed.router, prefix="/api")
 app.include_router(words.router, prefix="/api")
 app.include_router(srs.router, prefix="/api")
 app.include_router(alphabet.router, prefix="/api")
