@@ -39,6 +39,8 @@ const NAV_GROUPS: NavGroup[] = [
       { path: "/handwriting", label: "Письмо (буквы)" },
       { path: "/minimal-pairs", label: "Мин. пары" },
       { path: "/cloze", label: "Пропуски" },
+      { path: "/verbs", label: "Глаголы" },
+      { path: "/conjugation-drill", label: "Спряжения" },
     ],
   },
   {

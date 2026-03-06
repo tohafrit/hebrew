@@ -33,6 +33,7 @@ import { ClozePage } from "@/pages/cloze";
 import { LeaderboardPage } from "@/pages/leaderboard";
 import { RootExplorerPage } from "@/pages/root-explorer";
 import { GrammarCardsPage } from "@/pages/grammar-cards";
+import { VerbsPage } from "@/pages/verbs";
 import { NotFoundPage } from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PWAUpdatePrompt } from "@/components/pwa-update-prompt";
@@ -83,6 +84,7 @@ export default function App() {
                 <Route path="/leaderboard" element={<LeaderboardPage />} />
                 <Route path="/root-explorer" element={<RootExplorerPage />} />
                 <Route path="/grammar-cards" element={<GrammarCardsPage />} />
+                <Route path="/verbs" element={<VerbsPage />} />
               </Route>
               <Route path="/placement" element={<PlacementPage />} />
               <Route path="/login" element={<LoginPage />} />
