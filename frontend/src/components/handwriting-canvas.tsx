@@ -85,40 +85,43 @@ function compareStrokes(drawn: StrokePoint[][], template: StrokePoint[][]): numb
 
 export function HandwritingCanvas({ template, onScore, showTemplate = true }: HandwritingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [strokes, setStrokes] = useState<StrokePoint[][]>([]);
-  const currentStroke = useRef<StrokePoint[]>([]);
+  const isDrawingRef = useRef(false);
+  const currentStrokeRef = useRef<StrokePoint[]>([]);
+  const strokesRef = useRef<StrokePoint[][]>([]);
+  const [strokeCount, setStrokeCount] = useState(0); // trigger re-render for button state
   const size = 300;
 
-  const drawTemplate = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!showTemplate) return;
-    ctx.strokeStyle = "rgba(200, 200, 200, 0.4)";
-    ctx.lineWidth = 8;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    for (const stroke of template.strokes) {
-      ctx.beginPath();
-      stroke.forEach((p, i) => {
-        const x = p.x * size;
-        const y = p.y * size;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
-    }
-  }, [template, showTemplate]);
-
-  const redraw = useCallback(() => {
-    const ctx = canvasRef.current?.getContext("2d");
+  const drawAll = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.clearRect(0, 0, size, size);
-    drawTemplate(ctx);
 
+    ctx.clearRect(0, 0, size, size);
+
+    // Draw template ghost
+    if (showTemplate) {
+      ctx.strokeStyle = "rgba(200, 200, 200, 0.4)";
+      ctx.lineWidth = 8;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      for (const stroke of template.strokes) {
+        ctx.beginPath();
+        stroke.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(p.x * size, p.y * size);
+          else ctx.lineTo(p.x * size, p.y * size);
+        });
+        ctx.stroke();
+      }
+    }
+
+    // Draw completed strokes
     ctx.strokeStyle = "#2563eb";
     ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    for (const stroke of strokes) {
+    for (const stroke of strokesRef.current) {
+      if (stroke.length < 2) continue;
       ctx.beginPath();
       stroke.forEach((p, i) => {
         if (i === 0) ctx.moveTo(p.x * size, p.y * size);
@@ -126,31 +129,59 @@ export function HandwritingCanvas({ template, onScore, showTemplate = true }: Ha
       });
       ctx.stroke();
     }
-  }, [strokes, drawTemplate]);
 
-  useEffect(() => { redraw(); }, [redraw]);
+    // Draw current in-progress stroke
+    if (currentStrokeRef.current.length >= 2) {
+      ctx.beginPath();
+      currentStrokeRef.current.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.x * size, p.y * size);
+        else ctx.lineTo(p.x * size, p.y * size);
+      });
+      ctx.stroke();
+    }
+  }, [template, showTemplate]);
+
+  // Redraw when template/showTemplate changes or strokes are added/cleared
+  useEffect(() => { drawAll(); }, [drawAll, strokeCount]);
 
   const getPos = (e: React.MouseEvent | React.TouchEvent): StrokePoint => {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    return { x: (clientX - rect.left) / size, y: (clientY - rect.top) / size };
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = size / rect.width;
+    const scaleY = size / rect.height;
+    let clientX: number, clientY: number;
+    if ("touches" in e && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ("clientX" in e) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    } else {
+      return { x: 0, y: 0 };
+    }
+    return {
+      x: (clientX - rect.left) * scaleX / size,
+      y: (clientY - rect.top) * scaleY / size,
+    };
   };
 
   const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
-    setIsDrawing(true);
-    currentStroke.current = [getPos(e)];
+    isDrawingRef.current = true;
+    currentStrokeRef.current = [getPos(e)];
   };
 
   const moveDraw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing) return;
+    if (!isDrawingRef.current) return;
     e.preventDefault();
     const p = getPos(e);
-    currentStroke.current.push(p);
+    currentStrokeRef.current.push(p);
+
+    // Draw just the new segment for performance
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
-    const pts = currentStroke.current;
+    const pts = currentStrokeRef.current;
+    if (pts.length < 2) return;
     ctx.strokeStyle = "#2563eb";
     ctx.lineWidth = 4;
     ctx.lineCap = "round";
@@ -161,21 +192,26 @@ export function HandwritingCanvas({ template, onScore, showTemplate = true }: Ha
   };
 
   const endDraw = () => {
-    if (!isDrawing) return;
-    setIsDrawing(false);
-    if (currentStroke.current.length > 1) {
-      setStrokes(prev => [...prev, currentStroke.current]);
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
+    if (currentStrokeRef.current.length > 1) {
+      strokesRef.current = [...strokesRef.current, currentStrokeRef.current];
+      setStrokeCount(c => c + 1);
     }
-    currentStroke.current = [];
+    currentStrokeRef.current = [];
   };
 
   const handleClear = () => {
-    setStrokes([]);
+    strokesRef.current = [];
+    currentStrokeRef.current = [];
+    isDrawingRef.current = false;
+    setStrokeCount(0);
+    drawAll();
   };
 
   const handleCheck = () => {
-    if (strokes.length === 0) return;
-    const score = compareStrokes(strokes, template.strokes);
+    if (strokesRef.current.length === 0) return;
+    const score = compareStrokes(strokesRef.current, template.strokes);
     onScore(score);
   };
 
@@ -186,6 +222,7 @@ export function HandwritingCanvas({ template, onScore, showTemplate = true }: Ha
         width={size}
         height={size}
         className="border-2 border-border rounded-lg bg-background cursor-crosshair touch-none"
+        style={{ width: size, height: size }}
         onMouseDown={startDraw}
         onMouseMove={moveDraw}
         onMouseUp={endDraw}
@@ -196,7 +233,7 @@ export function HandwritingCanvas({ template, onScore, showTemplate = true }: Ha
       />
       <div className="flex gap-2">
         <Button variant="outline" onClick={handleClear}>Очистить</Button>
-        <Button onClick={handleCheck} disabled={strokes.length === 0}>Проверить</Button>
+        <Button onClick={handleCheck} disabled={strokeCount === 0}>Проверить</Button>
       </div>
     </div>
   );
