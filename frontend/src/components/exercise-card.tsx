@@ -82,19 +82,22 @@ export function MatchPairsExercise({ exercise, onAnswer }: {
   onAnswer: (answer: any) => void;
 }) {
   const prompt = exercise.prompt_json as { pairs_left: string[]; pairs_right: string[] };
-  const [matches, setMatches] = useState<Record<string, string>>({});
-  const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
+  // matches: leftIndex -> rightIndex
+  const [matches, setMatches] = useState<Record<number, number>>({});
+  const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
 
   const usedRight = new Set(Object.values(matches));
 
-  const handleRightClick = (right: string) => {
-    if (!selectedLeft) return;
-    const updated = { ...matches, [selectedLeft]: right };
+  const handleRightClick = (rightIdx: number) => {
+    if (selectedLeft === null) return;
+    const updated = { ...matches, [selectedLeft]: rightIdx };
     setMatches(updated);
     setSelectedLeft(null);
 
     if (Object.keys(updated).length === prompt.pairs_left.length) {
-      onAnswer(updated);
+      // Send as array of [leftIdx, rightIdx] pairs
+      const pairs = Object.entries(updated).map(([l, r]) => [Number(l), r]);
+      onAnswer(pairs);
     }
   };
 
@@ -103,37 +106,37 @@ export function MatchPairsExercise({ exercise, onAnswer }: {
       <p className="font-medium">Соедините пары</p>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          {prompt.pairs_left.map((left) => (
+          {prompt.pairs_left.map((left, leftIdx) => (
             <Button
-              key={left}
-              variant={selectedLeft === left ? "default" : matches[left] ? "secondary" : "outline"}
+              key={leftIdx}
+              variant={selectedLeft === leftIdx ? "default" : leftIdx in matches ? "secondary" : "outline"}
               className="w-full justify-start h-auto py-2"
               onClick={() => {
-                if (matches[left]) {
+                if (leftIdx in matches) {
                   const updated = { ...matches };
-                  delete updated[left];
+                  delete updated[leftIdx];
                   setMatches(updated);
                 }
-                setSelectedLeft(left);
+                setSelectedLeft(leftIdx);
               }}
             >
               {left}
-              {matches[left] && (
+              {leftIdx in matches && (
                 <span className="ml-auto text-xs text-muted-foreground">
-                  → {matches[left]}
+                  → {prompt.pairs_right[matches[leftIdx]]}
                 </span>
               )}
             </Button>
           ))}
         </div>
         <div className="space-y-2">
-          {prompt.pairs_right.map((right) => (
+          {prompt.pairs_right.map((right, rightIdx) => (
             <Button
-              key={right}
-              variant={usedRight.has(right) ? "secondary" : "outline"}
+              key={rightIdx}
+              variant={usedRight.has(rightIdx) ? "secondary" : "outline"}
               className="w-full justify-start h-auto py-2"
-              disabled={usedRight.has(right)}
-              onClick={() => handleRightClick(right)}
+              disabled={usedRight.has(rightIdx)}
+              onClick={() => handleRightClick(rightIdx)}
             >
               {right}
             </Button>
@@ -204,16 +207,21 @@ export function DictationExercise({ exercise, onAnswer }: {
 }) {
   const [value, setValue] = useState("");
   const prompt = exercise.prompt_json as {
-    word_he: string;
+    word_he?: string;
+    audio_text?: string;
     word_translit?: string;
     hint?: string;
+    instruction?: string;
   };
+
+  const hebrewText = prompt.word_he || prompt.audio_text || "";
+  const hintText = prompt.hint || prompt.instruction;
 
   return (
     <div className="space-y-4">
       <p className="text-muted-foreground text-sm">Прослушайте и запишите на иврите</p>
-      {prompt.hint && <p className="text-sm text-muted-foreground">Подсказка: {prompt.hint}</p>}
-      <TTSControls text={prompt.word_he} size="lg" label="Прослушать" />
+      {hintText && <p className="text-sm text-muted-foreground">Подсказка: {hintText}</p>}
+      {hebrewText && <TTSControls text={hebrewText} size="lg" label="Прослушать" />}
       <div className="space-y-2">
         <div className="flex gap-2">
           <Input

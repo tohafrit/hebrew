@@ -104,8 +104,14 @@ function InlineLessonStep({
     }
   };
 
+  // Auto-complete when done
+  useEffect(() => {
+    if (effectivePhase === "done") {
+      onComplete();
+    }
+  }, [effectivePhase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (effectivePhase === "done") {
-    onComplete();
     return (
       <Card>
         <CardContent className="p-8 text-center space-y-4">
@@ -205,20 +211,26 @@ function InlineReadingStep({
       <Card>
         <CardContent className="py-6 space-y-4">
           {/* Hebrew text */}
-          <div dir="rtl" className="font-hebrew text-xl leading-relaxed space-y-2">
-            {text.content_he.split("\n").map((line, i) => (
-              <p key={i}>{line}</p>
-            ))}
-          </div>
-          <TTSControls text={text.content_he} size="lg" label="Прослушать" />
+          {text.content_he && (
+            <div dir="rtl" className="font-hebrew text-xl leading-relaxed space-y-2">
+              {text.content_he.split("\n").map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
+          )}
+          {text.content_he && <TTSControls text={text.content_he} size="lg" label="Прослушать" />}
 
           {/* Translation */}
-          <hr className="my-4" />
-          <div className="text-base text-muted-foreground leading-relaxed space-y-2">
-            {text.content_ru.split("\n").map((line, i) => (
-              <p key={i}>{line}</p>
-            ))}
-          </div>
+          {text.content_ru && (
+            <>
+              <hr className="my-4" />
+              <div className="text-base text-muted-foreground leading-relaxed space-y-2">
+                {text.content_ru.split("\n").map((line, i) => (
+                  <p key={i}>{line}</p>
+                ))}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
