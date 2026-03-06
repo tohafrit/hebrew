@@ -147,29 +147,38 @@ function SpeakerIcon({ size = 16 }: { size?: number }) {
 
 /* ── Right panel: conjugation view ────────────────────────── */
 
+interface BinyanGroup {
+  binyanId: number;
+  binyanLabel: string;
+  byTense: Record<string, Conjugation[]>;
+}
+
 function ConjugationView({ wordId, verb }: { wordId: number; verb: WordBrief }) {
   const { data: conjugations, isLoading } = useConjugations(wordId);
   const { data: binyanim } = useBinyanim();
   const { speak } = useTTS();
 
-  const binyanName = useMemo(() => {
-    if (!conjugations?.length || !binyanim?.length) return null;
-    const bid = conjugations[0].binyan_id;
-    const b = binyanim.find((x) => x.id === bid);
-    return b ? `${b.name_he} — ${b.name_ru}` : null;
-  }, [conjugations, binyanim]);
-
-  const byTense = useMemo(() => {
-    if (!conjugations) return {};
-    const m: Record<string, Conjugation[]> = {};
+  const groups = useMemo((): BinyanGroup[] => {
+    if (!conjugations?.length) return [];
+    const byBinyan = new Map<number, Conjugation[]>();
     for (const c of conjugations) {
-      if (!m[c.tense]) m[c.tense] = [];
-      m[c.tense].push(c);
+      if (!byBinyan.has(c.binyan_id)) byBinyan.set(c.binyan_id, []);
+      byBinyan.get(c.binyan_id)!.push(c);
     }
-    return m;
-  }, [conjugations]);
-
-  const tenses = TENSE_ORDER.filter((t) => byTense[t]?.length);
+    return Array.from(byBinyan.entries()).map(([bid, forms]) => {
+      const b = binyanim?.find((x) => x.id === bid);
+      const byTense: Record<string, Conjugation[]> = {};
+      for (const c of forms) {
+        if (!byTense[c.tense]) byTense[c.tense] = [];
+        byTense[c.tense].push(c);
+      }
+      return {
+        binyanId: bid,
+        binyanLabel: b ? `${b.name_he} — ${b.name_ru}` : `Биньян ${bid}`,
+        byTense,
+      };
+    });
+  }, [conjugations, binyanim]);
 
   if (isLoading) {
     return (
@@ -196,28 +205,39 @@ function ConjugationView({ wordId, verb }: { wordId: number; verb: WordBrief }) 
           {verb.transliteration && <span>{verb.transliteration} · </span>}
           {verb.translation_ru}
         </p>
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {verb.root && <Badge variant="outline">{verb.root}</Badge>}
-          {binyanName && <Badge variant="secondary">{binyanName}</Badge>}
-        </div>
+        {verb.root && (
+          <Badge variant="outline" className="mt-2">{verb.root}</Badge>
+        )}
       </div>
 
-      {/* Conjugation tables — all tenses visible */}
-      {tenses.length === 0 ? (
+      {/* Conjugation tables grouped by binyan */}
+      {groups.length === 0 ? (
         <p className="text-muted-foreground text-sm py-4">
           Нет данных о спряжении
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {tenses.map((t) => (
-            <Card key={t}>
-              <CardContent className="p-3">
-                <h3 className="text-sm font-semibold mb-2">{TENSE_LABELS[t] || t}</h3>
-                <TenseSection forms={byTense[t]} tense={t} />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        groups.map((g) => {
+          const tenses = TENSE_ORDER.filter((t) => g.byTense[t]?.length);
+          return (
+            <div key={g.binyanId} className="space-y-3">
+              <h2 className="text-sm font-semibold">
+                <Badge variant="secondary">{g.binyanLabel}</Badge>
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {tenses.map((t) => (
+                  <Card key={t}>
+                    <CardContent className="p-3">
+                      <h3 className="text-xs font-semibold text-muted-foreground mb-2">
+                        {TENSE_LABELS[t] || t}
+                      </h3>
+                      <TenseSection forms={g.byTense[t]} tense={t} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          );
+        })
       )}
 
       {/* Drill link */}
