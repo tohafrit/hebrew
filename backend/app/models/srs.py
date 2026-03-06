@@ -18,7 +18,7 @@ class SRSCard(Base):
     content_id: Mapped[int] = mapped_column()
     front_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     back_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.utcnow())
 
     reviews: Mapped[list["SRSReview"]] = relationship(back_populates="card")
     schedule: Mapped["SRSSchedule | None"] = relationship(back_populates="card", uselist=False)
@@ -29,7 +29,7 @@ class SRSReview(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     card_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("srs_cards.id", ondelete="CASCADE"), index=True)
-    reviewed_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    reviewed_at: Mapped[datetime] = mapped_column(default=lambda: datetime.utcnow())
     quality: Mapped[int] = mapped_column()
     response_time_ms: Mapped[int | None] = mapped_column(nullable=True)
 

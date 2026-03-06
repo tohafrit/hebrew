@@ -57,7 +57,7 @@ async def complete_step(
     progress = UserPathProgress(
         user_id=user_id,
         path_step_id=path_step_id,
-        completed_at=datetime.now(timezone.utc),
+        completed_at=datetime.utcnow(),
     )
     db.add(progress)
     await db.flush()

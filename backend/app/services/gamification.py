@@ -156,7 +156,7 @@ async def check_and_award_achievements(db: AsyncSession, user: User) -> list[str
             achievement = Achievement(
                 user_id=user.id,
                 type=defn.code,
-                unlocked_at=datetime.now(timezone.utc),
+                unlocked_at=datetime.utcnow(),
             )
             db.add(achievement)
             newly_unlocked.append(defn.code)

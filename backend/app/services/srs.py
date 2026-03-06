@@ -55,7 +55,7 @@ async def create_cards_for_words(
     card_types: list[str],
 ) -> int:
     """Create SRS cards for given words. Skip duplicates."""
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
 
     # Batch-fetch all words at once
     words_result = await db.execute(
@@ -195,7 +195,7 @@ async def create_grammar_cards_for_words(
     """
     if tenses is None:
         tenses = ["present", "past"]
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
 
     # Fetch conjugations for the given words + tenses
     conj_result = await db.execute(
@@ -303,7 +303,7 @@ async def get_session_cards(
     limit: int = 20,
 ) -> tuple[list[dict], int, int]:
     """Get cards due for review. Returns (cards, total_due, new_count)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
 
     # Count total due
     total_due = await db.scalar(
@@ -407,7 +407,7 @@ async def review_card(
     schedule.ease_factor = new_ease
     schedule.repetitions = new_reps
     schedule.lapses = new_lapses
-    schedule.next_review = datetime.now(timezone.utc) + timedelta(days=new_interval)
+    schedule.next_review = datetime.utcnow() + timedelta(days=new_interval)
 
     await db.flush()
 
@@ -444,7 +444,7 @@ async def create_sentence_context_cards(
     he_sentences = [s.strip() for s in he_sentences if s.strip()]
     ru_sentences = [s.strip() for s in ru_sentences if s.strip()]
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     vocab = text.vocabulary_json
 
     # Check existing sentence_context cards for this user
@@ -551,7 +551,7 @@ async def get_leech_cards(
 async def get_srs_stats(db: AsyncSession, user: User) -> dict:
     """Get SRS statistics for a user."""
     user_id = user.id
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     total = await db.scalar(
