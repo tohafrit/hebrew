@@ -22,27 +22,44 @@ interface WordInfo {
 const NIKKUD_RE = /[\u0591-\u05C7]/g;
 const stripNikkud = (s: string) => s.replace(NIKKUD_RE, "");
 
+// Remove matres lectionis (ו, י used as vowels) to get consonantal skeleton
+// This helps match defective spelling "לאכל" with plene "לאכול"
+const toSkeleton = (s: string) => stripNikkud(s).replace(/[וי]/g, "");
+
 // Cache for word lookups to avoid repeated API calls
 const wordCache = new Map<string, WordInfo | null>();
+
+function toWordInfo(w: any): WordInfo {
+  return {
+    hebrew: w.hebrew,
+    translation_ru: w.translation_ru,
+    transliteration: w.transliteration,
+    nikkud: w.nikkud,
+    pos: w.pos,
+    id: w.id,
+  };
+}
 
 async function lookupWord(hebrew: string): Promise<WordInfo | null> {
   const clean = stripNikkud(hebrew);
   if (wordCache.has(clean)) return wordCache.get(clean)!;
 
   try {
-    const { data } = await api.get("/words", { params: { search: clean, per_page: 1 } });
+    const { data } = await api.get("/words", { params: { search: clean, per_page: 20 } });
     if (data.items && data.items.length > 0) {
-      const w = data.items[0];
-      // Only accept if it's an exact match (not a substring match)
-      if (stripNikkud(w.hebrew) === clean) {
-        const info: WordInfo = {
-          hebrew: w.hebrew,
-          translation_ru: w.translation_ru,
-          transliteration: w.transliteration,
-          nikkud: w.nikkud,
-          pos: w.pos,
-          id: w.id,
-        };
+      // 1. Try exact match first
+      const exact = data.items.find((w: any) => stripNikkud(w.hebrew) === clean);
+      if (exact) {
+        const info = toWordInfo(exact);
+        wordCache.set(clean, info);
+        return info;
+      }
+      // 2. Try consonantal skeleton match (handles defective/plene spelling)
+      // e.g. "לאכל" (from text) vs "לאכול" (in dictionary) — both skeleton to "לאכל"
+      const skeleton = toSkeleton(clean);
+      const skelMatch = data.items.find((w: any) => toSkeleton(w.hebrew) === skeleton);
+      if (skelMatch) {
+        const info = toWordInfo(skelMatch);
         wordCache.set(clean, info);
         return info;
       }
