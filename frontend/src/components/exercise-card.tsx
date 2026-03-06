@@ -266,18 +266,24 @@ export function TranslateRuHeExercise({ exercise, onAnswer }: {
   const [value, setValue] = useState("");
   const prompt = exercise.prompt_json as {
     prompt_ru?: string;
+    text_ru?: string;
+    sentence_ru?: string;
+    sentence?: string;
     hint?: string;
+    hints?: string[];
     target_he?: string;
   };
+  const displayText = prompt.prompt_ru || prompt.text_ru || prompt.sentence_ru || prompt.sentence;
+  const hintText = prompt.hint || (prompt.hints ? prompt.hints.join(", ") : undefined);
 
   return (
     <div className="space-y-4">
       <p className="font-medium">Переведите на иврит:</p>
-      {prompt.prompt_ru && <p className="text-2xl font-bold">{prompt.prompt_ru}</p>}
-      {prompt.hint && (
+      {displayText && <p className="text-2xl font-bold">{displayText}</p>}
+      {hintText && (
         <p className="text-sm text-muted-foreground">
-          Подсказка: <HebrewText size="sm">{prompt.hint}</HebrewText>
-          <TTSControls text={prompt.hint} size="sm" className="inline-flex ml-2" />
+          Подсказка: <HebrewText size="sm">{hintText}</HebrewText>
+          <TTSControls text={hintText} size="sm" className="inline-flex ml-2" />
         </p>
       )}
       <div className="flex gap-2">

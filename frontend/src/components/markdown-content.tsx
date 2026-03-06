@@ -63,8 +63,10 @@ export function MarkdownContent({ content }: { content: string }) {
     const line = lines[i];
 
     if (line.startsWith("|")) {
-      const cells = line.split("|").filter((c) => c.trim() !== "").map((c) => c.trim());
-      if (cells.some((c) => /^[-:]+$/.test(c))) {
+      // Preserve empty cells: split on "|", drop first/last empty from leading/trailing "|"
+      const raw = line.split("|");
+      const cells = raw.slice(1, raw.length - 1).map((c) => c.trim());
+      if (cells.every((c) => /^[-:]*$/.test(c) && c.length > 0)) {
         inTable = true;
         continue;
       }
