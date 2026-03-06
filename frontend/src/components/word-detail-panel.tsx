@@ -142,8 +142,16 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between">
-        <div className="space-y-1">
+      <CardHeader className="relative">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-2 right-2 h-8 w-8 p-0 text-lg"
+          onClick={onClose}
+        >
+          &times;
+        </Button>
+        <div className="space-y-1 pr-8">
           <HebrewText size="2xl" className="block font-bold" nikkud={word.nikkud}>
             {word.hebrew}
           </HebrewText>
@@ -152,9 +160,6 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
           )}
           <TTSControls text={word.nikkud || word.hebrew} size="sm" />
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          &times;
-        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
