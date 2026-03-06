@@ -45,7 +45,7 @@ export function SRSPage() {
     setRevealed(true);
     // Auto-play Hebrew audio on reveal
     if (autoPlay && currentCard) {
-      const hebrewText = currentCard.back_json.hebrew || currentCard.front_json.hebrew;
+      const hebrewText = currentCard.back_json.nikkud || currentCard.back_json.hebrew || currentCard.front_json.nikkud || currentCard.front_json.hebrew;
       if (hebrewText) speak(hebrewText);
     }
   }, [autoPlay, currentCard, speak]);
@@ -273,7 +273,7 @@ export function SRSPage() {
                     >
                       {currentCard.front_json.hebrew}
                     </HebrewText>
-                    <TTSControls text={currentCard.front_json.hebrew} size="sm" />
+                    <TTSControls text={currentCard.front_json.nikkud || currentCard.front_json.hebrew} size="sm" />
                   </>
                 )}
                 {currentCard.front_json.transliteration && (
@@ -315,7 +315,7 @@ export function SRSPage() {
                       <HebrewText size="xl" className="block font-bold text-2xl" nikkud={currentCard.back_json.form_nikkud}>
                         {currentCard.back_json.form_he}
                       </HebrewText>
-                      {currentCard.back_json.form_he && <TTSControls text={currentCard.back_json.form_he} size="sm" />}
+                      {currentCard.back_json.form_he && <TTSControls text={currentCard.back_json.form_nikkud || currentCard.back_json.form_he} size="sm" />}
                       {currentCard.back_json.transliteration && (
                         <p className="text-muted-foreground">{currentCard.back_json.transliteration}</p>
                       )}
@@ -351,7 +351,7 @@ export function SRSPage() {
                       <HebrewText size="xl" className="block font-bold text-2xl" nikkud={currentCard.back_json.nikkud}>
                         {currentCard.back_json.hebrew}
                       </HebrewText>
-                      <TTSControls text={currentCard.back_json.hebrew} size="sm" />
+                      <TTSControls text={currentCard.back_json.nikkud || currentCard.back_json.hebrew} size="sm" />
                     </div>
                   )}
                   {currentCard.back_json.transliteration && (

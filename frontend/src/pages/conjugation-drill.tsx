@@ -255,7 +255,7 @@ export function ConjugationDrillPage() {
                 </HebrewText>
                 <button
                   className="text-muted-foreground hover:text-primary text-sm"
-                  onClick={() => speak(currentQ.word_hebrew)}
+                  onClick={() => speak(currentQ.word_nikkud || currentQ.word_hebrew)}
                 >
                   ▶
                 </button>
@@ -347,7 +347,7 @@ export function ConjugationDrillPage() {
                     </HebrewText>
                     <button
                       className="text-muted-foreground hover:text-primary text-sm"
-                      onClick={() => speak(lastResult.correctAnswer)}
+                      onClick={() => speak(lastResult.correctNikkud || lastResult.correctAnswer)}
                     >
                       ▶
                     </button>

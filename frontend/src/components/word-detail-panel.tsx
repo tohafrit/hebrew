@@ -150,7 +150,7 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
           {word.transliteration && (
             <p className="text-muted-foreground">{word.transliteration}</p>
           )}
-          <TTSControls text={word.hebrew} size="sm" />
+          <TTSControls text={word.nikkud || word.hebrew} size="sm" />
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           &times;

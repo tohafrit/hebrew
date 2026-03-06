@@ -59,7 +59,7 @@ export function WordCard({ word, onClick, onRootClick, selected }: WordCardProps
               </HebrewText>
               <button
                 className="shrink-0 text-muted-foreground hover:text-primary transition-colors text-sm"
-                onClick={(e) => { e.stopPropagation(); speak(word.hebrew); }}
+                onClick={(e) => { e.stopPropagation(); speak(word.nikkud || word.hebrew); }}
                 title="Прослушать"
               >
                 ▶

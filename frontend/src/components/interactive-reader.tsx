@@ -120,7 +120,7 @@ function WordTooltip({ word, vocabEntry, onClose }: {
       <div className="flex items-center gap-2">
         <button
           className="shrink-0 text-muted-foreground hover:text-primary transition-colors text-base"
-          onClick={() => speak(stripNikkud(word))}
+          onClick={() => speak(word)}
           title="Прослушать"
         >
           ▶
