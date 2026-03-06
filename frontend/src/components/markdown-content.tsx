@@ -105,6 +105,12 @@ export function MarkdownContent({ content }: { content: string }) {
           {parseInline(line.slice(2))}
         </li>
       );
+    } else if (line.startsWith("> ")) {
+      elements.push(
+        <blockquote key={i} className="border-l-4 border-primary/30 pl-4 py-1 text-base leading-relaxed text-muted-foreground italic">
+          {parseInline(line.slice(2))}
+        </blockquote>
+      );
     } else {
       elements.push(
         <p key={i} className="text-base leading-relaxed">

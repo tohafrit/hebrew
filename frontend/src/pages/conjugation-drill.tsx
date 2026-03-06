@@ -136,7 +136,7 @@ export function ConjugationDrillPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
         <select
-          className="text-sm border rounded px-2 py-1 bg-background"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
           value={levelFilter ?? ""}
           onChange={(e) => {
             setLevelFilter(e.target.value ? Number(e.target.value) : undefined);
@@ -149,7 +149,7 @@ export function ConjugationDrillPage() {
           ))}
         </select>
         <select
-          className="text-sm border rounded px-2 py-1 bg-background"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
           value={binyanFilter ?? ""}
           onChange={(e) => {
             setBinyanFilter(e.target.value ? Number(e.target.value) : undefined);
@@ -162,7 +162,7 @@ export function ConjugationDrillPage() {
           ))}
         </select>
         <select
-          className="text-sm border rounded px-2 py-1 bg-background"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
           value={tenseFilter ?? ""}
           onChange={(e) => {
             setTenseFilter(e.target.value || undefined);

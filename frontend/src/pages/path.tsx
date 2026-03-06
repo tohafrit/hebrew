@@ -81,6 +81,20 @@ function InlineLessonStep({
     setCurrentExIdx(0);
   }, [contentId]);
 
+  const hasContent = !!lesson?.content_md;
+  const hasExercises = (lesson?.exercises.length ?? 0) > 0;
+  const effectivePhase = !lesson ? "content" :
+    phase === "content" && !hasContent
+      ? (hasExercises ? "exercises" : "done")
+      : phase;
+
+  // Auto-complete when done — must be called before any early return
+  useEffect(() => {
+    if (effectivePhase === "done" && lesson) {
+      onComplete();
+    }
+  }, [effectivePhase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-8">Загрузка урока...</p>;
   }
@@ -88,12 +102,6 @@ function InlineLessonStep({
   if (!lesson) {
     return <p className="text-center text-muted-foreground py-8">Урок не найден</p>;
   }
-
-  const hasContent = !!lesson.content_md;
-  const hasExercises = lesson.exercises.length > 0;
-  const effectivePhase = phase === "content" && !hasContent
-    ? (hasExercises ? "exercises" : "done")
-    : phase;
 
   const currentExercise = lesson.exercises[currentExIdx];
 
@@ -104,13 +112,6 @@ function InlineLessonStep({
       setPhase("done");
     }
   };
-
-  // Auto-complete when done
-  useEffect(() => {
-    if (effectivePhase === "done") {
-      onComplete();
-    }
-  }, [effectivePhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (effectivePhase === "done") {
     return (

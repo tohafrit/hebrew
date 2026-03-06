@@ -17,6 +17,7 @@ import { LEVEL_LABELS } from "@/lib/constants";
 const CAT_LABELS: Record<string, string> = {
   story: "Рассказ",
   dialog: "Диалог",
+  article: "Статья",
 };
 
 function VocabWord({ word }: {
