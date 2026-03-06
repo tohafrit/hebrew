@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select, func, cast, Date, and_, case
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +9,7 @@ from app.models.srs import SRSCard, SRSReview
 
 
 async def get_analytics(db: AsyncSession, user_id: uuid.UUID) -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     thirty_days_ago = now - timedelta(days=30)
 
     # 1. Daily accuracy trend (30 days)

@@ -7,11 +7,13 @@ from app.models.user import User
 from app.schemas.lesson import (
     LessonBrief, LessonDetail, ExerciseOut,
     ExerciseCheckRequest, ExerciseCheckResponse,
+    LessonStatsOut,
     ReadingTextBrief, ReadingTextDetail,
 )
 from app.services.lesson import (
     list_lessons, get_lesson_detail, get_lesson_exercises,
     get_exercise, check_answer, save_exercise_result,
+    get_lesson_stats,
     list_reading_texts, get_reading_text,
     get_lesson_completion,
 )
@@ -63,6 +65,16 @@ async def get_exercises(
 ):
     exercises = await get_lesson_exercises(db, lesson_id)
     return [ExerciseOut.model_validate(e) for e in exercises]
+
+
+@router.get("/lessons/{lesson_id}/stats", response_model=LessonStatsOut)
+async def get_lesson_stats_endpoint(
+    lesson_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    stats = await get_lesson_stats(db, user.id, lesson_id)
+    return LessonStatsOut(**stats)
 
 
 # ── Exercise checking ──────────────────────────────────────────────────────

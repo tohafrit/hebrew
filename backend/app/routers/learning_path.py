@@ -80,6 +80,41 @@ async def get_path(
     )
 
 
+@router.get("/recommended")
+async def get_recommended_step(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return the next uncompleted step with a descriptive label."""
+    user_level = user.current_level or 1
+    step = await get_next_step(db, user.id, user_level)
+    if not step:
+        return {"step": None}
+
+    step_labels = {
+        "vocabulary": "Изучить слова",
+        "grammar": "Грамматика",
+        "exercise": "Упражнения",
+        "reading": "Читать текст",
+        "dialogue": "Пройти диалог",
+        "srs_review": "Повторить карточки",
+    }
+    label = step_labels.get(step.step_type, step.step_type)
+
+    return {
+        "step": {
+            "id": step.id,
+            "level_id": step.level_id,
+            "unit": step.unit,
+            "step": step.step,
+            "step_type": step.step_type,
+            "content_id": step.content_id,
+            "title_ru": step.title_ru,
+            "label": f"{label}: {step.title_ru}",
+        }
+    }
+
+
 @router.post("/complete")
 async def mark_complete(
     req: CompleteStepRequest,

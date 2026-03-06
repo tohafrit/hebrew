@@ -48,6 +48,13 @@ class ExerciseCheckResponse(BaseModel):
     new_achievements: list[str] = []
 
 
+class LessonStatsOut(BaseModel):
+    total: int
+    correct: int
+    accuracy_pct: int
+    time_ms: int
+
+
 class ReadingTextBrief(BaseModel):
     id: int
     level_id: int

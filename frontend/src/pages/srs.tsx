@@ -211,11 +211,41 @@ export function SRSPage() {
                   ? "Предложение HE → RU"
                   : currentCard.card_type === "sentence_ru_he"
                   ? "Предложение RU → HE"
+                  : currentCard.card_type === "conjugation"
+                  ? "Спряжение"
+                  : currentCard.card_type === "binyan_id"
+                  ? "Биньян"
                   : currentCard.card_type}
               </Badge>
             </CardHeader>
             <CardContent className="text-center space-y-6 pb-8">
-              {/* Front */}
+              {/* Front — conjugation cards */}
+              {currentCard.card_type === "conjugation" && (
+                <div className="space-y-2">
+                  <HebrewText size="2xl" className="block font-bold text-3xl">
+                    {currentCard.front_json.verb}
+                  </HebrewText>
+                  <p className="text-lg">{currentCard.front_json.translation}</p>
+                  <div className="flex justify-center gap-2">
+                    <Badge variant="secondary">{currentCard.front_json.tense}</Badge>
+                    <Badge variant="outline">{currentCard.front_json.person_label}</Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Front — binyan_id cards */}
+              {currentCard.card_type === "binyan_id" && (
+                <div className="space-y-2">
+                  <HebrewText size="2xl" className="block font-bold text-3xl">
+                    {currentCard.front_json.form_he}
+                  </HebrewText>
+                  <Badge variant="secondary">{currentCard.front_json.tense}</Badge>
+                  <p className="text-sm text-muted-foreground">Определите биньян</p>
+                </div>
+              )}
+
+              {/* Front — standard cards */}
+              {currentCard.card_type !== "conjugation" && currentCard.card_type !== "binyan_id" && (
               <div className="space-y-2">
                 {currentCard.front_json.hebrew && (
                   <>
@@ -248,6 +278,7 @@ export function SRSPage() {
                   </Badge>
                 )}
               </div>
+              )}
 
               {/* Reveal button / Back */}
               {!revealed ? (
@@ -261,7 +292,28 @@ export function SRSPage() {
                 </Button>
               ) : (
                 <div className="space-y-4 pt-4 border-t">
-                  {currentCard.back_json.hebrew && (
+                  {/* Conjugation back */}
+                  {currentCard.card_type === "conjugation" && (
+                    <div className="space-y-2">
+                      <HebrewText size="xl" className="block font-bold text-2xl" nikkud={currentCard.back_json.form_nikkud}>
+                        {currentCard.back_json.form_he}
+                      </HebrewText>
+                      {currentCard.back_json.form_he && <TTSControls text={currentCard.back_json.form_he} size="sm" />}
+                      {currentCard.back_json.transliteration && (
+                        <p className="text-muted-foreground">{currentCard.back_json.transliteration}</p>
+                      )}
+                    </div>
+                  )}
+                  {/* Binyan back */}
+                  {currentCard.card_type === "binyan_id" && (
+                    <div className="space-y-2">
+                      <p className="text-xl font-bold">{currentCard.back_json.binyan_name}</p>
+                      <HebrewText size="lg" className="block">{currentCard.back_json.verb}</HebrewText>
+                      <p className="text-muted-foreground">{currentCard.back_json.translation}</p>
+                    </div>
+                  )}
+                  {/* Standard back */}
+                  {currentCard.back_json.hebrew && currentCard.card_type !== "conjugation" && currentCard.card_type !== "binyan_id" && (
                     <div className="space-y-1">
                       <HebrewText size="xl" className="block font-bold text-2xl" nikkud={currentCard.back_json.nikkud}>
                         {currentCard.back_json.hebrew}

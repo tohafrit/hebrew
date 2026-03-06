@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -60,6 +60,18 @@ class ReadingText(Base):
     vocabulary_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     audio_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     category: Mapped[str] = mapped_column(String(30), default="story")
+
+
+class UserReadingSession(Base):
+    __tablename__ = "user_reading_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    text_snippet: Mapped[str] = mapped_column(String(200))
+    word_count: Mapped[int] = mapped_column(default=0)
+    known_pct: Mapped[int] = mapped_column(default=0)
+    level_breakdown_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
 
 class Dialogue(Base):

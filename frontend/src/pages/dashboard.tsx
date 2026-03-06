@@ -4,6 +4,7 @@ import { useRecommendations } from "@/hooks/use-recommendations";
 import { useSettings } from "@/hooks/use-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function SkillBar({ label, value }: { label: string; value: number }) {
   return (
@@ -135,7 +136,10 @@ export function DashboardPage() {
                   variant="outline"
                   size="sm"
                   asChild
-                  className="h-auto py-2"
+                  className={cn(
+                    "h-auto py-2",
+                    rec.type === "weak_area" && "border-orange-400 bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100"
+                  )}
                 >
                   <Link to={rec.link}>
                     <span className="mr-1">{rec.icon}</span>

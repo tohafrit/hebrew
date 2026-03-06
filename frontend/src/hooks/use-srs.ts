@@ -98,6 +98,24 @@ export function useSRSLeeches(threshold = 5) {
   });
 }
 
+export function useCreateGrammarCards() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ created: number }, Error, { word_ids: number[]; tenses?: string[] }>({
+    mutationFn: async (body) => {
+      const { data } = await api.post("/srs/grammar-cards", {
+        word_ids: body.word_ids,
+        tenses: body.tenses || ["present", "past"],
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["srs-session"] });
+      queryClient.invalidateQueries({ queryKey: ["srs-stats"] });
+    },
+  });
+}
+
 export function useCreateCards() {
   const queryClient = useQueryClient();
 

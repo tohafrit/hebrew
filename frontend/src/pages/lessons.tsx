@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useLessons, useLesson, useCheckExercise, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
+import { useLessons, useLesson, useCheckExercise, useLessonStats, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
 import { useAutoCompleteStep } from "@/hooks/use-path";
 import { useSoundEffects } from "@/hooks/use-sound-effects";
 import { HebrewText } from "@/components/hebrew-text";
@@ -418,6 +418,9 @@ export function LessonsPage() {
   useAutoCompleteStep("exercise", selectedLessonId, phase === "done");
   useAutoCompleteStep("vocabulary", selectedLessonId, phase === "done");
 
+  // Fetch stats when lesson is done
+  const { data: lessonStats } = useLessonStats(phase === "done" ? selectedLessonId : null);
+
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;
   }
@@ -508,9 +511,41 @@ export function LessonsPage() {
           <Card>
             <CardContent className="p-12 text-center space-y-4">
               <p className="text-3xl font-bold">Урок завершён!</p>
-              <p className="text-muted-foreground">
-                Вы выполнили {lessonDetail.exercises.length} упражнений
-              </p>
+              {lessonStats && lessonStats.total > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex justify-center gap-6 text-sm">
+                    <span>
+                      Правильно: <strong>{lessonStats.correct}/{lessonStats.total}</strong>
+                    </span>
+                    {lessonStats.time_ms > 0 && (
+                      <span className="text-muted-foreground">
+                        Время: {Math.round(lessonStats.time_ms / 1000)}с
+                      </span>
+                    )}
+                  </div>
+                  <div className="w-48 mx-auto h-3 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        lessonStats.accuracy_pct >= 80 ? "bg-green-500" :
+                        lessonStats.accuracy_pct >= 50 ? "bg-yellow-500" : "bg-red-500"
+                      )}
+                      style={{ width: `${lessonStats.accuracy_pct}%` }}
+                    />
+                  </div>
+                  <p className={cn(
+                    "text-lg font-bold",
+                    lessonStats.accuracy_pct >= 80 ? "text-green-600" :
+                    lessonStats.accuracy_pct >= 50 ? "text-yellow-600" : "text-red-600"
+                  )}>
+                    {lessonStats.accuracy_pct}%
+                  </p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">
+                  Вы выполнили {lessonDetail.exercises.length} упражнений
+                </p>
+              )}
               <div className="flex gap-2 justify-center flex-wrap">
                 {hasContent && (
                   <Button variant="outline" onClick={() => setPhase("content")}>

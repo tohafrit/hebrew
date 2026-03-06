@@ -1,13 +1,13 @@
 """Smart study recommendations engine."""
 
 import uuid
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timedelta, timezone
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.srs import SRSCard, SRSSchedule
-from app.models.content import Lesson, ExerciseResult
+from app.models.content import Lesson, Exercise, ExerciseResult
 from app.models.user import User, UserSettings
 from app.models.culture import UserDailyActivity
 
@@ -115,6 +115,56 @@ async def get_recommendations(
             "description": "Практика закрепляет знания",
             "link": "/lessons",
             "icon": "✏️",
+        })
+
+    # 4b. Weak area detection — exercise types with low accuracy
+    thirty_days_ago = now - timedelta(days=30)
+    weak_query = (
+        select(
+            Exercise.type,
+            func.count().label("total"),
+            func.sum(
+                case(
+                    (ExerciseResult.is_correct == True, 1),
+                    else_=0,
+                )
+            ).label("correct"),
+        )
+        .join(Exercise, ExerciseResult.exercise_id == Exercise.id)
+        .where(
+            ExerciseResult.user_id == user_id,
+            ExerciseResult.created_at >= thirty_days_ago,
+        )
+        .group_by(Exercise.type)
+        .having(func.count() >= 5)
+    )
+    weak_result = await db.execute(weak_query)
+    weakest = None
+    weakest_acc = 100
+    type_labels = {
+        "multiple_choice": "Выбор ответа",
+        "fill_blank": "Заполнить пропуск",
+        "match_pairs": "Сопоставление",
+        "word_order": "Порядок слов",
+        "dictation": "Диктант",
+        "hebrew_typing": "Набор на иврите",
+        "translate_ru_he": "Перевод RU→HE",
+    }
+    for row in weak_result:
+        acc = round(row.correct * 100 / row.total) if row.total > 0 else 0
+        if acc < 50 and acc < weakest_acc:
+            weakest = row
+            weakest_acc = acc
+
+    if weakest:
+        label = type_labels.get(weakest.type, weakest.type)
+        recommendations.append({
+            "type": "weak_area",
+            "priority": 65,
+            "title": "Тренировать слабое место",
+            "description": f"{label}: {weakest_acc}% точность ({weakest.total} попыток)",
+            "link": "/lessons",
+            "icon": "⚡",
         })
 
     # 5. Unseen lessons

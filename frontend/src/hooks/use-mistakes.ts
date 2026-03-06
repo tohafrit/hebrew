@@ -10,11 +10,21 @@ export interface ExerciseMistake {
   created_at: string;
 }
 
+export interface SRSCardJson {
+  hebrew?: string;
+  nikkud?: string;
+  translation?: string;
+  transliteration?: string;
+  pos?: string;
+  root?: string;
+  [key: string]: unknown;
+}
+
 export interface SRSFailure {
   card_id: string;
   card_type: string;
-  front: Record<string, unknown> | null;
-  back: Record<string, unknown> | null;
+  front: SRSCardJson | null;
+  back: SRSCardJson | null;
   quality: number;
   reviewed_at: string;
 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { useAnalyzeText, type TokenAnnotation } from "@/hooks/use-reader";
+import { useAnalyzeText, useReaderHistory, useReaderRecommendations, type TokenAnnotation } from "@/hooks/use-reader";
 import { useCreateCards } from "@/hooks/use-srs";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls } from "@/components/tts-controls";
@@ -341,6 +341,8 @@ export function ReaderPage() {
   const [text, setText] = useState("");
   const analyze = useAnalyzeText();
   const createCards = useCreateCards();
+  const { data: history } = useReaderHistory();
+  const { data: recommendations } = useReaderRecommendations();
   const [selectedToken, setSelectedToken] = useState<TokenAnnotation | null>(null);
   const [hoverToken, setHoverToken] = useState<TokenAnnotation | null>(null);
   const [hoverStyle, setHoverStyle] = useState<React.CSSProperties>({});
@@ -511,6 +513,54 @@ export function ReaderPage() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* History & Recommendations — shown when no analysis active */}
+      {!tokens && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Recommendations */}
+          {recommendations && recommendations.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Рекомендованные тексты</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {recommendations.map((t) => (
+                  <Link
+                    key={t.id}
+                    to={`/reading/${t.id}`}
+                    className="block p-2 rounded hover:bg-accent transition-colors text-sm"
+                  >
+                    <span className="font-medium">{t.title_ru}</span>
+                    <span className="text-muted-foreground ml-2 font-hebrew">{t.title_he}</span>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* History */}
+          {history && history.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">История чтения</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {history.slice(0, 10).map((s) => (
+                  <div key={s.id} className="flex items-center justify-between text-sm p-2 rounded bg-muted/50">
+                    <span className="font-hebrew truncate max-w-[200px]" dir="rtl">
+                      {s.text_snippet.slice(0, 40)}...
+                    </span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{s.word_count} слов</span>
+                      <Badge variant="secondary" className="text-xs">{s.known_pct}%</Badge>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 

@@ -60,6 +60,11 @@ class SRSStats(BaseModel):
     average_ease: float | None = None
 
 
+class GrammarCardsRequest(BaseModel):
+    word_ids: list[int]
+    tenses: list[str] = ["present", "past"]
+
+
 class LeechCard(BaseModel):
     id: uuid.UUID
     card_type: str

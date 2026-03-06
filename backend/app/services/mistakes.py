@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +12,7 @@ async def get_exercise_mistakes(
     db: AsyncSession, user_id: uuid.UUID, *, days: int = 30, limit: int = 50
 ) -> list[dict]:
     """Get recent wrong exercise answers for a user."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.utcnow() - timedelta(days=days)
 
     q = (
         select(ExerciseResult, Exercise)
@@ -47,7 +47,7 @@ async def get_srs_failures(
     db: AsyncSession, user_id: uuid.UUID, *, days: int = 30, limit: int = 50
 ) -> list[dict]:
     """Get recent failed SRS reviews (quality <= 1) for a user, deduped by card."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.utcnow() - timedelta(days=days)
 
     # Subquery to get the latest failed review per card
     q = (

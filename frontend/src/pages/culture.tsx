@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { useCultureArticles, useCultureArticle } from "@/hooks/use-gamification";
+import { useCultureArticles, useCultureArticle, useCultureArticleWords } from "@/hooks/use-gamification";
+import { useCreateCards } from "@/hooks/use-srs";
 import { MarkdownContent } from "@/components/markdown-content";
+import { HebrewText } from "@/components/hebrew-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 const CATEGORIES = [
   { value: "", label: "Все" },
@@ -18,6 +22,8 @@ export function CulturePage() {
 
   const { data: articles, isLoading } = useCultureArticles(category || undefined);
   const { data: article } = useCultureArticle(selectedId);
+  const { data: articleWords } = useCultureArticleWords(selectedId);
+  const createCards = useCreateCards();
 
   if (selectedId && article) {
     return (
@@ -43,6 +49,46 @@ export function CulturePage() {
             <MarkdownContent content={article.content_md} />
           </CardContent>
         </Card>
+
+        {/* Words from article */}
+        {articleWords && articleWords.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Слова из статьи</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1.5">
+                {articleWords.slice(0, 30).map((w) => (
+                  <div key={w.word_id} className="flex items-center justify-between text-sm p-1.5 rounded hover:bg-accent/50">
+                    <div className="flex items-center gap-2">
+                      <HebrewText size="sm" className="font-medium">{w.hebrew}</HebrewText>
+                      <span className="text-muted-foreground">{w.translation_ru}</span>
+                      {w.pos && <Badge variant="outline" className="text-xs">{w.pos}</Badge>}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={async () => {
+                        try {
+                          const result = await createCards.mutateAsync({ word_ids: [w.word_id] });
+                          toast({
+                            title: "В SRS",
+                            description: result.created > 0 ? `Создано ${result.created} карточек` : "Уже существуют",
+                          });
+                        } catch {
+                          toast({ title: "Ошибка", variant: "destructive" });
+                        }
+                      }}
+                    >
+                      + SRS
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }

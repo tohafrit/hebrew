@@ -25,6 +25,7 @@ import { ReaderPage } from "@/pages/reader";
 import { PathPage } from "@/pages/path";
 import { ConjugationDrillPage } from "@/pages/conjugation-drill";
 import { MistakesPage } from "@/pages/mistakes";
+import { PronunciationPage } from "@/pages/pronunciation";
 import { NotFoundPage } from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -66,6 +67,7 @@ export default function App() {
                 <Route path="/topics" element={<TopicsPage />} />
                 <Route path="/reader" element={<ReaderPage />} />
                 <Route path="/path" element={<PathPage />} />
+                <Route path="/pronunciation" element={<PronunciationPage />} />
               </Route>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />

@@ -10,6 +10,7 @@ from app.schemas.srs import (
     CardWithSchedule,
     CreateCardsRequest,
     CreateCardsResponse,
+    GrammarCardsRequest,
     LeechCard,
     LeechResponse,
     ReviewRequest,
@@ -19,6 +20,7 @@ from app.schemas.srs import (
 )
 from app.services.srs import (
     create_cards_for_words,
+    create_grammar_cards_for_words,
     get_leech_cards,
     get_session_cards,
     get_srs_stats,
@@ -37,6 +39,18 @@ async def create_cards(
 ):
     created = await create_cards_for_words(
         db, user.id, body.word_ids, body.card_types,
+    )
+    return CreateCardsResponse(created=created)
+
+
+@router.post("/grammar-cards", response_model=CreateCardsResponse)
+async def create_grammar_cards(
+    body: GrammarCardsRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    created = await create_grammar_cards_for_words(
+        db, user.id, body.word_ids, body.tenses,
     )
     return CreateCardsResponse(created=created)
 

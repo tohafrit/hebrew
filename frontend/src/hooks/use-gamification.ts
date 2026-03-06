@@ -137,6 +137,26 @@ export function useCultureArticle(id: number | null) {
   });
 }
 
+export interface CultureWord {
+  word_id: number;
+  hebrew: string;
+  translation_ru: string | null;
+  transliteration: string | null;
+  pos: string | null;
+  level_id: number | null;
+}
+
+export function useCultureArticleWords(id: number | null) {
+  return useQuery<CultureWord[]>({
+    queryKey: ["culture-article-words", id],
+    queryFn: async () => {
+      const { data } = await api.get(`/culture/${id}/words`);
+      return data;
+    },
+    enabled: id !== null,
+  });
+}
+
 // ── Analytics ────────────────────────────────────────────────────────────
 
 export interface AccuracyPoint {

@@ -83,6 +83,24 @@ export function useCheckExercise() {
   });
 }
 
+export interface LessonStats {
+  total: number;
+  correct: number;
+  accuracy_pct: number;
+  time_ms: number;
+}
+
+export function useLessonStats(lessonId: number | null) {
+  return useQuery<LessonStats>({
+    queryKey: ["lesson-stats", lessonId],
+    queryFn: async () => {
+      const { data } = await api.get(`/lessons/${lessonId}/stats`);
+      return data;
+    },
+    enabled: lessonId !== null,
+  });
+}
+
 export function useReadingTexts(levelId?: number, category?: string) {
   return useQuery<ReadingTextBrief[]>({
     queryKey: ["reading-texts", levelId, category],

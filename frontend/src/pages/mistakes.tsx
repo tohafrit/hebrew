@@ -169,21 +169,21 @@ export function MistakesPage() {
                       <div className="flex items-center gap-3 text-sm">
                         {f.front?.hebrew && (
                           <HebrewText size="lg" className="font-medium">
-                            {f.front.hebrew as string}
+                            {String(f.front.hebrew)}
                           </HebrewText>
                         )}
                         {f.front?.translation && (
-                          <span>{f.front.translation as string}</span>
+                          <span>{String(f.front.translation)}</span>
                         )}
                       </div>
                       <div className="text-sm text-green-600">
                         {f.back?.hebrew && (
                           <HebrewText size="sm" className="font-medium mr-2">
-                            {f.back.hebrew as string}
+                            {String(f.back.hebrew)}
                           </HebrewText>
                         )}
                         {f.back?.translation && (
-                          <span>{f.back.translation as string}</span>
+                          <span>{String(f.back.translation)}</span>
                         )}
                       </div>
                     </div>

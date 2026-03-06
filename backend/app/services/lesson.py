@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
+import sqlalchemy as sa
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -185,6 +186,45 @@ async def get_lesson_completion(
         lid: corrects.get(lid, 0) >= totals.get(lid, 1)
         for lid in lesson_ids
         if totals.get(lid, 0) > 0
+    }
+
+
+async def get_lesson_stats(
+    db: AsyncSession, user_id: uuid.UUID, lesson_id: int
+) -> dict:
+    """Compute accuracy stats for a completed lesson."""
+    # Get exercise IDs for this lesson
+    exercises = await get_lesson_exercises(db, lesson_id)
+    if not exercises:
+        return {"total": 0, "correct": 0, "accuracy_pct": 0, "time_ms": 0}
+
+    exercise_ids = [e.id for e in exercises]
+
+    # Query results for these exercises by this user
+    result = await db.execute(
+        select(
+            func.count().label("total"),
+            func.sum(
+                func.cast(ExerciseResult.is_correct, sa.Integer)
+            ).label("correct"),
+            func.sum(ExerciseResult.time_ms).label("time_ms"),
+        )
+        .where(
+            ExerciseResult.user_id == user_id,
+            ExerciseResult.exercise_id.in_(exercise_ids),
+        )
+    )
+    row = result.one()
+    total = row.total or 0
+    correct = row.correct or 0
+    time_ms = row.time_ms or 0
+    accuracy_pct = round(correct * 100 / total) if total > 0 else 0
+
+    return {
+        "total": total,
+        "correct": correct,
+        "accuracy_pct": accuracy_pct,
+        "time_ms": time_ms,
     }
 
 

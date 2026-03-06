@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, date, timezone
+from datetime import datetime, date
 
 from sqlalchemy import ForeignKey, String, Text, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -19,7 +19,7 @@ class User(Base):
     xp: Mapped[int] = mapped_column(default=0)
     streak_days: Mapped[int] = mapped_column(default=0)
     last_activity_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     settings: Mapped["UserSettings | None"] = relationship(back_populates="user", uselist=False)
     sessions: Mapped[list["UserSession"]] = relationship(back_populates="user")
@@ -44,7 +44,7 @@ class UserSession(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    started_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    started_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     ended_at: Mapped[datetime | None] = mapped_column(nullable=True)
     module: Mapped[str | None] = mapped_column(String(50), nullable=True)
     xp_earned: Mapped[int] = mapped_column(default=0)

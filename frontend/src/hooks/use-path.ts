@@ -33,6 +33,27 @@ export function useLearningPath(levelId?: number) {
   });
 }
 
+export interface RecommendedStep {
+  id: number;
+  level_id: number;
+  unit: number;
+  step: number;
+  step_type: string;
+  content_id: number | null;
+  title_ru: string;
+  label: string;
+}
+
+export function useRecommendedStep() {
+  return useQuery<{ step: RecommendedStep | null }>({
+    queryKey: ["recommended-step"],
+    queryFn: async () => {
+      const { data } = await api.get("/path/recommended");
+      return data;
+    },
+  });
+}
+
 export function useCompleteStep() {
   const qc = useQueryClient();
   return useMutation({

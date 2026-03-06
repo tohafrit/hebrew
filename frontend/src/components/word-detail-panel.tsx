@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useWord } from "@/hooks/use-words";
 import { useConjugations } from "@/hooks/use-grammar";
-import { useCreateCards } from "@/hooks/use-srs";
+import { useCreateCards, useCreateGrammarCards } from "@/hooks/use-srs";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls } from "@/components/tts-controls";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +105,7 @@ interface WordDetailPanelProps {
 export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
   const { data: word, isLoading } = useWord(wordId);
   const createCards = useCreateCards();
+  const createGrammarCards = useCreateGrammarCards();
 
   if (isLoading) {
     return (
@@ -238,6 +239,28 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
           <Button onClick={handleAddToSRS} className="w-full" disabled={createCards.isPending}>
             {createCards.isPending ? "Добавление..." : "Добавить в SRS-карточки"}
           </Button>
+          {word.pos === "verb" && (
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={createGrammarCards.isPending}
+              onClick={async () => {
+                try {
+                  const result = await createGrammarCards.mutateAsync({ word_ids: [word.id] });
+                  toast({
+                    title: "Грамматика в SRS",
+                    description: result.created > 0
+                      ? `Создано ${result.created} карточек спряжений`
+                      : "Карточки уже существуют",
+                  });
+                } catch {
+                  toast({ title: "Ошибка", description: "Не удалось создать карточки", variant: "destructive" });
+                }
+              }}
+            >
+              {createGrammarCards.isPending ? "Добавление..." : "Грамматика в SRS"}
+            </Button>
+          )}
           <div className="flex gap-2">
             {word.pos === "verb" && (
               <Button variant="outline" size="sm" className="flex-1" asChild>

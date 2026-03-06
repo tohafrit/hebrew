@@ -73,6 +73,15 @@ class CultureArticleDetail(CultureArticleBrief):
     content_md: str
 
 
+class CultureWordOut(BaseModel):
+    word_id: int
+    hebrew: str
+    translation_ru: str | None = None
+    transliteration: str | None = None
+    pos: str | None = None
+    level_id: int | None = None
+
+
 class RecommendationOut(BaseModel):
     type: str
     priority: int

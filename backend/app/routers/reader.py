@@ -1,30 +1,21 @@
 """Interactive reader — analyze Hebrew text and annotate words with dictionary data."""
 
-import asyncio
 import re
-import time
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from sqlalchemy import select, func, case
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.models.word import Word, WordForm
-from app.models.grammar import VerbConjugation
+from app.models.content import UserReadingSession, ReadingText
+from app.services.gamification import award_xp
+from app.services.text_analysis import ensure_caches
 
 router = APIRouter(tags=["reader"])
-
-# Application-level cache with TTL
-_cache_word: dict[str, dict] | None = None
-_cache_form: dict[str, dict] | None = None
-_cache_conj: dict[str, dict] | None = None
-_cache_time: float = 0
-_cache_lock = asyncio.Lock()
-_CACHE_TTL = 300  # 5 minutes
 
 # Hebrew punctuation / connectors to strip when matching
 _STRIP_RE = re.compile(r'[.,!?;:"\'"״""«»()\[\]{}/\\\u200F\u200E]')
@@ -148,18 +139,7 @@ async def check_writing(
         )
 
     # Build caches
-    global _cache_word, _cache_form, _cache_conj, _cache_time
-    now = time.time()
-    if _cache_word is None or (now - _cache_time) > _CACHE_TTL:
-        async with _cache_lock:
-            if _cache_word is None or (time.time() - _cache_time) > _CACHE_TTL:
-                _cache_word = await _build_word_cache(db)
-                _cache_form = await _build_form_cache(db)
-                _cache_conj = await _build_conjugation_cache(db)
-                _cache_time = time.time()
-    word_cache = _cache_word
-    form_cache = _cache_form
-    conj_cache = _cache_conj
+    word_cache, form_cache, conj_cache = await ensure_caches(db)
 
     # Count sentences (split by period, exclamation, question mark, or newline)
     sentence_count = max(1, len(re.split(r'[.!?\n]+', text.strip())))
@@ -255,19 +235,7 @@ async def analyze_text(
         return AnalyzeResponse(tokens=[], stats={"known_count": 0, "unknown_count": 0, "total_words": 0})
 
     # Build lookup caches from DB (cached at app level with TTL)
-    global _cache_word, _cache_form, _cache_conj, _cache_time
-    now = time.time()
-    if _cache_word is None or (now - _cache_time) > _CACHE_TTL:
-        async with _cache_lock:
-            # Double-check after acquiring lock
-            if _cache_word is None or (time.time() - _cache_time) > _CACHE_TTL:
-                _cache_word = await _build_word_cache(db)
-                _cache_form = await _build_form_cache(db)
-                _cache_conj = await _build_conjugation_cache(db)
-                _cache_time = time.time()
-    word_cache = _cache_word
-    form_cache = _cache_form
-    conj_cache = _cache_conj
+    word_cache, form_cache, conj_cache = await ensure_caches(db)
 
     # Tokenize: split on whitespace, keeping newlines as separate tokens
     raw_tokens = re.split(r'(\s+)', text)
@@ -335,6 +303,30 @@ async def analyze_text(
             tokens[i] = t.model_copy(update={"match_type": "proper_noun"})
             known_count += 1
 
+    known_pct = round(known_count * 100 / total_words) if total_words > 0 else 0
+
+    # Compute level breakdown
+    level_counts: dict[str, int] = {}
+    for t in tokens:
+        if t.level_id:
+            lvl = str(t.level_id)
+            level_counts[lvl] = level_counts.get(lvl, 0) + 1
+
+    # Save reading session
+    snippet = text[:200]
+    session = UserReadingSession(
+        user_id=user.id,
+        text_snippet=snippet,
+        word_count=total_words,
+        known_pct=known_pct,
+        level_breakdown_json=level_counts if level_counts else None,
+    )
+    db.add(session)
+
+    # Award 15 XP for reading
+    await award_xp(db, user, 15, "text_read")
+    await db.commit()
+
     return AnalyzeResponse(
         tokens=tokens,
         stats={
@@ -343,6 +335,91 @@ async def analyze_text(
             "total_words": total_words,
         },
     )
+
+
+class ReadingSessionOut(BaseModel):
+    id: str
+    text_snippet: str
+    word_count: int
+    known_pct: int
+    level_breakdown_json: dict | None = None
+    created_at: str
+
+
+class RecommendedTextOut(BaseModel):
+    id: int
+    level_id: int
+    title_he: str
+    title_ru: str
+    category: str
+
+
+@router.get("/reader/history")
+async def get_reader_history(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return last 20 reading sessions."""
+    result = await db.execute(
+        select(UserReadingSession)
+        .where(UserReadingSession.user_id == user.id)
+        .order_by(UserReadingSession.created_at.desc())
+        .limit(20)
+    )
+    sessions = result.scalars().all()
+    return [
+        ReadingSessionOut(
+            id=str(s.id),
+            text_snippet=s.text_snippet,
+            word_count=s.word_count,
+            known_pct=s.known_pct,
+            level_breakdown_json=s.level_breakdown_json,
+            created_at=str(s.created_at),
+        )
+        for s in sessions
+    ]
+
+
+@router.get("/reader/recommendations")
+async def get_reader_recommendations(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Recommend reading texts at user's level, excluding recently read."""
+    user_level = user.current_level or 1
+
+    # Get recently analyzed snippets to exclude (by text similarity)
+    recent_result = await db.execute(
+        select(UserReadingSession.text_snippet)
+        .where(UserReadingSession.user_id == user.id)
+        .order_by(UserReadingSession.created_at.desc())
+        .limit(20)
+    )
+    recent_snippets = set(r[0][:50] for r in recent_result.all())
+
+    # Get texts at user's level (and one level up/down)
+    result = await db.execute(
+        select(ReadingText)
+        .where(ReadingText.level_id.between(max(1, user_level - 1), user_level + 1))
+        .order_by(ReadingText.level_id, ReadingText.id)
+        .limit(10)
+    )
+    texts = result.scalars().all()
+
+    recommended = []
+    for t in texts:
+        # Skip if recently read (rough match by snippet prefix)
+        if t.content_he[:50] in recent_snippets:
+            continue
+        recommended.append(RecommendedTextOut(
+            id=t.id,
+            level_id=t.level_id,
+            title_he=t.title_he,
+            title_ru=t.title_ru,
+            category=t.category,
+        ))
+
+    return recommended[:5]
 
 
 def _dictionary_url(hebrew: str, pos: str | None = None) -> str:
@@ -704,97 +781,3 @@ def _lookup_word(
     return None
 
 
-async def _build_word_cache(db: AsyncSession) -> dict[str, dict]:
-    """Build hebrew -> word info dict for all words.
-    Prioritize: low level (basic) > high frequency > low ID.
-    """
-    result = await db.execute(
-        select(Word.id, Word.hebrew, Word.translation_ru, Word.transliteration,
-               Word.pos, Word.root, Word.level_id, Word.frequency_rank)
-        .order_by(
-            # Prefer lower level (more basic words first)
-            func.coalesce(Word.level_id, 99).asc(),
-            # Then by frequency_rank (1=high, 4=rare, NULL last)
-            func.coalesce(Word.frequency_rank, 99).asc(),
-            Word.id.asc(),
-        )
-    )
-    cache: dict[str, dict] = {}
-    for row in result:
-        if row.hebrew not in cache:  # first (highest priority) wins
-            cache[row.hebrew] = {
-                "word_id": row.id,
-                "hebrew": row.hebrew,
-                "translation_ru": row.translation_ru,
-                "transliteration": row.transliteration,
-                "pos": row.pos,
-                "root": row.root,
-                "level_id": row.level_id,
-            }
-    return cache
-
-
-async def _build_form_cache(db: AsyncSession) -> dict[str, dict]:
-    """Build form_hebrew -> parent word info dict."""
-    result = await db.execute(
-        select(
-            WordForm.hebrew,
-            WordForm.form_type,
-            Word.id,
-            Word.hebrew.label("word_hebrew"),
-            Word.translation_ru,
-            Word.transliteration,
-            Word.pos,
-            Word.root,
-            Word.level_id,
-        ).join(Word, WordForm.word_id == Word.id)
-        .order_by(func.coalesce(Word.level_id, 99).asc(),
-                  func.coalesce(Word.frequency_rank, 99).asc(),
-                  Word.id.asc())
-    )
-    cache: dict[str, dict] = {}
-    for row in result:
-        if row.hebrew not in cache:  # first match wins
-            cache[row.hebrew] = {
-                "word_id": row.id,
-                "hebrew": row.word_hebrew,
-                "translation_ru": row.translation_ru,
-                "transliteration": row.transliteration,
-                "pos": row.pos,
-                "root": row.root,
-                "level_id": row.level_id,
-            }
-    return cache
-
-
-async def _build_conjugation_cache(db: AsyncSession) -> dict[str, dict]:
-    """Build conjugated_form -> parent word info dict. Prioritize high-frequency words."""
-    result = await db.execute(
-        select(
-            VerbConjugation.form_he,
-            Word.id,
-            Word.hebrew.label("word_hebrew"),
-            Word.translation_ru,
-            Word.transliteration,
-            Word.pos,
-            Word.root,
-            Word.level_id,
-        ).join(Word, VerbConjugation.word_id == Word.id)
-        .where(Word.pos == "verb")  # Only actual verbs, not nouns with erroneous conjugations
-        .order_by(func.coalesce(Word.level_id, 99).asc(),
-                  func.coalesce(Word.frequency_rank, 99).asc(),
-                  Word.id.asc())
-    )
-    cache: dict[str, dict] = {}
-    for row in result:
-        if row.form_he not in cache:
-            cache[row.form_he] = {
-                "word_id": row.id,
-                "hebrew": row.word_hebrew,
-                "translation_ru": row.translation_ru,
-                "transliteration": row.transliteration,
-                "pos": row.pos,
-                "root": row.root,
-                "level_id": row.level_id,
-            }
-    return cache

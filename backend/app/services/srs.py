@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.srs import SRSCard, SRSReview, SRSSchedule
 from app.models.sentence import ExampleSentence
+from app.models.grammar import VerbConjugation, Binyan
 from app.models.user import User
 from app.models.word import Word
 
@@ -174,6 +175,122 @@ async def create_cards_for_words(
                 lapses=0,
             )
             db.add(schedule)
+            created += 1
+
+    await db.commit()
+    return created
+
+
+async def create_grammar_cards_for_words(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    word_ids: list[int],
+    tenses: list[str] | None = None,
+) -> int:
+    """Create SRS cards for verb conjugations. One card per conjugation row.
+
+    Card types:
+    - 'conjugation': front={verb, tense, person_label}, back={form_he, form_nikkud, transliteration}
+    - 'binyan_id': front={form_he, tense}, back={binyan_name, verb, translation}
+    """
+    if tenses is None:
+        tenses = ["present", "past"]
+    now = datetime.now(timezone.utc)
+
+    # Fetch conjugations for the given words + tenses
+    conj_result = await db.execute(
+        select(VerbConjugation, Word, Binyan)
+        .join(Word, VerbConjugation.word_id == Word.id)
+        .join(Binyan, VerbConjugation.binyan_id == Binyan.id)
+        .where(
+            VerbConjugation.word_id.in_(word_ids),
+            VerbConjugation.tense.in_(tenses),
+        )
+        .order_by(VerbConjugation.word_id, VerbConjugation.tense, VerbConjugation.id)
+    )
+    all_conjs = conj_result.all()
+
+    if not all_conjs:
+        return 0
+
+    # Sample up to 12 conjugations per verb (2 tenses x 6 persons)
+    by_word: dict[int, list] = {}
+    for conj, word, binyan in all_conjs:
+        by_word.setdefault(conj.word_id, []).append((conj, word, binyan))
+
+    sampled = []
+    for wid, items in by_word.items():
+        sampled.extend(items[:12])
+
+    # Check existing cards to avoid duplicates (content_id = conjugation.id for grammar cards)
+    conj_ids = [conj.id for conj, _, _ in sampled]
+    existing_result = await db.execute(
+        select(SRSCard.content_id, SRSCard.card_type).where(
+            SRSCard.user_id == user_id,
+            SRSCard.content_id.in_(conj_ids),
+            SRSCard.card_type.in_(["conjugation", "binyan_id"]),
+        )
+    )
+    existing_set = {(row.content_id, row.card_type) for row in existing_result}
+
+    person_labels = {
+        "1s": "я", "2ms": "ты (м)", "2fs": "ты (ж)",
+        "3ms": "он", "3fs": "она", "1p": "мы",
+        "2mp": "вы (м)", "2fp": "вы (ж)", "3mp": "они (м)", "3fp": "они (ж)",
+        "ms": "м.р.", "fs": "ж.р.", "mp": "м.р. мн.", "fp": "ж.р. мн.",
+    }
+    tense_labels = {"past": "прошедшее", "present": "настоящее", "future": "будущее", "imperative": "повелительное"}
+
+    created = 0
+    for conj, word, binyan in sampled:
+        # Conjugation card
+        if (conj.id, "conjugation") not in existing_set:
+            card = SRSCard(
+                user_id=user_id,
+                card_type="conjugation",
+                content_id=conj.id,
+                front_json={
+                    "verb": word.hebrew,
+                    "translation": word.translation_ru,
+                    "tense": tense_labels.get(conj.tense, conj.tense),
+                    "person_label": person_labels.get(conj.person, conj.person),
+                },
+                back_json={
+                    "form_he": conj.form_he,
+                    "form_nikkud": conj.form_nikkud,
+                    "transliteration": conj.transliteration,
+                },
+            )
+            db.add(card)
+            await db.flush()
+            db.add(SRSSchedule(
+                card_id=card.id, next_review=now,
+                interval_days=1.0, ease_factor=2.5, repetitions=0, lapses=0,
+            ))
+            created += 1
+
+        # Binyan identification card
+        if (conj.id, "binyan_id") not in existing_set:
+            card = SRSCard(
+                user_id=user_id,
+                card_type="binyan_id",
+                content_id=conj.id,
+                front_json={
+                    "form_he": conj.form_he,
+                    "tense": tense_labels.get(conj.tense, conj.tense),
+                },
+                back_json={
+                    "binyan_name": binyan.name_ru,
+                    "verb": word.hebrew,
+                    "translation": word.translation_ru,
+                },
+            )
+            db.add(card)
+            await db.flush()
+            db.add(SRSSchedule(
+                card_id=card.id, next_review=now,
+                interval_days=1.0, ease_factor=2.5, repetitions=0, lapses=0,
+            ))
             created += 1
 
     await db.commit()

@@ -8,7 +8,7 @@ from app.models.user import User
 from app.models.gamification import Achievement
 from app.models.culture import AchievementDefinition, CultureArticle, UserDailyActivity
 from app.models.srs import SRSCard, SRSReview
-from app.models.content import ExerciseResult
+from app.models.content import ExerciseResult, UserReadingSession
 
 
 # ── XP awards ──────────────────────────────────────────────────────────────
@@ -189,6 +189,12 @@ async def _gather_user_stats(db: AsyncSession, user_id: uuid.UUID, user: User) -
     )
     exercises_count = exercises_result.scalar() or 0
 
+    # Texts read
+    texts_read_result = await db.execute(
+        select(func.count()).select_from(UserReadingSession).where(UserReadingSession.user_id == user_id)
+    )
+    texts_read_count = texts_read_result.scalar() or 0
+
     return {
         "xp": user.xp,
         "level": user.current_level,
@@ -197,7 +203,7 @@ async def _gather_user_stats(db: AsyncSession, user_id: uuid.UUID, user: User) -
         "cards_created": cards_count,
         "reviews": reviews_count,
         "exercises_done": exercises_count,
-        "texts_read": 0,  # would need tracking table
+        "texts_read": texts_read_count,
         "dialogues_done": 0,  # would need tracking table
     }
 
@@ -264,6 +270,12 @@ async def get_stats_overview(db: AsyncSession, user: User) -> dict:
     vocabulary_score = min(100, total_cards * 1.5)
     speaking_score = min(100, total_reviews)
 
+    # Count reading sessions
+    texts_result = await db.execute(
+        select(func.count()).select_from(UserReadingSession).where(UserReadingSession.user_id == user_id)
+    )
+    total_texts_read = texts_result.scalar() or 0
+
     return {
         "total_xp": user.xp,
         "current_level": level,
@@ -274,7 +286,7 @@ async def get_stats_overview(db: AsyncSession, user: User) -> dict:
         "total_cards": total_cards,
         "total_reviews": total_reviews,
         "total_exercises": total_exercises,
-        "total_texts_read": 0,
+        "total_texts_read": total_texts_read,
         "total_dialogues": 0,
         "daily_activity": daily_activity,
         "achievements_unlocked": len(achievements),

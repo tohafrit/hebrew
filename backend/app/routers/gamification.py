@@ -8,6 +8,7 @@ from app.schemas.gamification import (
     AchievementDefOut, UserAchievementOut,
     StatsOverview, DailyActivityOut,
     CultureArticleBrief, CultureArticleDetail,
+    CultureWordOut,
     RecommendationOut,
 )
 from app.schemas.mistakes import MistakesResponse, ExerciseMistakeOut, SRSFailureOut
@@ -19,6 +20,8 @@ from app.services.gamification import (
     LEVEL_THRESHOLDS,
 )
 from app.services.recommendations import get_recommendations
+from app.services.text_analysis import ensure_caches, extract_hebrew_tokens
+from app.services.gamification import award_xp as do_award_xp
 from app.services.mistakes import get_exercise_mistakes, get_srs_failures
 from app.services.analytics import get_analytics
 
@@ -142,3 +145,44 @@ async def get_culture_article_detail(
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
     return CultureArticleDetail.model_validate(article)
+
+
+@router.get("/culture/{article_id}/words", response_model=list[CultureWordOut])
+async def get_culture_article_words(
+    article_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Extract Hebrew words from a culture article and return dictionary matches."""
+    article = await get_culture_article(db, article_id)
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    word_cache, form_cache, conj_cache = await ensure_caches(db)
+
+    # Extract Hebrew tokens from markdown content
+    tokens = extract_hebrew_tokens(article.content_md)
+
+    # Look up each token in caches, dedupe by word_id
+    seen_ids: set[int] = set()
+    words: list[CultureWordOut] = []
+
+    for token in tokens:
+        # Try exact match first
+        entry = word_cache.get(token) or form_cache.get(token) or conj_cache.get(token)
+        if entry and entry["word_id"] not in seen_ids:
+            seen_ids.add(entry["word_id"])
+            words.append(CultureWordOut(
+                word_id=entry["word_id"],
+                hebrew=entry["hebrew"],
+                translation_ru=entry.get("translation_ru"),
+                transliteration=entry.get("transliteration"),
+                pos=entry.get("pos"),
+                level_id=entry.get("level_id"),
+            ))
+
+    # Award 15 XP on first view (simple: always award, gamification handles streak)
+    await do_award_xp(db, user, 15, "text_read")
+    await db.commit()
+
+    return words

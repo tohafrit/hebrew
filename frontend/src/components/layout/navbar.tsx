@@ -35,6 +35,7 @@ const NAV_GROUPS: NavGroup[] = [
       { path: "/listening", label: "Аудирование" },
       { path: "/writing", label: "Письмо" },
       { path: "/dialogues", label: "Диалоги" },
+      { path: "/pronunciation", label: "Произношение" },
     ],
   },
   {

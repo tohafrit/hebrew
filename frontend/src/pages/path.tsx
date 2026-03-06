@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useLearningPath, useCompleteStep, type PathStep } from "@/hooks/use-path";
+import { useLearningPath, useCompleteStep, useRecommendedStep, type PathStep } from "@/hooks/use-path";
 import { HebrewText } from "@/components/hebrew-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -206,6 +206,7 @@ export function PathPage() {
   const [levelFilter, setLevelFilter] = useState<number | null>(null);
   const { data, isLoading } = useLearningPath(levelFilter ?? undefined);
   const completeStep = useCompleteStep();
+  const { data: recommended } = useRecommendedStep();
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка пути...</p>;
@@ -246,6 +247,28 @@ export function PathPage() {
           {completedSteps} / {totalSteps} шагов ({progressPct}%)
         </div>
       </div>
+
+      {/* Recommended step banner */}
+      {recommended?.step && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Рекомендованный урок</p>
+                <p className="text-xs text-muted-foreground">{recommended.step.label}</p>
+              </div>
+              <Button size="sm" asChild>
+                <Link to={getStepRoute({
+                  step_type: recommended.step.step_type,
+                  content_id: recommended.step.content_id,
+                } as PathStep)}>
+                  Начать
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Progress bar */}
       <div className="h-2 bg-secondary rounded-full overflow-hidden">
