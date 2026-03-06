@@ -57,7 +57,7 @@ export function RootExplorerPage() {
           ) : rootData ? (
             <Card>
               <CardHeader className="text-center">
-                <HebrewText size="3xl" className="font-bold">{rootData.root}</HebrewText>
+                <HebrewText size="2xl" className="font-bold">{rootData.root}</HebrewText>
                 {rootData.meaning_ru && (
                   <p className="text-muted-foreground">{rootData.meaning_ru}</p>
                 )}

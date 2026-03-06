@@ -40,10 +40,10 @@ export function GrammarCardsPage() {
             {detail.rules.map(rule => (
               <div key={rule.id} className="border rounded-lg p-4 space-y-2">
                 <p>{rule.rule_text_ru}</p>
-                {rule.examples_json && (
+                {rule.examples_json != null && (
                   <div className="text-sm text-muted-foreground">
                     <p className="font-medium">Примеры:</p>
-                    <pre className="text-xs mt-1 whitespace-pre-wrap">{JSON.stringify(rule.examples_json, null, 2)}</pre>
+                    <pre className="text-xs mt-1 whitespace-pre-wrap">{String(JSON.stringify(rule.examples_json, null, 2))}</pre>
                   </div>
                 )}
               </div>

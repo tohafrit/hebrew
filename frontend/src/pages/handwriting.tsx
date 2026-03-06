@@ -46,7 +46,7 @@ export function HandwritingPage() {
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="text-center space-y-1">
-              <HebrewText size="3xl" className="font-bold">{template.letter}</HebrewText>
+              <HebrewText size="2xl" className="font-bold">{template.letter}</HebrewText>
               <p className="text-sm text-muted-foreground">{template.name_ru} ({template.name})</p>
             </div>
 

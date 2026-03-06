@@ -3,6 +3,7 @@
   "short_name": "Ulpan AI",
   "description": "Интерактивная платформа для изучения иврита с SRS, уроками и геймификацией",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",

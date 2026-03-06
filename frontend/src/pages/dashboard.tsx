@@ -2,6 +2,9 @@ import { Link } from "react-router-dom";
 import { useStatsOverview, useLevels, useAnalytics } from "@/hooks/use-gamification";
 import { useRecommendations } from "@/hooks/use-recommendations";
 import { useSettings } from "@/hooks/use-settings";
+import { useLeaderboard, useChallenges } from "@/hooks/use-leaderboard";
+import { useDueReadings } from "@/hooks/use-spaced-reading";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -90,6 +93,9 @@ export function DashboardPage() {
   const { data: recommendations } = useRecommendations();
   const { data: settings } = useSettings();
   const { data: analytics } = useAnalytics();
+  const { data: leaderboard } = useLeaderboard("weekly");
+  const { data: challenges } = useChallenges();
+  const { data: dueReadings } = useDueReadings();
 
   if (isLoading || !stats) {
     return <p className="text-center py-12 text-muted-foreground">Загрузка...</p>;
@@ -384,6 +390,81 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Spaced reading due */}
+      {dueReadings && dueReadings.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Повторное чтение</CardTitle>
+            <CardDescription>{dueReadings.length} текст(ов) к повторению</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {dueReadings.slice(0, 3).map((r) => (
+              <Link
+                key={r.schedule_id}
+                to={`/reading/${r.text_id}`}
+                className="flex items-center justify-between p-2 rounded hover:bg-accent transition-colors text-sm"
+              >
+                <span className="font-medium">{r.title_ru}</span>
+                <Badge variant="secondary" className="text-xs">{r.last_known_pct}%</Badge>
+              </Link>
+            ))}
+            {dueReadings.length > 3 && (
+              <p className="text-xs text-muted-foreground text-center">
+                + ещё {dueReadings.length - 3}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Leaderboard preview + challenges */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {leaderboard && leaderboard.entries.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Рейтинг (неделя)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              {leaderboard.entries.slice(0, 5).map((e, i) => (
+                <div key={e.user_id} className={cn("flex items-center justify-between text-sm py-1", e.is_current_user && "font-medium text-primary")}>
+                  <span>#{i + 1} {e.display_name}</span>
+                  <span className="text-muted-foreground">{e.xp} XP</span>
+                </div>
+              ))}
+              <Button variant="ghost" size="sm" className="w-full mt-2" asChild>
+                <Link to="/leaderboard">Все результаты</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {challenges && challenges.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Задания недели</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {challenges.slice(0, 3).map((ch) => (
+                <div key={ch.id} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>{ch.title_ru}</span>
+                    <span className="text-muted-foreground">+{ch.xp_reward} XP</span>
+                  </div>
+                  {ch.progress !== undefined && (
+                    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(100, (ch.progress / ch.target_count) * 100)}%` }} />
+                    </div>
+                  )}
+                </div>
+              ))}
+              <Button variant="ghost" size="sm" className="w-full" asChild>
+                <Link to="/leaderboard">Все задания</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Quick links */}
       <div className="flex flex-wrap gap-2">

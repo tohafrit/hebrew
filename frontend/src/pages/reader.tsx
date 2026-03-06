@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAnalyzeText, useReaderHistory, useReaderRecommendations, type TokenAnnotation } from "@/hooks/use-reader";
 import { useCreateCards } from "@/hooks/use-srs";
+import { useDueReadings, useEnrollReading, useRecordReview } from "@/hooks/use-spaced-reading";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls } from "@/components/tts-controls";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -343,6 +344,8 @@ export function ReaderPage() {
   const createCards = useCreateCards();
   const { data: history } = useReaderHistory();
   const { data: recommendations } = useReaderRecommendations();
+  const { data: dueReadings } = useDueReadings();
+  const enrollReading = useEnrollReading();
   const [selectedToken, setSelectedToken] = useState<TokenAnnotation | null>(null);
   const [hoverToken, setHoverToken] = useState<TokenAnnotation | null>(null);
   const [hoverStyle, setHoverStyle] = useState<React.CSSProperties>({});
@@ -514,6 +517,34 @@ export function ReaderPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Spaced reading due */}
+      {!tokens && dueReadings && dueReadings.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Повторное чтение</CardTitle>
+            <CardDescription>{dueReadings.length} текст(ов) к повторению</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {dueReadings.map((r) => (
+              <Link
+                key={r.schedule_id}
+                to={`/reading/${r.text_id}`}
+                className="flex items-center justify-between p-2 rounded hover:bg-accent transition-colors text-sm"
+              >
+                <div>
+                  <span className="font-medium">{r.title_ru}</span>
+                  <span className="text-muted-foreground ml-2 font-hebrew">{r.title_he}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">{r.last_known_pct}%</Badge>
+                  <span className="text-xs text-muted-foreground">#{r.review_count + 1}</span>
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
       {/* History & Recommendations — shown when no analysis active */}

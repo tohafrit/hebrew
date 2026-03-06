@@ -7,6 +7,7 @@ export interface LeaderboardEntry {
   display_name: string;
   level: number;
   xp: number;
+  is_current_user?: boolean;
 }
 
 export interface ChallengeProgress {
@@ -17,6 +18,7 @@ export interface ChallengeProgress {
   target_count: number;
   xp_reward: number;
   current: number;
+  progress: number;
   completed: boolean;
 }
 

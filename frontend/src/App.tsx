@@ -35,6 +35,7 @@ import { RootExplorerPage } from "@/pages/root-explorer";
 import { GrammarCardsPage } from "@/pages/grammar-cards";
 import { NotFoundPage } from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { PWAUpdatePrompt } from "@/components/pwa-update-prompt";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,6 +91,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        <PWAUpdatePrompt />
         </NikkudProvider>
       </ThemeProvider>
     </QueryClientProvider>

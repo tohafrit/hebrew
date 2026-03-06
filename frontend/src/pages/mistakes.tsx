@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useMistakes } from "@/hooks/use-mistakes";
+import { useMistakes, useErrorPatterns } from "@/hooks/use-mistakes";
 import { HebrewText } from "@/components/hebrew-text";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ const EXERCISE_TYPE_LABELS: Record<string, string> = {
 
 const DAYS_OPTIONS = [7, 14, 30, 90];
 
-type Tab = "exercises" | "srs";
+type Tab = "exercises" | "srs" | "analysis";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -42,6 +42,7 @@ export function MistakesPage() {
   const [days, setDays] = useState(30);
   const [tab, setTab] = useState<Tab>("exercises");
   const { data, isLoading } = useMistakes(days);
+  const { data: errorPatterns } = useErrorPatterns(days);
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;
@@ -92,6 +93,17 @@ export function MistakesPage() {
         >
           SRS-карточки ({srsCount})
         </button>
+        <button
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px",
+            tab === "analysis"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+          onClick={() => setTab("analysis")}
+        >
+          Анализ
+        </button>
       </div>
 
       {/* Exercise mistakes */}
@@ -134,6 +146,52 @@ export function MistakesPage() {
                 </CardContent>
               </Card>
             ))
+          )}
+        </div>
+      )}
+
+      {/* Error pattern analysis */}
+      {tab === "analysis" && (
+        <div className="space-y-3">
+          {!errorPatterns || errorPatterns.patterns.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                Недостаточно данных для анализа
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Всего ошибок: {errorPatterns.total_mistakes}
+                {errorPatterns.top_pattern && (
+                  <span> · Главная проблема: <strong>{errorPatterns.top_pattern}</strong></span>
+                )}
+              </p>
+              {errorPatterns.patterns.map((p) => (
+                <Card key={p.type}>
+                  <CardContent className="py-4 px-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{p.type}</span>
+                      <Badge variant="secondary">{p.count} ({p.pct}%)</Badge>
+                    </div>
+                    <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${p.pct}%` }} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{p.tip}</p>
+                    {p.examples.length > 0 && (
+                      <div className="text-xs space-y-1">
+                        {p.examples.slice(0, 3).map((ex, i) => (
+                          <div key={i} className="flex gap-2">
+                            <span className="text-red-500">{ex.got}</span>
+                            <span className="text-green-600">→ {ex.expected}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </>
           )}
         </div>
       )}

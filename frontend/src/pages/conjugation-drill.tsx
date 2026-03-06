@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { useConjugationDrill, useCheckDrillAnswer } from "@/hooks/use-conjugation-drill";
+import { useConjugationDrill, useCheckDrillAnswer, useTableDrill, useCheckTableDrill } from "@/hooks/use-conjugation-drill";
+import { ConjugationTable } from "@/components/conjugation-table";
 import { useBinyanim } from "@/hooks/use-grammar";
 import { HebrewText } from "@/components/hebrew-text";
 import { HebrewKeyboard } from "@/components/hebrew-keyboard";
@@ -42,7 +43,7 @@ const LEVEL_LABELS: Record<number, string> = {
   6: "Вав",
 };
 
-type DrillMode = "choice" | "typing";
+type DrillMode = "choice" | "typing" | "table";
 
 export function ConjugationDrillPage() {
   const { data: binyanim } = useBinyanim();
@@ -188,11 +189,21 @@ export function ConjugationDrillPage() {
           >
             Ввод
           </Button>
+          <Button
+            variant={mode === "table" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMode("table")}
+          >
+            Таблица
+          </Button>
         </div>
       </div>
 
+      {/* Table mode */}
+      {mode === "table" && <TableDrillSection levelFilter={levelFilter} binyanFilter={binyanFilter} tenseFilter={tenseFilter} />}
+
       {/* No questions */}
-      {(!questions || questions.length === 0) && !done && (
+      {mode !== "table" && (!questions || questions.length === 0) && !done && (
         <Card>
           <CardContent className="p-12 text-center text-muted-foreground">
             Нет данных для тренировки. Попробуйте изменить фильтры.
@@ -201,7 +212,7 @@ export function ConjugationDrillPage() {
       )}
 
       {/* Done */}
-      {done && (
+      {mode !== "table" && done && (
         <Card>
           <CardContent className="p-12 text-center space-y-4">
             <p className="text-3xl font-bold">Готово!</p>
@@ -219,7 +230,7 @@ export function ConjugationDrillPage() {
       )}
 
       {/* Active question */}
-      {currentQ && !done && (
+      {mode !== "table" && currentQ && !done && (
         <>
           {/* Progress */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -355,6 +366,76 @@ export function ConjugationDrillPage() {
           </Card>
         </>
       )}
+    </div>
+  );
+}
+
+function TableDrillSection({ levelFilter, binyanFilter, tenseFilter }: {
+  levelFilter?: number;
+  binyanFilter?: number;
+  tenseFilter?: string;
+}) {
+  const { data: tableDrill, isLoading, refetch } = useTableDrill({
+    level_id: levelFilter,
+    binyan_id: binyanFilter,
+    tense: tenseFilter,
+  });
+  const checkTableDrill = useCheckTableDrill();
+  const [results, setResults] = useState<Record<string, boolean> | undefined>();
+  const [tableScore, setTableScore] = useState<{ score: number; total: number } | null>(null);
+
+  if (isLoading) return <p className="text-center py-6 text-muted-foreground">Загрузка...</p>;
+  if (!tableDrill) return <p className="text-center py-6 text-muted-foreground">Нет данных для таблицы</p>;
+
+  const handleSubmit = async (answers: Record<string, string>) => {
+    // We need word_id and binyan_id from the drill data — for now extract from the query
+    // The table drill endpoint should return these; using a simplified check
+    const res = await checkTableDrill.mutateAsync({
+      word_id: 0, // The backend will use the session data
+      binyan_id: 0,
+      tense: tableDrill.tense,
+      answers,
+    });
+    const resultMap: Record<string, boolean> = {};
+    res.results.forEach(r => { resultMap[r.key] = r.correct; });
+    setResults(resultMap);
+    setTableScore({ score: res.score, total: res.total });
+  };
+
+  const handleNewTable = () => {
+    setResults(undefined);
+    setTableScore(null);
+    refetch();
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="text-center space-y-2">
+          <div className="flex justify-center gap-2">
+            <Badge variant="outline">{tableDrill.binyan_name}</Badge>
+            <Badge variant="secondary">{tableDrill.tense}</Badge>
+          </div>
+          <HebrewText size="2xl" className="font-bold" nikkud={tableDrill.word_nikkud}>
+            {tableDrill.word_hebrew}
+          </HebrewText>
+          <p className="text-muted-foreground">{tableDrill.translation_ru}</p>
+        </CardHeader>
+        <CardContent>
+          <ConjugationTable
+            cells={tableDrill.cells}
+            onSubmit={handleSubmit}
+            results={results}
+            disabled={!!results}
+          />
+          {tableScore && (
+            <div className="text-center mt-4 space-y-2">
+              <p className="font-medium">{tableScore.score} из {tableScore.total}</p>
+              <Button onClick={handleNewTable}>Новая таблица</Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
