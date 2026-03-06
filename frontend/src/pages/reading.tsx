@@ -73,6 +73,16 @@ export function ReadingPage() {
   })();
   const [readingDone, setReadingDone] = useState(isAlreadyRead);
 
+  // Reset readingDone when navigating to a different text
+  const [prevTextId, setPrevTextId] = useState(selectedTextId);
+  if (selectedTextId !== prevTextId) {
+    setPrevTextId(selectedTextId);
+    const nowRead = selectedTextId
+      ? (() => { try { return JSON.parse(localStorage.getItem(readTextsKey) || "[]").includes(selectedTextId); } catch { return false; } })()
+      : false;
+    setReadingDone(nowRead);
+  }
+
   const markAsRead = () => {
     setReadingDone(true);
     if (selectedTextId) {
