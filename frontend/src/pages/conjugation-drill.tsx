@@ -8,6 +8,13 @@ import { useTTS } from "@/components/tts-controls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 const TENSE_LABELS: Record<string, string> = {
@@ -134,46 +141,58 @@ export function ConjugationDrillPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
-          value={levelFilter ?? ""}
-          onChange={(e) => {
-            setLevelFilter(e.target.value ? Number(e.target.value) : undefined);
+      <div className="flex flex-wrap gap-2 items-center">
+        <Select
+          value={levelFilter?.toString() ?? "all"}
+          onValueChange={(v) => {
+            setLevelFilter(v === "all" ? undefined : Number(v));
             handleRestart();
           }}
         >
-          <option value="">Все уровни</option>
-          {[1, 2, 3, 4, 5, 6].map((l) => (
-            <option key={l} value={l}>{LEVEL_LABELS[l]}</option>
-          ))}
-        </select>
-        <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
-          value={binyanFilter ?? ""}
-          onChange={(e) => {
-            setBinyanFilter(e.target.value ? Number(e.target.value) : undefined);
+          <SelectTrigger className="w-32 h-9">
+            <SelectValue placeholder="Уровень" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все уровни</SelectItem>
+            {[1, 2, 3, 4, 5, 6].map((l) => (
+              <SelectItem key={l} value={l.toString()}>{LEVEL_LABELS[l]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={binyanFilter?.toString() ?? "all"}
+          onValueChange={(v) => {
+            setBinyanFilter(v === "all" ? undefined : Number(v));
             handleRestart();
           }}
         >
-          <option value="">Все биньяны</option>
-          {binyanim?.map((b) => (
-            <option key={b.id} value={b.id}>{b.name_ru}</option>
-          ))}
-        </select>
-        <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
-          value={tenseFilter ?? ""}
-          onChange={(e) => {
-            setTenseFilter(e.target.value || undefined);
+          <SelectTrigger className="w-36 h-9">
+            <SelectValue placeholder="Биньян" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все биньяны</SelectItem>
+            {binyanim?.map((b) => (
+              <SelectItem key={b.id} value={b.id.toString()}>{b.name_ru}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={tenseFilter ?? "all"}
+          onValueChange={(v) => {
+            setTenseFilter(v === "all" ? undefined : v);
             handleRestart();
           }}
         >
-          <option value="">Все времена</option>
-          {Object.entries(TENSE_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
+          <SelectTrigger className="w-36 h-9">
+            <SelectValue placeholder="Время" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все времена</SelectItem>
+            {Object.entries(TENSE_LABELS).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex gap-1">
           <Button
             variant={mode === "choice" ? "default" : "outline"}
