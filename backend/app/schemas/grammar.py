@@ -72,3 +72,37 @@ class ConjugationOut(BaseModel):
     transliteration: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+# ── Conjugation Drill ────────────────────────────────────────────────────
+
+class DrillQuestion(BaseModel):
+    word_id: int
+    word_hebrew: str
+    word_nikkud: str | None = None
+    translation_ru: str
+    binyan_id: int
+    binyan_name: str
+    tense: str
+    person: str
+    gender: str | None = None
+    number: str
+    correct_answer: str
+    correct_nikkud: str | None = None
+    transliteration: str | None = None
+    options: list[str] | None = None
+
+
+class DrillCheckRequest(BaseModel):
+    word_id: int
+    binyan_id: int
+    tense: str
+    person: str
+    answer: str
+
+
+class DrillCheckResponse(BaseModel):
+    correct: bool
+    correct_answer: str
+    correct_nikkud: str | None = None
+    transliteration: str | None = None

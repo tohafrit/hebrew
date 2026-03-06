@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const SPEEDS = [0.5, 0.75, 1, 1.25] as const;
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5] as const;
 
 interface TTSControlsProps {
   text: string;

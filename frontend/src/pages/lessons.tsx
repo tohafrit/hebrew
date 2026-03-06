@@ -32,6 +32,19 @@ function MultipleChoiceExercise({ exercise, onAnswer }: {
   onAnswer: (answer: any) => void;
 }) {
   const prompt = exercise.prompt_json as { question: string; options: string[] };
+
+  // Keyboard shortcuts: number keys for option selection
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const idx = parseInt(e.key, 10) - 1;
+      if (idx >= 0 && idx < prompt.options.length) {
+        onAnswer(prompt.options[idx]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [prompt.options, onAnswer]);
+
   return (
     <div className="space-y-3">
       <p className="font-medium">{prompt.question}</p>
@@ -313,6 +326,16 @@ function ExerciseCard({ exercise, onDone }: {
     },
     [exercise.id, checkExercise, play]
   );
+
+  // Enter key to advance after result is shown
+  useEffect(() => {
+    if (!result) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Enter") onDone();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [result, onDone]);
 
   if (result) {
     return (

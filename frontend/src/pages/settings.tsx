@@ -16,12 +16,14 @@ export function SettingsPage() {
   const [goalMinutes, setGoalMinutes] = useState(15);
   const [newCards, setNewCards] = useState(10);
   const [notifications, setNotifications] = useState(true);
+  const [showNikkud, setShowNikkud] = useState(true);
 
   useEffect(() => {
     if (settings) {
       setGoalMinutes(settings.daily_goal_minutes);
       setNewCards(settings.daily_new_cards);
       setNotifications(settings.notifications);
+      setShowNikkud(settings.show_nikkud);
     }
   }, [settings]);
 
@@ -30,6 +32,7 @@ export function SettingsPage() {
       daily_goal_minutes: goalMinutes,
       daily_new_cards: newCards,
       notifications,
+      show_nikkud: showNikkud,
       ui_theme: theme === "system" ? "system" : theme,
     });
   };
@@ -97,6 +100,19 @@ export function SettingsPage() {
                 </Button>
               ))}
             </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Огласовки (никуд)</Label>
+              <p className="text-xs text-muted-foreground">Показывать огласовки в ивритских словах</p>
+            </div>
+            <Button
+              variant={showNikkud ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowNikkud(!showNikkud)}
+            >
+              {showNikkud ? "Вкл" : "Выкл"}
+            </Button>
           </div>
           <div className="flex items-center justify-between">
             <div>

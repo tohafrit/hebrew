@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useLessons, useLesson, useCheckExercise, type Exercise, type ExerciseCheckResponse } from "@/hooks/use-lessons";
+import { useAutoCompleteStep } from "@/hooks/use-path";
 import { useCheckWriting, type WritingFeedback } from "@/hooks/use-writing";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls } from "@/components/tts-controls";
@@ -319,6 +320,9 @@ export function WritingPage() {
   const [currentExIdx, setCurrentExIdx] = useState(0);
   const [lessonDone, setLessonDone] = useState(false);
   const [freeWriteMode, setFreeWriteMode] = useState(false);
+
+  // Auto-complete learning path step when writing lesson is done
+  useAutoCompleteStep("exercise", selectedLessonId, lessonDone);
 
   if (isLoading) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;

@@ -187,6 +187,27 @@ function DialoguePlayer({ dialogueId, onBack }: {
     }
   }, [currentLine, localLines.length]);
 
+  // Keyboard shortcuts: number keys for options, Enter for continue
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (dialogueDone || !currentLineData) return;
+      if (e.key === "Enter") {
+        if (!currentLineData.is_user && revealedLines.has(currentLine)) {
+          handleContinue();
+        }
+        return;
+      }
+      if (currentLineData.is_user && currentLineData.options && !revealedLines.has(currentLine)) {
+        const idx = parseInt(e.key, 10) - 1;
+        if (idx >= 0 && idx < currentLineData.options.length && !checkDialogue.isPending) {
+          handleSelectOption(idx);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [dialogueDone, currentLineData, currentLine, revealedLines, handleContinue, handleSelectOption, checkDialogue.isPending]);
+
   if (!dialogue) {
     return <p className="text-center text-muted-foreground py-12">Загрузка...</p>;
   }
@@ -270,6 +291,7 @@ function DialoguePlayer({ dialogueId, onBack }: {
                     onClick={() => handleSelectOption(i)}
                     disabled={checkDialogue.isPending}
                   >
+                    <span className="text-xs text-muted-foreground ml-2 ltr:mr-2">{i + 1}.</span>
                     <HebrewText size="sm">{opt}</HebrewText>
                   </Button>
                 ))}

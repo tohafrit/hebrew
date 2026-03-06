@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
+import { NikkudProvider } from "@/components/nikkud-provider";
 import { RootLayout } from "@/components/layout/root-layout";
 import { ProtectedRoute } from "@/components/layout/protected-route";
 import { HomePage } from "@/pages/home";
@@ -22,6 +23,8 @@ import { SettingsPage } from "@/pages/settings";
 import { TopicsPage } from "@/pages/topics";
 import { ReaderPage } from "@/pages/reader";
 import { PathPage } from "@/pages/path";
+import { ConjugationDrillPage } from "@/pages/conjugation-drill";
+import { MistakesPage } from "@/pages/mistakes";
 import { NotFoundPage } from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -36,6 +39,7 @@ export default function App() {
     <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <NikkudProvider>
         <BrowserRouter>
           <Routes>
             <Route element={<RootLayout />}>
@@ -45,6 +49,8 @@ export default function App() {
                 <Route path="/srs" element={<SRSPage />} />
                 <Route path="/alphabet" element={<AlphabetPage />} />
                 <Route path="/grammar" element={<GrammarPage />} />
+                <Route path="/conjugation-drill" element={<ConjugationDrillPage />} />
+                <Route path="/mistakes" element={<MistakesPage />} />
                 <Route path="/lessons" element={<LessonsPage />} />
                 <Route path="/lessons/:lessonId" element={<LessonsPage />} />
                 <Route path="/reading" element={<ReadingPage />} />
@@ -67,6 +73,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </NikkudProvider>
       </ThemeProvider>
     </QueryClientProvider>
     </ErrorBoundary>

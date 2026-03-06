@@ -10,6 +10,8 @@ from app.schemas.gamification import (
     CultureArticleBrief, CultureArticleDetail,
     RecommendationOut,
 )
+from app.schemas.mistakes import MistakesResponse, ExerciseMistakeOut, SRSFailureOut
+from app.schemas.analytics import AnalyticsResponse
 from app.services.gamification import (
     get_achievement_definitions, get_user_achievements,
     check_and_award_achievements, get_stats_overview,
@@ -17,6 +19,8 @@ from app.services.gamification import (
     LEVEL_THRESHOLDS,
 )
 from app.services.recommendations import get_recommendations
+from app.services.mistakes import get_exercise_mistakes, get_srs_failures
+from app.services.analytics import get_analytics
 
 router = APIRouter(tags=["gamification"])
 
@@ -86,6 +90,34 @@ async def get_study_recommendations(
     """Get smart study recommendations for the user."""
     recs = await get_recommendations(db, user)
     return [RecommendationOut(**r) for r in recs]
+
+
+# ── Mistakes ──────────────────────────────────────────────────────────────
+
+@router.get("/stats/mistakes", response_model=MistakesResponse)
+async def get_mistakes(
+    days: int = Query(30, ge=1, le=365),
+    limit: int = Query(50, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    exercise_mistakes = await get_exercise_mistakes(db, user.id, days=days, limit=limit)
+    srs_failures = await get_srs_failures(db, user.id, days=days, limit=limit)
+    return MistakesResponse(
+        exercise_mistakes=[ExerciseMistakeOut(**m) for m in exercise_mistakes],
+        srs_failures=[SRSFailureOut(**f) for f in srs_failures],
+    )
+
+
+# ── Analytics ─────────────────────────────────────────────────────────────
+
+@router.get("/stats/analytics", response_model=AnalyticsResponse)
+async def get_user_analytics(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    data = await get_analytics(db, user.id)
+    return AnalyticsResponse(**data)
 
 
 # ── Culture ────────────────────────────────────────────────────────────────

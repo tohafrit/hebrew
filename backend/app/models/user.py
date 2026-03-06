@@ -34,6 +34,7 @@ class UserSettings(Base):
     srs_algorithm: Mapped[str] = mapped_column(String(20), default="sm2")
     ui_theme: Mapped[str] = mapped_column(String(10), default="light")
     notifications: Mapped[bool] = mapped_column(default=True)
+    show_nikkud: Mapped[bool] = mapped_column(default=True)
 
     user: Mapped["User"] = relationship(back_populates="settings")
 

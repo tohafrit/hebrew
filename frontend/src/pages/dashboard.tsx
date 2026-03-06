@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useStatsOverview, useLevels } from "@/hooks/use-gamification";
+import { useStatsOverview, useLevels, useAnalytics } from "@/hooks/use-gamification";
 import { useRecommendations } from "@/hooks/use-recommendations";
 import { useSettings } from "@/hooks/use-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,18 @@ function SkillBar({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
+
+const EXERCISE_TYPE_LABELS: Record<string, string> = {
+  multiple_choice: "Выбор ответа",
+  fill_blank: "Заполнить пропуск",
+  match_pairs: "Сопоставление",
+  word_order: "Порядок слов",
+  dictation: "Диктант",
+  hebrew_typing: "Набор на иврите",
+  translate_ru_he: "Перевод RU→HE",
+  minimal_pairs: "Мин. пары",
+  listening_comprehension: "Аудирование",
+};
 
 const SKILL_LABELS: Record<string, string> = {
   reading: "Чтение",
@@ -76,6 +88,7 @@ export function DashboardPage() {
   const { data: levels } = useLevels();
   const { data: recommendations } = useRecommendations();
   const { data: settings } = useSettings();
+  const { data: analytics } = useAnalytics();
 
   if (isLoading || !stats) {
     return <p className="text-center py-12 text-muted-foreground">Загрузка...</p>;
@@ -264,6 +277,110 @@ export function DashboardPage() {
         </CardContent>
       </Card>
 
+      {/* Analytics */}
+      {analytics && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Аналитика</CardTitle>
+            <CardDescription>Прогресс за последние 30 дней</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              {/* Weekly accuracy */}
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold">
+                  {analytics.accuracy_trend.length > 0
+                    ? `${Math.round(analytics.accuracy_trend.reduce((s, p) => s + p.accuracy, 0) / analytics.accuracy_trend.length)}%`
+                    : "—"}
+                </p>
+                <p className="text-xs text-muted-foreground">Точность</p>
+              </div>
+              {/* SRS retention */}
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold">{analytics.srs_retention_rate}%</p>
+                <p className="text-xs text-muted-foreground">Запоминание SRS</p>
+              </div>
+              {/* Vocab size */}
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold">
+                  {analytics.vocab_growth.length > 0
+                    ? analytics.vocab_growth[analytics.vocab_growth.length - 1].cumulative
+                    : 0}
+                </p>
+                <p className="text-xs text-muted-foreground">Карточек создано</p>
+              </div>
+              {/* Avg response time */}
+              <div className="text-center p-3 rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold">
+                  {analytics.response_time_avg_ms
+                    ? `${(analytics.response_time_avg_ms / 1000).toFixed(1)}с`
+                    : "—"}
+                </p>
+                <p className="text-xs text-muted-foreground">Ср. время ответа</p>
+              </div>
+            </div>
+
+            {/* Accuracy bar chart */}
+            {analytics.accuracy_trend.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">Точность по дням</p>
+                <div className="flex items-end gap-[2px] h-16">
+                  {analytics.accuracy_trend.slice(-14).map((p) => (
+                    <div
+                      key={p.date}
+                      className="flex-1 rounded-t bg-primary/70 min-w-[4px]"
+                      style={{ height: `${Math.max(4, p.accuracy)}%` }}
+                      title={`${p.date}: ${p.accuracy}% (${p.total})`}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>{analytics.accuracy_trend.slice(-14)[0]?.date.slice(5)}</span>
+                  <span>{analytics.accuracy_trend[analytics.accuracy_trend.length - 1]?.date.slice(5)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Weakest areas */}
+            {analytics.weakest_areas.length > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2">Слабые места</p>
+                <div className="space-y-1">
+                  {analytics.weakest_areas.map((a) => (
+                    <div key={a.type} className="flex items-center justify-between text-sm">
+                      <span>{EXERCISE_TYPE_LABELS[a.type] || a.type}</span>
+                      <span className={a.accuracy < 50 ? "text-red-500 font-medium" : "text-muted-foreground"}>
+                        {a.accuracy}% ({a.total})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Vocab growth sparkline */}
+            {analytics.vocab_growth.length > 1 && (
+              <div>
+                <p className="text-sm font-medium mb-2">Рост словаря</p>
+                <div className="flex items-end gap-[2px] h-12">
+                  {analytics.vocab_growth.slice(-30).map((p) => {
+                    const max = analytics.vocab_growth[analytics.vocab_growth.length - 1].cumulative || 1;
+                    return (
+                      <div
+                        key={p.date}
+                        className="flex-1 rounded-t bg-green-500/60 min-w-[2px]"
+                        style={{ height: `${Math.max(4, (p.cumulative / max) * 100)}%` }}
+                        title={`${p.date}: ${p.cumulative}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Quick links */}
       <div className="flex flex-wrap gap-2">
         <Button asChild variant="outline" size="sm">
@@ -271,6 +388,9 @@ export function DashboardPage() {
         </Button>
         <Button asChild variant="outline" size="sm">
           <Link to="/srs">SRS-карточки</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/mistakes">Журнал ошибок</Link>
         </Button>
         <Button asChild variant="outline" size="sm">
           <Link to="/writing">Письмо</Link>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTopics } from "@/hooks/use-topics";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ const LEVEL_NAMES = [
 ];
 
 export function TopicsPage() {
+  const navigate = useNavigate();
   const [selectedLevel, setSelectedLevel] = useState<number | undefined>(undefined);
   const { data: topics, isLoading } = useTopics(selectedLevel);
 
@@ -45,7 +47,11 @@ export function TopicsPage() {
       {/* Topics grid */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {topics?.map((topic) => (
-          <Card key={topic.id} className="hover:shadow-md transition-shadow">
+          <Card
+            key={topic.id}
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => navigate(`/dictionary?search=&topic=${topic.id}`)}
+          >
             <CardContent className="pt-4 pb-3 px-3 text-center space-y-2">
               <span className="text-2xl block">{topic.icon || "📘"}</span>
               <p className="font-medium text-sm leading-tight">{topic.name_ru}</p>
@@ -54,6 +60,11 @@ export function TopicsPage() {
                   {topic.name_he}
                 </p>
               )}
+              {/* Stats */}
+              <div className="flex justify-center gap-2 text-[10px] text-muted-foreground">
+                <span>{topic.words_learned} слов</span>
+                <span>{topic.exercises_done} упр.</span>
+              </div>
               {/* Mastery progress bar */}
               <div className="space-y-1">
                 <div className="h-1.5 rounded-full bg-muted overflow-hidden">

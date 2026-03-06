@@ -222,6 +222,7 @@ export function SRSPage() {
                     <HebrewText
                       size={isSentenceCard ? "xl" : "2xl"}
                       className={cn("block font-bold", isSentenceCard ? "text-xl" : "text-3xl")}
+                      nikkud={currentCard.front_json.nikkud}
                     >
                       {currentCard.front_json.hebrew}
                     </HebrewText>
@@ -262,7 +263,7 @@ export function SRSPage() {
                 <div className="space-y-4 pt-4 border-t">
                   {currentCard.back_json.hebrew && (
                     <div className="space-y-1">
-                      <HebrewText size="xl" className="block font-bold text-2xl">
+                      <HebrewText size="xl" className="block font-bold text-2xl" nikkud={currentCard.back_json.nikkud}>
                         {currentCard.back_json.hebrew}
                       </HebrewText>
                       <TTSControls text={currentCard.back_json.hebrew} size="sm" />

@@ -7,6 +7,7 @@ class UserSettingsOut(BaseModel):
     srs_algorithm: str = "sm2"
     ui_theme: str = "light"
     notifications: bool = True
+    show_nikkud: bool = True
 
     model_config = {"from_attributes": True}
 
@@ -16,3 +17,4 @@ class UserSettingsUpdate(BaseModel):
     daily_new_cards: int | None = Field(None, ge=1, le=50)
     ui_theme: str | None = Field(None, pattern=r"^(light|dark|system)$")
     notifications: bool | None = None
+    show_nikkud: bool | None = None

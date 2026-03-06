@@ -7,6 +7,7 @@ export interface UserSettings {
   srs_algorithm: string;
   ui_theme: string;
   notifications: boolean;
+  show_nikkud: boolean;
 }
 
 export function useSettings() {

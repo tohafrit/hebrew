@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAnalyzeText, type TokenAnnotation } from "@/hooks/use-reader";
 import { useCreateCards } from "@/hooks/use-srs";
 import { HebrewText } from "@/components/hebrew-text";
+import { TTSControls } from "@/components/tts-controls";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -155,7 +156,7 @@ function InlineTooltip({ token, style }: {
 
 // ── Sidebar detail panel ──────────────────────────────────────────────────
 
-function WordDetailSidebar({ token }: { token: TokenAnnotation }) {
+function WordDetailSidebar({ token, onAddToSRS }: { token: TokenAnnotation; onAddToSRS?: (wordId: number) => void }) {
   if (!token.word_id) {
     const isNumber = token.match_type === "number";
     const isProperNoun = token.match_type === "proper_noun";
@@ -209,6 +210,8 @@ function WordDetailSidebar({ token }: { token: TokenAnnotation }) {
       <CardContent className="space-y-3">
         <p className="text-lg">{token.translation_ru}</p>
 
+        {token.hebrew && <TTSControls text={token.hebrew} size="sm" />}
+
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           {token.root && (
             <span>
@@ -228,6 +231,16 @@ function WordDetailSidebar({ token }: { token: TokenAnnotation }) {
               Словарь
             </Link>
           </Button>
+          {token.word_id && onAddToSRS && (
+            <Button
+              variant="default"
+              size="sm"
+              className="flex-1"
+              onClick={() => onAddToSRS(token.word_id!)}
+            >
+              В SRS
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -392,6 +405,7 @@ export function ReaderPage() {
 
   const handleAddKnownToSRS = async () => {
     if (!analyze.data) return;
+    // Add all words with word_id (known words) — useful for building SRS deck from text
     const wordIds = [
       ...new Set(
         analyze.data.tokens
@@ -406,6 +420,22 @@ export function ReaderPage() {
       toast({
         title: "Добавлено в SRS",
         description: `Создано ${result.created} карточек из ${wordIds.length} слов`,
+      });
+    } catch {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать карточки",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddWordToSRS = async (wordId: number) => {
+    try {
+      const result = await createCards.mutateAsync({ word_ids: [wordId] });
+      toast({
+        title: "Добавлено в SRS",
+        description: result.created > 0 ? `Создано ${result.created} карточек` : "Карточки уже существуют",
       });
     } catch {
       toast({
@@ -594,7 +624,7 @@ export function ReaderPage() {
             {/* Word detail sidebar */}
             <div className="lg:sticky lg:top-20 lg:self-start">
               {selectedToken && selectedToken.clean ? (
-                <WordDetailSidebar token={selectedToken} />
+                <WordDetailSidebar token={selectedToken} onAddToSRS={handleAddWordToSRS} />
               ) : (
                 <Card>
                   <CardContent className="p-8 text-center text-muted-foreground text-sm">

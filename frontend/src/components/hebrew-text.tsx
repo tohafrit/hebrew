@@ -1,9 +1,11 @@
 import { cn } from "@/lib/utils";
+import { useShowNikkud } from "@/components/nikkud-provider";
 
 interface HebrewTextProps {
   children: React.ReactNode;
   className?: string;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  nikkud?: string | null;
 }
 
 const sizeClasses = {
@@ -14,10 +16,13 @@ const sizeClasses = {
   "2xl": "text-2xl",
 };
 
-export function HebrewText({ children, className, size = "md" }: HebrewTextProps) {
+export function HebrewText({ children, className, size = "md", nikkud }: HebrewTextProps) {
+  const showNikkud = useShowNikkud();
+  const display = showNikkud && nikkud ? nikkud : children;
+
   return (
     <span dir="rtl" className={cn("font-hebrew", sizeClasses[size], className)}>
-      {children}
+      {display}
     </span>
   );
 }

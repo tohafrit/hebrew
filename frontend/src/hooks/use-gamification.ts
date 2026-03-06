@@ -136,3 +136,49 @@ export function useCultureArticle(id: number | null) {
     enabled: id !== null,
   });
 }
+
+// ── Analytics ────────────────────────────────────────────────────────────
+
+export interface AccuracyPoint {
+  date: string;
+  accuracy: number;
+  total: number;
+}
+
+export interface VocabGrowthPoint {
+  date: string;
+  cumulative: number;
+}
+
+export interface ExerciseBreakdown {
+  type: string;
+  total: number;
+  correct: number;
+  accuracy: number;
+}
+
+export interface WeakArea {
+  type: string;
+  accuracy: number;
+  total: number;
+}
+
+export interface AnalyticsData {
+  accuracy_trend: AccuracyPoint[];
+  srs_retention_rate: number;
+  srs_total_reviews: number;
+  response_time_avg_ms: number | null;
+  vocab_growth: VocabGrowthPoint[];
+  exercise_breakdown: ExerciseBreakdown[];
+  weakest_areas: WeakArea[];
+}
+
+export function useAnalytics() {
+  return useQuery<AnalyticsData>({
+    queryKey: ["analytics"],
+    queryFn: async () => {
+      const { data } = await api.get("/stats/analytics");
+      return data;
+    },
+  });
+}

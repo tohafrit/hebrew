@@ -82,7 +82,7 @@ function ConjugationTable({ wordId }: { wordId: number }) {
             <span className="text-xs text-muted-foreground w-16 shrink-0">
               {PERSON_LABELS[c.person] || c.person}
             </span>
-            <HebrewText size="sm" className="font-medium">
+            <HebrewText size="sm" className="font-medium" nikkud={c.form_nikkud}>
               {c.form_he}
             </HebrewText>
             {c.transliteration && (
@@ -143,7 +143,7 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
         <div className="space-y-1">
-          <HebrewText size="2xl" className="block font-bold">
+          <HebrewText size="2xl" className="block font-bold" nikkud={word.nikkud}>
             {word.hebrew}
           </HebrewText>
           {word.transliteration && (
@@ -206,7 +206,7 @@ export function WordDetailPanel({ wordId, onClose }: WordDetailPanelProps) {
                   <Badge variant="outline" className="text-xs">
                     {f.form_type}
                   </Badge>
-                  <HebrewText size="sm">{f.hebrew}</HebrewText>
+                  <HebrewText size="sm" nikkud={f.nikkud}>{f.hebrew}</HebrewText>
                   {f.transliteration && (
                     <span className="text-muted-foreground">
                       {f.transliteration}

@@ -54,7 +54,7 @@ export function WordCard({ word, onClick, onRootClick, selected }: WordCardProps
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <HebrewText size="xl" className="block font-bold">
+              <HebrewText size="xl" className="block font-bold" nikkud={word.nikkud}>
                 {word.hebrew}
               </HebrewText>
               <button

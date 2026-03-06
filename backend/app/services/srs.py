@@ -64,13 +64,23 @@ async def create_cards_for_words(
 
     # Batch-check existing cards
     existing_result = await db.execute(
-        select(SRSCard.content_id, SRSCard.card_type).where(
+        select(SRSCard.content_id, SRSCard.card_type, SRSCard.front_json).where(
             SRSCard.user_id == user_id,
             SRSCard.content_id.in_(word_ids),
             SRSCard.card_type.in_(card_types),
         )
     )
-    existing_set = {(row.content_id, row.card_type) for row in existing_result}
+    # For word cards: (content_id, card_type) is unique
+    # For sentence cards: include sentence text to allow multiple per word
+    existing_set: set[tuple] = set()
+    existing_sentence_set: set[tuple] = set()
+    for row in existing_result:
+        if row.card_type.startswith("sentence_"):
+            # Key by (content_id, card_type, hebrew_text) for per-sentence dedup
+            hebrew = (row.front_json or {}).get("hebrew") or (row.front_json or {}).get("translation") or ""
+            existing_sentence_set.add((row.content_id, row.card_type, hebrew))
+        else:
+            existing_set.add((row.content_id, row.card_type))
 
     # Pre-fetch example sentences for sentence card types
     sentence_types = {"sentence_he_ru", "sentence_ru_he"}
@@ -94,7 +104,9 @@ async def create_cards_for_words(
                 # Create one card per example sentence
                 examples = sentences_by_word.get(word_id, [])
                 for ex in examples:
-                    if (word_id, card_type) in existing_set:
+                    # Per-sentence dedup: key includes the sentence text
+                    dedup_text = ex.hebrew if card_type == "sentence_he_ru" else ex.translation_ru
+                    if (word_id, card_type, dedup_text) in existing_sentence_set:
                         continue
                     if card_type == "sentence_he_ru":
                         front = {"hebrew": ex.hebrew, "type": "sentence"}
@@ -131,16 +143,16 @@ async def create_cards_for_words(
             level_label = {1: "Алеф", 2: "Бет", 3: "Гимель", 4: "Далет", 5: "Хей", 6: "Вав"}.get(word.level_id)
 
             if card_type == "word_he_ru":
-                front = {"hebrew": word.hebrew, "transliteration": word.transliteration}
+                front = {"hebrew": word.hebrew, "nikkud": word.nikkud, "transliteration": word.transliteration}
                 back = {"translation": word.translation_ru, "pos": word.pos, "root": word.root, "level": level_label}
             elif card_type == "word_ru_he":
                 front = {"translation": word.translation_ru, "pos": word.pos}
-                back = {"hebrew": word.hebrew, "transliteration": word.transliteration, "root": word.root, "level": level_label}
+                back = {"hebrew": word.hebrew, "nikkud": word.nikkud, "transliteration": word.transliteration, "root": word.root, "level": level_label}
             elif card_type == "cloze":
                 front = {"hint": word.translation_ru, "pos": word.pos}
-                back = {"hebrew": word.hebrew, "transliteration": word.transliteration, "level": level_label}
+                back = {"hebrew": word.hebrew, "nikkud": word.nikkud, "transliteration": word.transliteration, "level": level_label}
             else:
-                front = {"hebrew": word.hebrew}
+                front = {"hebrew": word.hebrew, "nikkud": word.nikkud}
                 back = {"translation": word.translation_ru, "level": level_label}
 
             card = SRSCard(

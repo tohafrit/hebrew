@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useGrammarTopics, useGrammarTopic, useBinyanim, usePrepositions } from "@/hooks/use-grammar";
 import { useUrlParam, useUrlNumParam } from "@/hooks/use-url-state";
 import type { Preposition } from "@/hooks/use-grammar";
@@ -144,6 +145,9 @@ export function GrammarPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Грамматика</h1>
+        <Button asChild variant="default" size="sm">
+          <Link to="/conjugation-drill">Тренировка спряжений</Link>
+        </Button>
       </div>
 
       {/* Tab switcher */}

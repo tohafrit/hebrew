@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   useAchievementDefs,
   useMyAchievements,
@@ -6,6 +7,16 @@ import {
 } from "@/hooks/use-gamification";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+const CATEGORY_ROUTES: Record<string, { label: string; to: string }> = {
+  beginner: { label: "Начать учёбу", to: "/path" },
+  vocabulary: { label: "К словарю", to: "/dictionary" },
+  grammar: { label: "Грамматика", to: "/grammar" },
+  practice: { label: "Упражнения", to: "/lessons" },
+  streak: { label: "Продолжить", to: "/path" },
+  mastery: { label: "SRS-карточки", to: "/srs" },
+  culture: { label: "Культура", to: "/culture" },
+};
 
 const CATEGORY_LABELS: Record<string, string> = {
   beginner: "Начало пути",
@@ -127,6 +138,11 @@ export function AchievementsPage() {
                         <p className="text-xs text-amber-600 mt-1">
                           Получено: {new Date(unlockedAt).toLocaleDateString("ru-RU")}
                         </p>
+                      )}
+                      {!unlocked && CATEGORY_ROUTES[cat] && (
+                        <Button variant="outline" size="sm" className="mt-2" asChild>
+                          <Link to={CATEGORY_ROUTES[cat].to}>{CATEGORY_ROUTES[cat].label}</Link>
+                        </Button>
                       )}
                     </CardContent>
                   </Card>
