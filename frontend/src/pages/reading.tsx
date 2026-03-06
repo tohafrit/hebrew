@@ -143,7 +143,7 @@ export function ReadingPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Текст</CardTitle>
-            <CardDescription>Наведите на подчёркнутые слова для перевода</CardDescription>
+            <CardDescription>Нажмите на любое слово для перевода и произношения</CardDescription>
           </CardHeader>
           <CardContent>
             <InteractiveReader

@@ -1,8 +1,12 @@
+import re
+
 from sqlalchemy import select, func, or_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.word import Word, RootFamily, RootFamilyMember
+
+_NIKKUD_RE = re.compile(r"[\u0591-\u05C7]")
 
 
 async def list_words(
@@ -29,7 +33,9 @@ async def list_words(
     query = select(Word).where(Word.id.in_(dedup))
 
     if search:
-        pattern = f"%{search}%"
+        # Strip nikkud (vowel marks) so "אוּלְפָּן" matches "אולפן"
+        clean_search = _NIKKUD_RE.sub("", search)
+        pattern = f"%{clean_search}%"
         query = query.where(
             or_(
                 Word.hebrew.ilike(pattern),
