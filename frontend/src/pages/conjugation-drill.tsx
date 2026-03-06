@@ -303,12 +303,13 @@ export function ConjugationDrillPage() {
               {mode === "typing" && (
                 <div className="max-w-md mx-auto space-y-3">
                   <div className="flex gap-2">
-                    <div
+                    <input
                       dir="rtl"
-                      className="flex-1 min-h-[48px] border rounded-md px-3 py-2 font-hebrew text-xl text-right bg-background"
-                    >
-                      {typedAnswer || <span className="text-muted-foreground">הקלד כאן...</span>}
-                    </div>
+                      value={typedAnswer}
+                      onChange={(e) => setTypedAnswer(e.target.value)}
+                      placeholder="הקלד כאן..."
+                      className="flex-1 h-12 border rounded-md px-3 font-hebrew text-xl text-right bg-background"
+                    />
                   </div>
                   {!answered && (
                     <>

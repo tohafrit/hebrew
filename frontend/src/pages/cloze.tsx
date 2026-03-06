@@ -131,9 +131,13 @@ export function ClozePage() {
 
           {/* Input */}
           <div className="space-y-3">
-            <div dir="rtl" className="min-h-[48px] border rounded-md px-3 py-2 font-hebrew text-xl text-right bg-background">
-              {answer || <span className="text-muted-foreground">הקלד כאן...</span>}
-            </div>
+            <input
+              dir="rtl"
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="הקלד כאן..."
+              className="w-full h-12 border rounded-md px-3 font-hebrew text-xl text-right bg-background"
+            />
 
             {!checked && (
               <>

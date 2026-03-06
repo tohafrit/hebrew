@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useLearningPath, useCompleteStep, useRecommendedStep, type PathStep } from "@/hooks/use-path";
 import { useLesson, useReadingText } from "@/hooks/use-lessons";
 import { HebrewText } from "@/components/hebrew-text";
+import { InteractiveReader } from "@/components/interactive-reader";
 import { MarkdownContent } from "@/components/markdown-content";
 import { ExerciseCard, exercise_type_label } from "@/components/exercise-card";
 import { TTSControls } from "@/components/tts-controls";
@@ -199,6 +200,8 @@ function InlineReadingStep({
     return <p className="text-center text-muted-foreground py-8">Текст не найден</p>;
   }
 
+  const vocab = (text.vocabulary_json as Array<{ he: string; ru: string; translit?: string }>) ?? [];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -208,17 +211,36 @@ function InlineReadingStep({
         )}
       </div>
 
+      {/* TTS */}
+      {text.content_he && <TTSControls text={text.content_he} size="default" label="Прослушать текст" />}
+
+      {/* Vocabulary */}
+      {vocab.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">
+            Словарь к тексту ({vocab.length} слов)
+          </h3>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {vocab.map((w, i) => (
+              <div key={i} className="flex items-center gap-2 p-2 rounded border text-sm">
+                <HebrewText size="sm" className="font-bold">{w.he}</HebrewText>
+                {w.translit && <span className="text-xs text-muted-foreground">{w.translit}</span>}
+                <span className="text-xs">— {w.ru}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Interactive text with hover translations */}
       <Card>
         <CardContent className="py-6 space-y-4">
-          {/* Hebrew text */}
           {text.content_he && (
-            <div dir="rtl" className="font-hebrew text-xl leading-relaxed space-y-2">
-              {text.content_he.split("\n").map((line, i) => (
-                <p key={i}>{line}</p>
-              ))}
-            </div>
+            <InteractiveReader
+              contentHe={text.content_he}
+              vocabulary={vocab}
+            />
           )}
-          {text.content_he && <TTSControls text={text.content_he} size="lg" label="Прослушать" />}
 
           {/* Translation */}
           {text.content_ru && (
@@ -233,31 +255,6 @@ function InlineReadingStep({
           )}
         </CardContent>
       </Card>
-
-      {/* Vocabulary */}
-      {text.vocabulary_json && text.vocabulary_json.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Словарь</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-2">
-              {text.vocabulary_json.map((w, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded border">
-                  <div className="flex items-center gap-3">
-                    <HebrewText size="lg" className="font-bold">{w.he}</HebrewText>
-                    {w.translit && (
-                      <span className="text-xs text-muted-foreground">{w.translit}</span>
-                    )}
-                    <TTSControls text={w.he} size="sm" />
-                  </div>
-                  <span className="text-sm">{w.ru}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <Button onClick={onComplete} className="w-full">
         Далее

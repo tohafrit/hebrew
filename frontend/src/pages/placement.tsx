@@ -219,12 +219,13 @@ export function PlacementPage() {
           {/* Fill blank (typing) */}
           {currentQ.type === "fill_blank" && !currentQ.options && (
             <div className="max-w-md mx-auto space-y-3">
-              <div
+              <input
                 dir="rtl"
-                className="min-h-[48px] border rounded-md px-3 py-2 font-hebrew text-xl text-right bg-background"
-              >
-                {typedAnswer || <span className="text-muted-foreground">הקלד כאן...</span>}
-              </div>
+                value={typedAnswer}
+                onChange={(e) => setTypedAnswer(e.target.value)}
+                placeholder="הקלד כאן..."
+                className="w-full h-12 border rounded-md px-3 font-hebrew text-xl text-right bg-background"
+              />
               <HebrewKeyboard
                 onKey={(k) => setTypedAnswer(v => v + k)}
                 onBackspace={() => setTypedAnswer(v => v.slice(0, -1))}
