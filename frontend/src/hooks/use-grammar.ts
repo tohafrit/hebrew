@@ -95,14 +95,14 @@ export function usePrepositions() {
   });
 }
 
-export function useVerbs(params: { level_id?: number } = {}) {
-  return useQuery<import("@/hooks/use-words").WordBrief[]>({
+export function useVerbs(params: { level_id?: number; page?: number } = {}) {
+  return useQuery<import("@/hooks/use-words").WordListResponse>({
     queryKey: ["verbs", params],
     queryFn: async () => {
       const { data } = await api.get("/words", {
-        params: { pos: "verb", sort_by: "frequency", per_page: 200, ...params },
+        params: { pos: "verb", sort_by: "frequency_rank", per_page: 100, ...params },
       });
-      return data.items;
+      return data;
     },
   });
 }

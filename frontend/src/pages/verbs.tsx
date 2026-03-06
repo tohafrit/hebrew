@@ -270,9 +270,16 @@ function ConjugationView({ wordId, verb }: { wordId: number; verb: WordBrief }) 
 
 export function VerbsPage() {
   const [levelFilter, setLevelFilter] = useState<number | undefined>();
-  const { data: verbs, isLoading } = useVerbs(levelFilter ? { level_id: levelFilter } : {});
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useVerbs({
+    ...(levelFilter ? { level_id: levelFilter } : {}),
+    page,
+  });
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
+  const verbs = data?.items;
+  const total = data?.total ?? 0;
+  const totalPages = Math.ceil(total / 100);
   const selectedVerb = verbs?.find((v) => v.id === selectedId) ?? null;
   const grouped = useMemo(() => (verbs ? groupByFrequency(verbs) : {}), [verbs]);
 
@@ -285,7 +292,7 @@ export function VerbsPage() {
         <Button
           variant={levelFilter === undefined ? "default" : "outline"}
           size="sm"
-          onClick={() => setLevelFilter(undefined)}
+          onClick={() => { setLevelFilter(undefined); setPage(1); }}
         >
           Все
         </Button>
@@ -294,7 +301,7 @@ export function VerbsPage() {
             key={id}
             variant={levelFilter === Number(id) ? "default" : "outline"}
             size="sm"
-            onClick={() => setLevelFilter(Number(id))}
+            onClick={() => { setLevelFilter(Number(id)); setPage(1); }}
           >
             {label}
           </Button>
@@ -355,6 +362,29 @@ export function VerbsPage() {
             })}
             {!verbs?.length && (
               <p className="text-muted-foreground text-center py-8">Глаголы не найдены</p>
+            )}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Назад
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Далее
+                </Button>
+              </div>
             )}
           </div>
 
