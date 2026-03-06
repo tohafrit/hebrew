@@ -87,6 +87,7 @@ function DialoguePlayer({ dialogueId, onBack }: {
   const [localLines, setLocalLines] = useState<any[]>([]);
   const ttsTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const suppressAutoTTSRef = useRef(false);
 
   // Auto-complete learning path step when dialogue is done
   useAutoCompleteStep("dialogue", dialogueId, dialogueDone);
@@ -122,10 +123,14 @@ function DialoguePlayer({ dialogueId, onBack }: {
     if (!currentLineData.is_user) {
       // Reveal NPC line immediately
       setRevealedLines((prev) => new Set(prev).add(currentLine));
-      // Auto-play TTS for NPC line
+      // Auto-play TTS for NPC line (skip if we just played user answer TTS)
       if (currentLineData.text_he) {
         clearTimeout(ttsTimerRef.current);
-        ttsTimerRef.current = setTimeout(() => speak(currentLineData.text_he), 300);
+        if (suppressAutoTTSRef.current) {
+          suppressAutoTTSRef.current = false;
+        } else {
+          ttsTimerRef.current = setTimeout(() => speak(currentLineData.text_he), 300);
+        }
       }
     }
   }, [currentLine, currentLineData, speak]);
@@ -164,17 +169,22 @@ function DialoguePlayer({ dialogueId, onBack }: {
         total: prev.total + 1,
       }));
 
-      // Speak the selected/correct option
+      // Speak the selected/correct option — clear any pending NPC TTS first
+      clearTimeout(ttsTimerRef.current);
       speak(res.correct ? selectedText : res.correct_text_he);
 
-      // Advance to next line after a delay
+      // Suppress auto-TTS on the next NPC line so it doesn't overlap
+      suppressAutoTTSRef.current = true;
+
+      // Advance to next line after a delay (enough for TTS to finish)
+      clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = setTimeout(() => {
         if (currentLine + 1 < lines.length) {
           setCurrentLine((i) => i + 1);
         } else {
           setDialogueDone(true);
         }
-      }, 1200);
+      }, 2000);
     },
     [dialogue, currentLine, currentLineData, checkDialogue, speak]
   );

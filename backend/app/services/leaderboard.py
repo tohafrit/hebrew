@@ -23,7 +23,7 @@ async def get_leaderboard(
     if period == "weekly":
         monday = _current_monday()
         # Import here to avoid circular
-        from app.models.gamification import UserDailyActivity
+        from app.models.culture import UserDailyActivity
         q = (
             select(
                 User.id,
@@ -31,8 +31,10 @@ async def get_leaderboard(
                 User.current_level,
                 func.coalesce(func.sum(UserDailyActivity.xp_earned), 0).label("xp"),
             )
-            .outerjoin(UserDailyActivity, UserDailyActivity.user_id == User.id)
-            .where(UserDailyActivity.date >= monday)
+            .outerjoin(
+                UserDailyActivity,
+                (UserDailyActivity.user_id == User.id) & (UserDailyActivity.date >= monday),
+            )
             .group_by(User.id, User.display_name, User.current_level)
             .order_by(func.coalesce(func.sum(UserDailyActivity.xp_earned), 0).desc())
             .limit(limit)
@@ -103,7 +105,7 @@ async def get_challenge_progress(
     monday = _current_monday()
 
     # Get weekly activity counts
-    from app.models.gamification import UserDailyActivity
+    from app.models.culture import UserDailyActivity
     from app.models.srs import SRSReview, SRSCard
     from app.models.content import ExerciseResult
 

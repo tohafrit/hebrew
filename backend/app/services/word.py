@@ -18,7 +18,15 @@ async def list_words(
     sort_by: str = "hebrew",
 ) -> tuple[list[Word], int]:
     """Return paginated word list with optional filters."""
-    query = select(Word)
+    # Subquery to pick the best (lowest level_id) entry per unique hebrew+pos
+    dedup = (
+        select(
+            func.min(Word.id).label("best_id")
+        )
+        .group_by(Word.hebrew, Word.pos)
+    )
+
+    query = select(Word).where(Word.id.in_(dedup))
 
     if search:
         pattern = f"%{search}%"
@@ -69,8 +77,13 @@ async def get_word_detail(db: AsyncSession, word_id: int) -> Word | None:
 
 
 async def get_root_family(db: AsyncSession, root: str) -> list[Word]:
-    """Return all words sharing a root."""
-    query = select(Word).where(Word.root == root).order_by(Word.hebrew)
+    """Return all words sharing a root (deduplicated)."""
+    dedup = (
+        select(func.min(Word.id).label("best_id"))
+        .where(Word.root == root)
+        .group_by(Word.hebrew, Word.pos)
+    )
+    query = select(Word).where(Word.id.in_(dedup)).order_by(Word.hebrew)
     result = await db.execute(query)
     return list(result.scalars().all())
 
@@ -101,9 +114,14 @@ async def get_root_family_detail(db: AsyncSession, root: str) -> dict | None:
     )
     fam = fam_result.scalar_one_or_none()
 
-    # Get all words with this root
+    # Get all words with this root (deduplicated by hebrew+pos)
+    dedup = (
+        select(func.min(Word.id).label("best_id"))
+        .where(Word.root == root)
+        .group_by(Word.hebrew, Word.pos)
+    )
     words_result = await db.execute(
-        select(Word).where(Word.root == root).order_by(Word.pos, Word.hebrew)
+        select(Word).where(Word.id.in_(dedup)).order_by(Word.pos, Word.hebrew)
     )
     words = list(words_result.scalars().all())
 
@@ -153,7 +171,8 @@ async def search_root_families(
 
 async def get_dictionary_stats(db: AsyncSession) -> dict:
     """Return aggregated dictionary statistics."""
-    total = await db.scalar(select(func.count()).select_from(Word)) or 0
+    dedup = select(func.min(Word.id).label("best_id")).group_by(Word.hebrew, Word.pos)
+    total = await db.scalar(select(func.count()).select_from(dedup.subquery())) or 0
 
     # By POS
     pos_q = select(Word.pos, func.count()).group_by(Word.pos)
