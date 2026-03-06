@@ -28,13 +28,12 @@ const FREQ_LABELS: Record<string, string> = {
   "4": "Очень редкие",
 };
 
-const TENSE_ORDER = ["present", "past", "future", "imperative", "beinoni", "infinitive"] as const;
+const TENSE_ORDER = ["present", "past", "future", "imperative", "infinitive"] as const;
 const TENSE_LABELS: Record<string, string> = {
   present: "Настоящее",
   past: "Прошедшее",
   future: "Будущее",
   imperative: "Повелительное",
-  beinoni: "Причастие",
   infinitive: "Инфинитив",
 };
 
