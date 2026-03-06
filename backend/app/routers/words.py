@@ -6,6 +6,8 @@ from app.schemas.word import (
     DictionaryStats,
     RootFamilyOut,
     RootFamilyWordOut,
+    RootExplorerWord,
+    RootExplorerResponse,
     WordBrief,
     WordDetail,
     WordFormOut,
@@ -16,8 +18,10 @@ from app.services.word import (
     get_dictionary_stats,
     get_root_families,
     get_root_family,
+    get_root_family_detail,
     get_word_detail,
     list_words,
+    search_root_families,
 )
 
 router = APIRouter(prefix="/words", tags=["words"])
@@ -83,6 +87,33 @@ async def get_roots(
             id=fam.id, root=fam.root, meaning_ru=fam.meaning_ru, words=words,
         ))
     return {"items": items, "total": total, "page": page, "per_page": per_page}
+
+
+@router.get("/roots/explore/{root_str}", response_model=RootExplorerResponse)
+async def explore_root(root_str: str, db: AsyncSession = Depends(get_db)):
+    data = await get_root_family_detail(db, root_str)
+    if not data:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Root not found")
+    words_by_pos = {
+        pos: [RootExplorerWord.model_validate(w) for w in words]
+        for pos, words in data["words_by_pos"].items()
+    }
+    return RootExplorerResponse(
+        root=data["root"],
+        meaning_ru=data["meaning_ru"],
+        words_by_pos=words_by_pos,
+        total_words=data["total_words"],
+    )
+
+
+@router.get("/roots/search")
+async def search_roots(
+    q: str = Query("", min_length=1),
+    db: AsyncSession = Depends(get_db),
+):
+    results = await search_root_families(db, q)
+    return results
 
 
 @router.get("/root/{root_str}")

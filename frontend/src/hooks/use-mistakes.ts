@@ -43,3 +43,27 @@ export function useMistakes(days: number = 30) {
     },
   });
 }
+
+export interface ErrorPattern {
+  type: string;
+  count: number;
+  pct: number;
+  tip: string;
+  examples: { expected: string; got: string }[];
+}
+
+export interface ErrorPatternsData {
+  patterns: ErrorPattern[];
+  total_mistakes: number;
+  top_pattern: string | null;
+}
+
+export function useErrorPatterns(days: number = 30) {
+  return useQuery<ErrorPatternsData>({
+    queryKey: ["error-patterns", days],
+    queryFn: async () => {
+      const { data } = await api.get("/stats/error-patterns", { params: { days } });
+      return data;
+    },
+  });
+}

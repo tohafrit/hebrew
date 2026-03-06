@@ -10,8 +10,10 @@ from app.schemas.gamification import (
     CultureArticleBrief, CultureArticleDetail,
     CultureWordOut,
     RecommendationOut,
+    LeaderboardEntry, LeaderboardResponse,
+    ChallengeOut, ChallengeProgressOut,
 )
-from app.schemas.mistakes import MistakesResponse, ExerciseMistakeOut, SRSFailureOut
+from app.schemas.mistakes import MistakesResponse, ExerciseMistakeOut, SRSFailureOut, ErrorPatternsResponse, ErrorPattern, ErrorPatternExample
 from app.schemas.analytics import AnalyticsResponse
 from app.services.gamification import (
     get_achievement_definitions, get_user_achievements,
@@ -24,6 +26,8 @@ from app.services.text_analysis import ensure_caches, extract_hebrew_tokens
 from app.services.gamification import award_xp as do_award_xp
 from app.services.mistakes import get_exercise_mistakes, get_srs_failures
 from app.services.analytics import get_analytics
+from app.services.error_patterns import analyze_error_patterns
+from app.services.leaderboard import get_leaderboard, get_user_rank, get_active_challenges, get_challenge_progress
 
 router = APIRouter(tags=["gamification"])
 
@@ -112,6 +116,29 @@ async def get_mistakes(
     )
 
 
+# ── Error Patterns ────────────────────────────────────────────────────
+
+@router.get("/stats/error-patterns", response_model=ErrorPatternsResponse)
+async def get_error_patterns(
+    days: int = Query(30, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    data = await analyze_error_patterns(db, user.id, days=days)
+    return ErrorPatternsResponse(
+        patterns=[ErrorPattern(
+            type=p["type"],
+            name=p["name"],
+            count=p["count"],
+            pct=p["pct"],
+            examples=[ErrorPatternExample(**e) for e in p["examples"]],
+            tip=p["tip"],
+        ) for p in data["patterns"]],
+        total_mistakes=data["total_mistakes"],
+        top_pattern=data["top_pattern"],
+    )
+
+
 # ── Analytics ─────────────────────────────────────────────────────────────
 
 @router.get("/stats/analytics", response_model=AnalyticsResponse)
@@ -121,6 +148,52 @@ async def get_user_analytics(
 ):
     data = await get_analytics(db, user.id)
     return AnalyticsResponse(**data)
+
+
+# ── Leaderboard ───────────────────────────────────────────────────────
+
+@router.get("/leaderboard", response_model=LeaderboardResponse)
+async def get_leaderboard_endpoint(
+    period: str = Query("all_time"),
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    entries = await get_leaderboard(db, period=period, limit=limit)
+    return LeaderboardResponse(
+        entries=[LeaderboardEntry(**e) for e in entries],
+        period=period,
+    )
+
+
+@router.get("/leaderboard/rank", response_model=LeaderboardEntry)
+async def get_my_rank(
+    period: str = Query("all_time"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    rank = await get_user_rank(db, user.id, period=period)
+    return LeaderboardEntry(**rank)
+
+
+# ── Challenges ────────────────────────────────────────────────────────
+
+@router.get("/challenges", response_model=list[ChallengeOut])
+async def get_challenges(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    challenges = await get_active_challenges(db)
+    return [ChallengeOut(**c) for c in challenges]
+
+
+@router.get("/challenges/progress", response_model=list[ChallengeProgressOut])
+async def get_challenges_progress(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    progress = await get_challenge_progress(db, user.id)
+    return [ChallengeProgressOut(**p) for p in progress]
 
 
 # ── Culture ────────────────────────────────────────────────────────────────

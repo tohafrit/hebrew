@@ -24,3 +24,24 @@ class SRSFailureOut(BaseModel):
 class MistakesResponse(BaseModel):
     exercise_mistakes: list[ExerciseMistakeOut]
     srs_failures: list[SRSFailureOut]
+
+
+class ErrorPatternExample(BaseModel):
+    user_answer: str
+    correct_answer: str
+    exercise_type: str
+
+
+class ErrorPattern(BaseModel):
+    type: str
+    name: str
+    count: int
+    pct: int
+    examples: list[ErrorPatternExample]
+    tip: str
+
+
+class ErrorPatternsResponse(BaseModel):
+    patterns: list[ErrorPattern]
+    total_mistakes: int
+    top_pattern: str | None = None

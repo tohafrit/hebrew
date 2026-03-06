@@ -69,6 +69,74 @@ async def generate_drill_questions(
     return questions
 
 
+async def generate_table_drill(
+    db: AsyncSession,
+    *,
+    word_id: int | None = None,
+    binyan_id: int | None = None,
+    tense: str | None = None,
+    level_id: int | None = None,
+    blank_count: int = 5,
+) -> dict | None:
+    """Generate a full conjugation table with some cells blanked."""
+    q = (
+        select(VerbConjugation, Word.hebrew, Word.nikkud, Word.translation_ru, Binyan.name_ru)
+        .join(Word, VerbConjugation.word_id == Word.id)
+        .join(Binyan, VerbConjugation.binyan_id == Binyan.id)
+    )
+    if word_id:
+        q = q.where(VerbConjugation.word_id == word_id)
+    if binyan_id:
+        q = q.where(VerbConjugation.binyan_id == binyan_id)
+    if tense:
+        q = q.where(VerbConjugation.tense == tense)
+    if level_id:
+        q = q.where(Word.level_id == level_id)
+
+    q = q.order_by(VerbConjugation.word_id, VerbConjugation.tense, VerbConjugation.id)
+    result = await db.execute(q)
+    rows = result.all()
+
+    if not rows:
+        return None
+
+    # Pick a random verb+tense group
+    groups: dict[tuple, list] = {}
+    for conj, word_he, word_nikkud, translation_ru, binyan_name in rows:
+        key = (conj.word_id, conj.binyan_id, conj.tense)
+        if key not in groups:
+            groups[key] = {
+                "word_hebrew": word_he,
+                "word_nikkud": word_nikkud,
+                "translation_ru": translation_ru,
+                "binyan_name": binyan_name,
+                "tense": conj.tense,
+                "word_id": conj.word_id,
+                "binyan_id": conj.binyan_id,
+                "cells": [],
+            }
+        groups[key]["cells"].append({
+            "person": conj.person,
+            "gender": conj.gender,
+            "number": conj.number,
+            "form_he": conj.form_he,
+            "form_nikkud": conj.form_nikkud,
+            "transliteration": conj.transliteration,
+            "is_blank": False,
+        })
+
+    group = random.choice(list(groups.values()))
+    cells = group["cells"]
+
+    # Randomly blank cells, keep at least 2 visible
+    n_blank = min(blank_count, max(0, len(cells) - 2))
+    blank_indices = random.sample(range(len(cells)), n_blank)
+    for idx in blank_indices:
+        cells[idx]["is_blank"] = True
+
+    return group
+
+
 def _strip_nikkud(text: str) -> str:
     """Remove Hebrew vowel marks (nikkud) from text."""
     return re.sub(r"[\u0591-\u05C7]", "", text).replace("\u05BE", "-")

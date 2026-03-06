@@ -15,12 +15,14 @@ from app.schemas.srs import (
     LeechResponse,
     ReviewRequest,
     ReviewResponse,
+    SentenceCardsRequest,
     SessionResponse,
     SRSStats,
 )
 from app.services.srs import (
     create_cards_for_words,
     create_grammar_cards_for_words,
+    create_sentence_context_cards,
     get_leech_cards,
     get_session_cards,
     get_srs_stats,
@@ -51,6 +53,18 @@ async def create_grammar_cards(
 ):
     created = await create_grammar_cards_for_words(
         db, user.id, body.word_ids, body.tenses,
+    )
+    return CreateCardsResponse(created=created)
+
+
+@router.post("/sentence-cards", response_model=CreateCardsResponse)
+async def create_sentence_cards(
+    body: SentenceCardsRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    created = await create_sentence_context_cards(
+        db, user.id, body.text_id, body.max_cards,
     )
     return CreateCardsResponse(created=created)
 

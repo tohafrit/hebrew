@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useReadingTexts, useReadingText } from "@/hooks/use-lessons";
 import { useAutoCompleteStep } from "@/hooks/use-path";
+import { useCreateSentenceCards } from "@/hooks/use-srs";
+import { toast } from "@/hooks/use-toast";
 import { useUrlNumParam } from "@/hooks/use-url-state";
 import { HebrewText } from "@/components/hebrew-text";
 import { TTSControls, useTTS } from "@/components/tts-controls";
@@ -111,6 +113,7 @@ export function ReadingPage() {
   const { data: textDetail } = useReadingText(selectedTextId);
   const [showTranslation, setShowTranslation] = useState(false);
   const [levelFilter, setLevelFilter] = useUrlNumParam("level");
+  const createSentenceCards = useCreateSentenceCards();
 
   // Persist read texts in localStorage
   const readTextsKey = "hebrew-read-texts";
@@ -232,8 +235,30 @@ export function ReadingPage() {
           <p className="text-center text-sm text-green-600 font-medium">Отмечено как прочитанное</p>
         )}
 
+        {/* SRS sentence cards */}
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={createSentenceCards.isPending}
+          onClick={async () => {
+            try {
+              const result = await createSentenceCards.mutateAsync({ text_id: selectedTextId! });
+              toast({ title: "SRS карточки", description: `Создано ${result.created} карточек из предложений` });
+            } catch {
+              toast({ title: "Ошибка", description: "Не удалось создать карточки", variant: "destructive" });
+            }
+          }}
+        >
+          {createSentenceCards.isPending ? "Создание..." : "В SRS карточки (из предложений)"}
+        </Button>
+
         {/* Cross-links */}
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/cloze/${selectedTextId}`}>
+              Пропуски
+            </Link>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to={`/dictionary?level=${textDetail.level_id}`}>
               Словарь · {LEVEL_LABELS[textDetail.level_id]}

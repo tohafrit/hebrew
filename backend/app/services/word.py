@@ -93,6 +93,64 @@ async def get_root_families(
     return list(result.scalars().unique().all()), total
 
 
+async def get_root_family_detail(db: AsyncSession, root: str) -> dict | None:
+    """Get detailed root family with words grouped by POS."""
+    # Get root family info
+    fam_result = await db.execute(
+        select(RootFamily).where(RootFamily.root == root)
+    )
+    fam = fam_result.scalar_one_or_none()
+
+    # Get all words with this root
+    words_result = await db.execute(
+        select(Word).where(Word.root == root).order_by(Word.pos, Word.hebrew)
+    )
+    words = list(words_result.scalars().all())
+
+    if not words and not fam:
+        return None
+
+    # Group by POS
+    by_pos: dict[str, list] = {}
+    for w in words:
+        pos = w.pos or "other"
+        if pos not in by_pos:
+            by_pos[pos] = []
+        by_pos[pos].append(w)
+
+    return {
+        "root": root,
+        "meaning_ru": fam.meaning_ru if fam else None,
+        "words_by_pos": by_pos,
+        "total_words": len(words),
+    }
+
+
+async def search_root_families(
+    db: AsyncSession, search: str, limit: int = 20
+) -> list[dict]:
+    """Search root families by root or meaning."""
+    pattern = f"%{search}%"
+    q = (
+        select(RootFamily)
+        .where(
+            or_(
+                RootFamily.root.ilike(pattern),
+                RootFamily.meaning_ru.ilike(pattern),
+            )
+        )
+        .order_by(RootFamily.root)
+        .limit(limit)
+    )
+    result = await db.execute(q)
+    families = result.scalars().all()
+
+    return [
+        {"id": f.id, "root": f.root, "meaning_ru": f.meaning_ru}
+        for f in families
+    ]
+
+
 async def get_dictionary_stats(db: AsyncSession) -> dict:
     """Return aggregated dictionary statistics."""
     total = await db.scalar(select(func.count()).select_from(Word)) or 0

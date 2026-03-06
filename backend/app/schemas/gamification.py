@@ -89,3 +89,30 @@ class RecommendationOut(BaseModel):
     description: str
     link: str
     icon: str
+
+
+class LeaderboardEntry(BaseModel):
+    rank: int
+    user_id: str
+    display_name: str
+    level: int
+    xp: int
+
+
+class LeaderboardResponse(BaseModel):
+    entries: list[LeaderboardEntry]
+    period: str
+
+
+class ChallengeOut(BaseModel):
+    id: int
+    title_ru: str
+    description_ru: str
+    challenge_type: str
+    target_count: int
+    xp_reward: int
+
+
+class ChallengeProgressOut(ChallengeOut):
+    current: int
+    completed: bool

@@ -74,6 +74,31 @@ class UserReadingSession(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
 
+class PlacementTestResult(Base):
+    __tablename__ = "placement_test_results"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    assigned_level: Mapped[int] = mapped_column()
+    score_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    total_questions: Mapped[int] = mapped_column()
+    total_correct: Mapped[int] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class SpacedReadingSchedule(Base):
+    __tablename__ = "spaced_reading_schedules"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    text_id: Mapped[int] = mapped_column(ForeignKey("reading_texts.id", ondelete="CASCADE"), index=True)
+    next_review: Mapped[datetime] = mapped_column()
+    interval_days: Mapped[int] = mapped_column(default=1)
+    review_count: Mapped[int] = mapped_column(default=0)
+    last_known_pct: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
 class Dialogue(Base):
     __tablename__ = "dialogues"
 

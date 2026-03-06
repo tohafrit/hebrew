@@ -58,6 +58,14 @@ class VerbConjugation(Base):
     transliteration: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
 
+class GrammarRuleTag(Base):
+    __tablename__ = "grammar_rule_tags"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    rule_id: Mapped[int] = mapped_column(ForeignKey("grammar_topics.id", ondelete="CASCADE"), index=True)
+    tag: Mapped[str] = mapped_column(String(50), index=True)
+
+
 class Preposition(Base):
     __tablename__ = "prepositions"
 

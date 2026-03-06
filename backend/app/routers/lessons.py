@@ -18,6 +18,8 @@ from app.services.lesson import (
     get_lesson_completion,
 )
 from app.services.gamification import award_xp, check_and_award_achievements
+from app.services.cloze_generator import generate_cloze_from_text
+from app.schemas.cloze import ClozeExercise, ClozeExercisesResponse
 
 router = APIRouter(tags=["lessons"])
 
@@ -124,6 +126,20 @@ async def get_reading_texts(
 ):
     texts = await list_reading_texts(db, level_id=level_id, category=category)
     return [ReadingTextBrief.model_validate(t) for t in texts]
+
+
+@router.get("/reading/{text_id}/cloze", response_model=ClozeExercisesResponse)
+async def get_cloze_exercises(
+    text_id: int,
+    count: int = Query(10, ge=1, le=30),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    exercises = await generate_cloze_from_text(db, text_id, count)
+    return ClozeExercisesResponse(
+        exercises=[ClozeExercise(**e) for e in exercises],
+        text_id=text_id,
+    )
 
 
 @router.get("/reading/{text_id}", response_model=ReadingTextDetail)

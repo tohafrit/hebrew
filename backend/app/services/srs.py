@@ -420,6 +420,107 @@ async def review_card(
     }
 
 
+async def create_sentence_context_cards(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    text_id: int,
+    max_cards: int = 10,
+) -> int:
+    """Create sentence_context SRS cards from a ReadingText's vocabulary and sentences."""
+    import hashlib
+    import re
+    from app.models.content import ReadingText
+
+    result = await db.execute(
+        select(ReadingText).where(ReadingText.id == text_id)
+    )
+    text = result.scalar_one_or_none()
+    if not text or not text.vocabulary_json:
+        return 0
+
+    # Split sentences
+    he_sentences = re.split(r'[.!?]\s*', text.content_he.strip())
+    ru_sentences = re.split(r'[.!?]\s*', text.content_ru.strip())
+    he_sentences = [s.strip() for s in he_sentences if s.strip()]
+    ru_sentences = [s.strip() for s in ru_sentences if s.strip()]
+
+    now = datetime.now(timezone.utc)
+    vocab = text.vocabulary_json
+
+    # Check existing sentence_context cards for this user
+    existing_result = await db.execute(
+        select(SRSCard.front_json).where(
+            SRSCard.user_id == user_id,
+            SRSCard.card_type == "sentence_context",
+        )
+    )
+    existing_hashes = set()
+    for row in existing_result:
+        if row[0] and row[0].get("content_id"):
+            existing_hashes.add(row[0]["content_id"])
+
+    created = 0
+    for word_entry in vocab:
+        if created >= max_cards:
+            break
+
+        he_word = word_entry.get("he", "")
+        ru_word = word_entry.get("ru", "")
+        translit = word_entry.get("translit", "")
+        if not he_word:
+            continue
+
+        # Find containing sentence
+        sentence_he = None
+        sentence_ru = None
+        for i, sent in enumerate(he_sentences):
+            if he_word in sent:
+                sentence_he = sent
+                sentence_ru = ru_sentences[i] if i < len(ru_sentences) else ru_word
+                break
+
+        if not sentence_he:
+            continue
+
+        # Dedup by hash
+        content_hash = hashlib.md5(f"{text_id}:{sentence_he}:{he_word}".encode()).hexdigest()
+        if content_hash in existing_hashes:
+            continue
+
+        card = SRSCard(
+            user_id=user_id,
+            card_type="sentence_context",
+            content_id=text_id,
+            front_json={
+                "sentence_he": sentence_he,
+                "highlight_word": he_word,
+                "content_id": content_hash,
+            },
+            back_json={
+                "sentence_ru": sentence_ru,
+                "word_translation": ru_word,
+                "transliteration": translit,
+                "source_text": text.title_ru,
+            },
+        )
+        db.add(card)
+        await db.flush()
+
+        schedule = SRSSchedule(
+            card_id=card.id,
+            next_review=now,
+            interval_days=1.0,
+            ease_factor=2.5,
+            repetitions=0,
+            lapses=0,
+        )
+        db.add(schedule)
+        created += 1
+
+    await db.commit()
+    return created
+
+
 async def get_leech_cards(
     db: AsyncSession, user_id: uuid.UUID, threshold: int = 5
 ) -> list[dict]:

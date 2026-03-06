@@ -14,6 +14,9 @@ from app.models.user import User
 from app.models.content import UserReadingSession, ReadingText
 from app.services.gamification import award_xp
 from app.services.text_analysis import ensure_caches
+from app.services.spaced_reading import (
+    get_due_readings, enroll_text, record_reading_review, get_reading_improvement,
+)
 
 router = APIRouter(tags=["reader"])
 
@@ -420,6 +423,53 @@ async def get_reader_recommendations(
         ))
 
     return recommended[:5]
+
+
+# ── Spaced Reading ────────────────────────────────────────────────────────
+
+@router.get("/reader/spaced-reading/due")
+async def get_due(
+    limit: int = 5,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await get_due_readings(db, user.id, limit=limit)
+
+
+class EnrollRequest(BaseModel):
+    text_id: int
+
+
+@router.post("/reader/spaced-reading/enroll")
+async def enroll(
+    body: EnrollRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await enroll_text(db, user.id, body.text_id)
+
+
+class ReviewReadingRequest(BaseModel):
+    text_id: int
+    known_pct: int
+
+
+@router.post("/reader/spaced-reading/review")
+async def review_reading(
+    body: ReviewReadingRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await record_reading_review(db, user.id, body.text_id, body.known_pct)
+
+
+@router.get("/reader/spaced-reading/improvement")
+async def improvement(
+    text_id: int | None = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return await get_reading_improvement(db, user.id, text_id=text_id)
 
 
 def _dictionary_url(hebrew: str, pos: str | None = None) -> str:

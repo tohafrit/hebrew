@@ -71,6 +71,26 @@ class WordListResponse(BaseModel):
     per_page: int
 
 
+class RootExplorerWord(BaseModel):
+    id: int
+    hebrew: str
+    nikkud: str | None = None
+    transliteration: str | None = None
+    translation_ru: str
+    pos: str | None = None
+    level_id: int | None = None
+    frequency_rank: int | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class RootExplorerResponse(BaseModel):
+    root: str
+    meaning_ru: str | None = None
+    words_by_pos: dict[str, list[RootExplorerWord]]
+    total_words: int
+
+
 class DictionaryStats(BaseModel):
     total_words: int
     by_pos: dict[str, int]

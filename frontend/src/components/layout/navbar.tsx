@@ -36,13 +36,16 @@ const NAV_GROUPS: NavGroup[] = [
       { path: "/writing", label: "Письмо" },
       { path: "/dialogues", label: "Диалоги" },
       { path: "/pronunciation", label: "Произношение" },
+      { path: "/handwriting", label: "Письмо (буквы)" },
+      { path: "/minimal-pairs", label: "Мин. пары" },
+      { path: "/cloze", label: "Пропуски" },
     ],
   },
   {
     title: "Словарь",
     items: [
       { path: "/dictionary", label: "Словарь" },
-      { path: "/dictionary?tab=roots", label: "Корни" },
+      { path: "/root-explorer", label: "Корни" },
       { path: "/srs", label: "Карточки SRS" },
     ],
   },
@@ -50,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Прогресс",
     items: [
       { path: "/dashboard", label: "Дашборд" },
+      { path: "/leaderboard", label: "Рейтинг" },
       { path: "/achievements", label: "Достижения" },
       { path: "/culture", label: "Культура" },
     ],

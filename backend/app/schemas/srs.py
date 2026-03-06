@@ -65,6 +65,11 @@ class GrammarCardsRequest(BaseModel):
     tenses: list[str] = ["present", "past"]
 
 
+class SentenceCardsRequest(BaseModel):
+    text_id: int
+    max_cards: int = 10
+
+
 class LeechCard(BaseModel):
     id: uuid.UUID
     card_type: str

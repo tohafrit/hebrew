@@ -116,6 +116,21 @@ export function useCreateGrammarCards() {
   });
 }
 
+export function useCreateSentenceCards() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ created: number }, Error, { text_id: number; max_cards?: number }>({
+    mutationFn: async (body) => {
+      const { data } = await api.post("/srs/sentence-cards", body);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["srs-session"] });
+      queryClient.invalidateQueries({ queryKey: ["srs-stats"] });
+    },
+  });
+}
+
 export function useCreateCards() {
   const queryClient = useQueryClient();
 

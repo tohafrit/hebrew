@@ -211,6 +211,8 @@ export function SRSPage() {
                   ? "Предложение HE → RU"
                   : currentCard.card_type === "sentence_ru_he"
                   ? "Предложение RU → HE"
+                  : currentCard.card_type === "sentence_context"
+                  ? "Слово в контексте"
                   : currentCard.card_type === "conjugation"
                   ? "Спряжение"
                   : currentCard.card_type === "binyan_id"
@@ -244,8 +246,23 @@ export function SRSPage() {
                 </div>
               )}
 
+              {/* Front — sentence_context cards */}
+              {currentCard.card_type === "sentence_context" && (
+                <div className="space-y-2">
+                  <div dir="rtl" className="text-xl leading-relaxed font-hebrew text-center">
+                    {currentCard.front_json.sentence_he}
+                  </div>
+                  {currentCard.front_json.highlight_word && (
+                    <Badge variant="secondary">
+                      <HebrewText size="sm">{currentCard.front_json.highlight_word}</HebrewText>
+                    </Badge>
+                  )}
+                  <TTSControls text={currentCard.front_json.sentence_he || ""} size="sm" />
+                </div>
+              )}
+
               {/* Front — standard cards */}
-              {currentCard.card_type !== "conjugation" && currentCard.card_type !== "binyan_id" && (
+              {currentCard.card_type !== "conjugation" && currentCard.card_type !== "binyan_id" && currentCard.card_type !== "sentence_context" && (
               <div className="space-y-2">
                 {currentCard.front_json.hebrew && (
                   <>
@@ -312,8 +329,24 @@ export function SRSPage() {
                       <p className="text-muted-foreground">{currentCard.back_json.translation}</p>
                     </div>
                   )}
+                  {/* Sentence context back */}
+                  {currentCard.card_type === "sentence_context" && (
+                    <div className="space-y-2">
+                      <p className="text-lg">{currentCard.back_json.sentence_ru}</p>
+                      {currentCard.back_json.word_translation && (
+                        <p className="text-sm text-muted-foreground">
+                          Слово: {currentCard.back_json.word_translation}
+                        </p>
+                      )}
+                      {currentCard.back_json.source_text && (
+                        <Badge variant="outline" className="text-xs">
+                          Из: {currentCard.back_json.source_text}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                   {/* Standard back */}
-                  {currentCard.back_json.hebrew && currentCard.card_type !== "conjugation" && currentCard.card_type !== "binyan_id" && (
+                  {currentCard.back_json.hebrew && currentCard.card_type !== "conjugation" && currentCard.card_type !== "binyan_id" && currentCard.card_type !== "sentence_context" && (
                     <div className="space-y-1">
                       <HebrewText size="xl" className="block font-bold text-2xl" nikkud={currentCard.back_json.nikkud}>
                         {currentCard.back_json.hebrew}

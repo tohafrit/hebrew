@@ -106,3 +106,73 @@ class DrillCheckResponse(BaseModel):
     correct_answer: str
     correct_nikkud: str | None = None
     transliteration: str | None = None
+
+
+# ── Conjugation Table Drill ─────────────────────────────────────────────
+
+class TableDrillCell(BaseModel):
+    person: str
+    gender: str | None = None
+    number: str
+    form_he: str
+    form_nikkud: str | None = None
+    transliteration: str | None = None
+    is_blank: bool = False
+
+
+class TableDrillResponse(BaseModel):
+    word_id: int
+    word_hebrew: str
+    word_nikkud: str | None = None
+    translation_ru: str
+    binyan_id: int
+    binyan_name: str
+    tense: str
+    cells: list[TableDrillCell]
+
+
+class TableDrillAnswer(BaseModel):
+    person: str
+    answer: str
+
+
+class TableDrillCheckRequest(BaseModel):
+    word_id: int
+    binyan_id: int
+    tense: str
+    answers: list[TableDrillAnswer]
+
+
+class TableDrillCheckResult(BaseModel):
+    person: str
+    correct: bool
+    correct_answer: str
+    correct_nikkud: str | None = None
+
+
+class TableDrillCheckResponse(BaseModel):
+    results: list[TableDrillCheckResult]
+    total_correct: int
+    total_answers: int
+
+
+# ── Grammar Cards ────────────────────────────────────────────────────────
+
+class GrammarCardBrief(BaseModel):
+    id: int
+    title_ru: str
+    title_he: str | None = None
+    level_id: int
+    summary: str | None = None
+    tags: list[str] = []
+
+    model_config = {"from_attributes": True}
+
+
+class GrammarCardDetail(GrammarCardBrief):
+    content_md: str | None = None
+    rules: list[GrammarRuleOut] = []
+
+
+class RelatedGrammarResponse(BaseModel):
+    topics: list[GrammarCardBrief]

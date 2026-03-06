@@ -26,6 +26,13 @@ import { PathPage } from "@/pages/path";
 import { ConjugationDrillPage } from "@/pages/conjugation-drill";
 import { MistakesPage } from "@/pages/mistakes";
 import { PronunciationPage } from "@/pages/pronunciation";
+import { PlacementPage } from "@/pages/placement";
+import { HandwritingPage } from "@/pages/handwriting";
+import { MinimalPairsPage } from "@/pages/minimal-pairs";
+import { ClozePage } from "@/pages/cloze";
+import { LeaderboardPage } from "@/pages/leaderboard";
+import { RootExplorerPage } from "@/pages/root-explorer";
+import { GrammarCardsPage } from "@/pages/grammar-cards";
 import { NotFoundPage } from "@/pages/not-found";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -68,7 +75,15 @@ export default function App() {
                 <Route path="/reader" element={<ReaderPage />} />
                 <Route path="/path" element={<PathPage />} />
                 <Route path="/pronunciation" element={<PronunciationPage />} />
+                <Route path="/handwriting" element={<HandwritingPage />} />
+                <Route path="/minimal-pairs" element={<MinimalPairsPage />} />
+                <Route path="/cloze" element={<ClozePage />} />
+                <Route path="/cloze/:textId" element={<ClozePage />} />
+                <Route path="/leaderboard" element={<LeaderboardPage />} />
+                <Route path="/root-explorer" element={<RootExplorerPage />} />
+                <Route path="/grammar-cards" element={<GrammarCardsPage />} />
               </Route>
+              <Route path="/placement" element={<PlacementPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="*" element={<NotFoundPage />} />

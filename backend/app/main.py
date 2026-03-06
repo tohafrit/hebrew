@@ -7,7 +7,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
-from app.routers import auth, health, words, srs, alphabet, grammar, lessons, dialogues, gamification, topics, tts, reader, learning_path
+from app.routers import auth, health, words, srs, alphabet, grammar, lessons, dialogues, gamification, topics, tts, reader, learning_path, placement, minimal_pairs
 from app.routers import settings as settings_router
 
 logger = logging.getLogger(__name__)
@@ -47,3 +47,5 @@ app.include_router(topics.router, prefix="/api")
 app.include_router(tts.router, prefix="/api")
 app.include_router(reader.router, prefix="/api")
 app.include_router(learning_path.router, prefix="/api")
+app.include_router(placement.router, prefix="/api")
+app.include_router(minimal_pairs.router, prefix="/api")
