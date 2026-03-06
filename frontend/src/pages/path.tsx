@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useLearningPath, useCompleteStep, useRecommendedStep, type PathStep } from "@/hooks/use-path";
+import { useLesson, useReadingText } from "@/hooks/use-lessons";
 import { HebrewText } from "@/components/hebrew-text";
+import { MarkdownContent } from "@/components/markdown-content";
+import { ExerciseCard, exercise_type_label } from "@/components/exercise-card";
+import { TTSControls } from "@/components/tts-controls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,21 +59,352 @@ function getStepRoute(step: PathStep): string {
   }
 }
 
+// ── Inline step content views ──────────────────────────────────────────────
+
+type StepPhase = "content" | "exercises" | "done";
+
+function InlineLessonStep({
+  contentId,
+  onComplete,
+}: {
+  contentId: number;
+  onComplete: () => void;
+}) {
+  const { data: lesson, isLoading } = useLesson(contentId);
+  const [phase, setPhase] = useState<StepPhase>("content");
+  const [currentExIdx, setCurrentExIdx] = useState(0);
+
+  // Reset when contentId changes
+  useEffect(() => {
+    setPhase("content");
+    setCurrentExIdx(0);
+  }, [contentId]);
+
+  if (isLoading) {
+    return <p className="text-center text-muted-foreground py-8">Загрузка урока...</p>;
+  }
+
+  if (!lesson) {
+    return <p className="text-center text-muted-foreground py-8">Урок не найден</p>;
+  }
+
+  const hasContent = !!lesson.content_md;
+  const hasExercises = lesson.exercises.length > 0;
+  const effectivePhase = phase === "content" && !hasContent
+    ? (hasExercises ? "exercises" : "done")
+    : phase;
+
+  const currentExercise = lesson.exercises[currentExIdx];
+
+  const handleNext = () => {
+    if (currentExIdx + 1 < lesson.exercises.length) {
+      setCurrentExIdx((i) => i + 1);
+    } else {
+      setPhase("done");
+    }
+  };
+
+  if (effectivePhase === "done") {
+    onComplete();
+    return (
+      <Card>
+        <CardContent className="p-8 text-center space-y-4">
+          <p className="text-2xl font-bold">Шаг завершён!</p>
+          <p className="text-muted-foreground">
+            Вы выполнили {lesson.exercises.length} упражнений
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold">{lesson.title_ru}</h2>
+
+      {/* Content phase */}
+      {effectivePhase === "content" && hasContent && (
+        <>
+          <Card>
+            <CardContent className="py-6">
+              <MarkdownContent content={lesson.content_md!} />
+            </CardContent>
+          </Card>
+          {hasExercises && (
+            <Button onClick={() => { setCurrentExIdx(0); setPhase("exercises"); }} className="w-full">
+              Начать упражнения ({lesson.exercises.length})
+            </Button>
+          )}
+          {!hasExercises && (
+            <Button onClick={onComplete} className="w-full">
+              Далее
+            </Button>
+          )}
+        </>
+      )}
+
+      {/* Exercise phase */}
+      {effectivePhase === "exercises" && hasExercises && (
+        <>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{currentExIdx + 1} / {lesson.exercises.length}</span>
+            <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all"
+                style={{ width: `${((currentExIdx + 1) / lesson.exercises.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <Badge variant="outline" className="self-start">
+                {exercise_type_label(currentExercise!.type)}
+              </Badge>
+            </CardHeader>
+            <CardContent>
+              <ExerciseCard
+                key={`${currentExercise!.id}-${currentExIdx}`}
+                exercise={currentExercise!}
+                onDone={handleNext}
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+function InlineReadingStep({
+  contentId,
+  onComplete,
+}: {
+  contentId: number;
+  onComplete: () => void;
+}) {
+  const { data: text, isLoading } = useReadingText(contentId);
+
+  if (isLoading) {
+    return <p className="text-center text-muted-foreground py-8">Загрузка текста...</p>;
+  }
+
+  if (!text) {
+    return <p className="text-center text-muted-foreground py-8">Текст не найден</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">{text.title_ru}</h2>
+        {text.title_he && (
+          <HebrewText size="lg" className="font-bold">{text.title_he}</HebrewText>
+        )}
+      </div>
+
+      <Card>
+        <CardContent className="py-6 space-y-4">
+          {/* Hebrew text */}
+          <div dir="rtl" className="font-hebrew text-xl leading-relaxed space-y-2">
+            {text.content_he.split("\n").map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
+          <TTSControls text={text.content_he} size="lg" label="Прослушать" />
+
+          {/* Translation */}
+          <hr className="my-4" />
+          <div className="text-base text-muted-foreground leading-relaxed space-y-2">
+            {text.content_ru.split("\n").map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Vocabulary */}
+      {text.vocabulary_json && text.vocabulary_json.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Словарь</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2">
+              {text.vocabulary_json.map((w, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded border">
+                  <div className="flex items-center gap-3">
+                    <HebrewText size="lg" className="font-bold">{w.he}</HebrewText>
+                    {w.translit && (
+                      <span className="text-xs text-muted-foreground">{w.translit}</span>
+                    )}
+                    <TTSControls text={w.he} size="sm" />
+                  </div>
+                  <span className="text-sm">{w.ru}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Button onClick={onComplete} className="w-full">
+        Далее
+      </Button>
+    </div>
+  );
+}
+
+// ── Focused step view (stepper mode) ───────────────────────────────────────
+
+function StepperView({
+  steps,
+  activeStepId,
+  onExit,
+  onAdvance,
+}: {
+  steps: PathStep[];
+  activeStepId: number;
+  onExit: () => void;
+  onAdvance: () => void;
+}) {
+  const completeStep = useCompleteStep();
+  const activeStep = steps.find((s) => s.id === activeStepId);
+  const activeIndex = steps.findIndex((s) => s.id === activeStepId);
+  const totalSteps = steps.length;
+
+  if (!activeStep) {
+    return (
+      <div className="space-y-4">
+        <p className="text-center text-muted-foreground py-8">Шаг не найден</p>
+        <Button variant="outline" onClick={onExit}>Назад к пути</Button>
+      </div>
+    );
+  }
+
+  const handleComplete = () => {
+    if (!activeStep.completed) {
+      completeStep.mutate(activeStep.id);
+    }
+    onAdvance();
+  };
+
+  // For grammar, dialogue, srs_review — link out
+  const isExternalStep =
+    activeStep.step_type === "grammar" ||
+    activeStep.step_type === "dialogue" ||
+    activeStep.step_type === "srs_review";
+
+  const isLessonStep =
+    activeStep.step_type === "vocabulary" || activeStep.step_type === "exercise";
+
+  const isReadingStep = activeStep.step_type === "reading";
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onExit}>
+          ← Назад к пути
+        </Button>
+        <Badge variant="outline">
+          {STEP_TYPE_LABELS[activeStep.step_type] || activeStep.step_type}
+        </Badge>
+      </div>
+
+      {/* Progress bar */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>Шаг {activeIndex + 1} / {totalSteps}</span>
+        <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full transition-all"
+            style={{ width: `${((activeIndex + 1) / totalSteps) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Step title */}
+      <div>
+        <h1 className="text-xl font-bold">{activeStep.title_ru}</h1>
+        {activeStep.title_he && (
+          <HebrewText size="sm" className="text-muted-foreground">
+            {activeStep.title_he}
+          </HebrewText>
+        )}
+        {activeStep.description_ru && (
+          <p className="text-sm text-muted-foreground mt-1">{activeStep.description_ru}</p>
+        )}
+      </div>
+
+      {/* Inline content */}
+      {isLessonStep && activeStep.content_id && (
+        <InlineLessonStep
+          key={activeStep.id}
+          contentId={activeStep.content_id}
+          onComplete={handleComplete}
+        />
+      )}
+
+      {isReadingStep && activeStep.content_id && (
+        <InlineReadingStep
+          key={activeStep.id}
+          contentId={activeStep.content_id}
+          onComplete={handleComplete}
+        />
+      )}
+
+      {isExternalStep && (
+        <Card>
+          <CardContent className="p-8 text-center space-y-4">
+            <p className="text-muted-foreground">
+              {activeStep.step_type === "grammar" && "Этот шаг откроется на странице грамматики"}
+              {activeStep.step_type === "dialogue" && "Этот шаг откроется на странице диалогов"}
+              {activeStep.step_type === "srs_review" && "Перейдите к повторению карточек"}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button asChild>
+                <Link to={getStepRoute(activeStep)}>Перейти</Link>
+              </Button>
+              <Button variant="outline" onClick={handleComplete}>
+                Отметить выполненным
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No content_id fallback */}
+      {!isExternalStep && !activeStep.content_id && (
+        <Card>
+          <CardContent className="p-8 text-center space-y-4">
+            <p className="text-muted-foreground">Нет контента для этого шага</p>
+            <Button variant="outline" onClick={handleComplete}>
+              Отметить выполненным
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ── Step node (path tree view) ─────────────────────────────────────────────
+
 function StepNode({
   step,
   isNext,
   isLocked,
   onComplete,
   isPending,
+  onStart,
 }: {
   step: PathStep;
   isNext: boolean;
   isLocked: boolean;
   onComplete: () => void;
   isPending: boolean;
+  onStart: () => void;
 }) {
   const color = STEP_TYPE_COLORS[step.step_type] || "bg-gray-500";
-  const route = getStepRoute(step);
 
   return (
     <div
@@ -116,8 +451,8 @@ function StepNode({
       <div className="shrink-0 flex flex-col gap-1">
         {!isLocked && !step.completed && (
           <>
-            <Button size="sm" asChild>
-              <Link to={route}>Начать</Link>
+            <Button size="sm" onClick={onStart}>
+              Начать
             </Button>
             <Button
               size="sm"
@@ -130,8 +465,8 @@ function StepNode({
           </>
         )}
         {step.completed && (
-          <Button size="sm" variant="ghost" asChild>
-            <Link to={route}>Повторить</Link>
+          <Button size="sm" variant="ghost" onClick={onStart}>
+            Повторить
           </Button>
         )}
       </div>
@@ -146,6 +481,7 @@ function UnitGroup({
   onComplete,
   isPending,
   levelId,
+  onStartStep,
 }: {
   unit: number;
   steps: PathStep[];
@@ -153,6 +489,7 @@ function UnitGroup({
   onComplete: (id: number) => void;
   isPending: boolean;
   levelId: number;
+  onStartStep: (stepId: number) => void;
 }) {
   const allCompleted = steps.every((s) => s.completed);
   const someCompleted = steps.some((s) => s.completed);
@@ -182,7 +519,6 @@ function UnitGroup({
 
       <div className="space-y-2 ml-4 border-l-2 border-muted pl-6">
         {steps.map((step, i) => {
-          // A step is locked if the previous step in this unit isn't completed
           const prevStep = i > 0 ? steps[i - 1] : null;
           const isLocked = prevStep ? !prevStep.completed && step.id !== nextStepId : false;
 
@@ -194,6 +530,7 @@ function UnitGroup({
               isLocked={isLocked}
               onComplete={() => onComplete(step.id)}
               isPending={isPending}
+              onStart={() => onStartStep(step.id)}
             />
           );
         })}
@@ -202,8 +539,11 @@ function UnitGroup({
   );
 }
 
+// ── Main page ──────────────────────────────────────────────────────────────
+
 export function PathPage() {
   const [levelFilter, setLevelFilter] = useState<number | null>(null);
+  const [activeStepId, setActiveStepId] = useState<number | null>(null);
   const { data, isLoading } = useLearningPath(levelFilter ?? undefined);
   const completeStep = useCompleteStep();
   const { data: recommended } = useRecommendedStep();
@@ -224,6 +564,30 @@ export function PathPage() {
       </div>
     );
   }
+
+  // ── Stepper mode ──
+  if (activeStepId !== null) {
+    const handleAdvance = () => {
+      const currentIdx = data.steps.findIndex((s) => s.id === activeStepId);
+      if (currentIdx >= 0 && currentIdx + 1 < data.steps.length) {
+        setActiveStepId(data.steps[currentIdx + 1].id);
+      } else {
+        // Last step — exit stepper
+        setActiveStepId(null);
+      }
+    };
+
+    return (
+      <StepperView
+        steps={data.steps}
+        activeStepId={activeStepId}
+        onExit={() => setActiveStepId(null)}
+        onAdvance={handleAdvance}
+      />
+    );
+  }
+
+  // ── Path tree mode ──
 
   // Group steps by level and unit
   const levels = new Map<number, Map<number, PathStep[]>>();
@@ -257,13 +621,11 @@ export function PathPage() {
                 <p className="text-sm font-medium">Рекомендованный урок</p>
                 <p className="text-xs text-muted-foreground">{recommended.step.label}</p>
               </div>
-              <Button size="sm" asChild>
-                <Link to={getStepRoute({
-                  step_type: recommended.step.step_type,
-                  content_id: recommended.step.content_id,
-                } as PathStep)}>
-                  Начать
-                </Link>
+              <Button
+                size="sm"
+                onClick={() => setActiveStepId(recommended.step!.id)}
+              >
+                Начать
               </Button>
             </div>
           </CardContent>
@@ -324,6 +686,7 @@ export function PathPage() {
                 onComplete={(id) => completeStep.mutate(id)}
                 isPending={completeStep.isPending}
                 levelId={levelId}
+                onStartStep={(stepId) => setActiveStepId(stepId)}
               />
             ))}
           </div>

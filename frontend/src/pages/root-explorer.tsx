@@ -18,9 +18,13 @@ export function RootExplorerPage() {
 
       {/* Search input */}
       <div className="space-y-3">
-        <div dir="rtl" className="min-h-[48px] border rounded-md px-3 py-2 font-hebrew text-xl text-right bg-background">
-          {query || <span className="text-muted-foreground">חפש שורש...</span>}
-        </div>
+        <input
+          dir="rtl"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="חפש שורש..."
+          className="w-full h-12 border rounded-md px-3 font-hebrew text-xl text-right bg-background"
+        />
         <HebrewKeyboard
           onKey={(k) => setQuery(v => v + k)}
           onBackspace={() => setQuery(v => v.slice(0, -1))}

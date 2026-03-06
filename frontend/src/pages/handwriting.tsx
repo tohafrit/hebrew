@@ -61,6 +61,7 @@ export function HandwritingPage() {
             </div>
 
             <HandwritingCanvas
+              key={template.letter}
               template={template}
               showTemplate={showTemplate}
               onScore={(s) => setLastScore(s)}
