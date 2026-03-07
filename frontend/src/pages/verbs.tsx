@@ -19,6 +19,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { LEVEL_LABELS } from "@/lib/constants";
 
+/* ── Helpers ───────────────────────────────────────────────── */
+
+/** Fix sofit (final) letters appearing in non-final positions */
+function fixSofit(s: string): string {
+  // Map: sofit → regular form
+  const SOFIT: Record<string, string> = {
+    "\u05E5": "\u05E6", // ץ → צ
+    "\u05DD": "\u05DE", // ם → מ
+    "\u05DF": "\u05E0", // ן → נ
+    "\u05E3": "\u05E4", // ף → פ
+    "\u05DA": "\u05DB", // ך → כ
+  };
+  const chars = [...s];
+  for (let i = 0; i < chars.length - 1; i++) {
+    if (SOFIT[chars[i]]) chars[i] = SOFIT[chars[i]];
+  }
+  return chars.join("");
+}
+
 /* ── Constants ─────────────────────────────────────────────── */
 
 const FREQ_LABELS: Record<string, string> = {
@@ -77,7 +96,7 @@ function TenseSection({ forms, tense }: { forms: Conjugation[]; tense: string })
         {forms.map((f) => (
           <div key={f.id} className="flex items-center gap-3">
             <HebrewText size="lg" className="font-medium">
-              {f.form_nikkud || f.form_he}
+              {fixSofit(f.form_nikkud || f.form_he)}
             </HebrewText>
             {f.transliteration && (
               <span className="text-sm text-muted-foreground">{f.transliteration}</span>
@@ -112,7 +131,7 @@ function TenseSection({ forms, tense }: { forms: Conjugation[]; tense: string })
               </td>
               <td className="px-3 py-1.5 text-right" dir="rtl">
                 <HebrewText size="md" className="font-medium">
-                  {f.form_nikkud || f.form_he}
+                  {fixSofit(f.form_nikkud || f.form_he)}
                 </HebrewText>
               </td>
               <td className="px-3 py-1.5 text-muted-foreground text-xs">
@@ -160,8 +179,17 @@ function ConjugationView({ wordId, verb }: { wordId: number; verb: WordBrief }) 
 
   const groups = useMemo((): BinyanGroup[] => {
     if (!conjugations?.length) return [];
+    // Filter out beinoni (duplicate of present) and deduplicate by person+tense+binyan
+    const seen = new Set<string>();
+    const filtered = conjugations.filter((c) => {
+      if (c.tense === "beinoni") return false;
+      const key = `${c.binyan_id}-${c.tense}-${c.person}-${c.gender}-${c.number}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     const byBinyan = new Map<number, Conjugation[]>();
-    for (const c of conjugations) {
+    for (const c of filtered) {
       if (!byBinyan.has(c.binyan_id)) byBinyan.set(c.binyan_id, []);
       byBinyan.get(c.binyan_id)!.push(c);
     }
@@ -269,10 +297,11 @@ export function VerbsPage() {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / 100);
 
-  // Client-side filtering by search + frequency
+  // Client-side filtering: only infinitives (ל-forms), + search + frequency
   const filtered = useMemo(() => {
     if (!verbs) return [];
-    let list = verbs;
+    // Only show infinitive forms (proper dictionary entries with nikkud & conjugations)
+    let list = verbs.filter((v) => v.hebrew.startsWith("ל"));
     if (freqFilter !== "all") {
       const rank = Number(freqFilter);
       list = list.filter((v) => v.frequency_rank === rank);
