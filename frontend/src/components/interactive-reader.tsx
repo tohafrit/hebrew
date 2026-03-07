@@ -1,7 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { HebrewText } from "@/components/hebrew-text";
+import { Button } from "@/components/ui/button";
 import { useTTS } from "@/components/tts-controls";
+import { useCreateCards } from "@/hooks/use-srs";
 import api from "@/lib/api";
 
 interface VocabEntry {
@@ -95,6 +97,8 @@ function WordTooltip({ word, vocabEntry, onClose }: {
   const [loading, setLoading] = useState(false);
   const [looked, setLooked] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const createCards = useCreateCards();
+  const [srsAdded, setSrsAdded] = useState(false);
 
   // If we have a vocab entry, use it directly
   const hasVocab = !!vocabEntry;
@@ -165,12 +169,27 @@ function WordTooltip({ word, vocabEntry, onClose }: {
       )}
 
       {wordId && (
-        <Link
-          to={`/dictionary?search=${encodeURIComponent(stripNikkud(word))}`}
-          className="text-xs text-primary hover:underline block mt-1"
-        >
-          Открыть в словаре →
-        </Link>
+        <div className="flex items-center gap-3 mt-1">
+          <Link
+            to={`/dictionary?search=${encodeURIComponent(stripNikkud(word))}`}
+            className="text-xs text-primary hover:underline"
+          >
+            Открыть в словаре →
+          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto py-0.5 px-1.5 text-xs"
+            disabled={createCards.isPending || srsAdded}
+            onClick={() => {
+              createCards.mutate({ word_ids: [wordId] }, {
+                onSuccess: () => setSrsAdded(true),
+              });
+            }}
+          >
+            {srsAdded ? "Добавлено!" : createCards.isPending ? "..." : "+ В SRS"}
+          </Button>
+        </div>
       )}
     </div>
   );
