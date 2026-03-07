@@ -6,6 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import Lesson, Exercise, ExerciseResult, ReadingText
+from app.services.hebrew_utils import strip_nikkud as _strip_nikkud, normalize_answer as _normalize_answer, answers_match as _answers_match
 
 
 async def list_lessons(
@@ -60,16 +61,13 @@ def check_answer(exercise: Exercise, user_answer) -> tuple[bool, str | dict | li
         if isinstance(user_answer, int):
             is_correct = user_answer == correct_idx
         else:
-            is_correct = str(user_answer).strip() == str(correct).strip()
+            is_correct = _normalize_answer(str(user_answer)) == _normalize_answer(str(correct))
         return is_correct, correct, explanation_text
 
     elif exercise.type == "fill_blank":
         correct = answer_data.get("correct", "")
         accept = answer_data.get("accept", [correct])
-        user_str = str(user_answer).strip()
-        stripped = _strip_nikkud(user_str)
-        is_correct = user_str in [str(a).strip() for a in accept] or \
-                     stripped in [_strip_nikkud(str(a).strip()) for a in accept]
+        is_correct = _answers_match(str(user_answer), accept)
         return is_correct, correct, explanation_text
 
     elif exercise.type == "match_pairs":
@@ -83,9 +81,11 @@ def check_answer(exercise: Exercise, user_answer) -> tuple[bool, str | dict | li
     elif exercise.type == "word_order":
         correct_order = answer_data.get("correct_order", [])
         if isinstance(user_answer, list):
-            is_correct = user_answer == correct_order
+            # Normalize each word for comparison
+            is_correct = [_normalize_answer(w) for w in user_answer] == \
+                         [_normalize_answer(w) for w in correct_order]
         elif isinstance(user_answer, str):
-            is_correct = user_answer.strip() == " ".join(correct_order)
+            is_correct = _normalize_answer(user_answer) == _normalize_answer(" ".join(correct_order))
         else:
             is_correct = False
         return is_correct, correct_order, explanation_text
@@ -93,37 +93,29 @@ def check_answer(exercise: Exercise, user_answer) -> tuple[bool, str | dict | li
     elif exercise.type in ("dictation", "hebrew_typing", "translate_ru_he"):
         correct = answer_data.get("correct", "")
         accept = answer_data.get("accept", [correct])
-        user_str = str(user_answer).strip()
-        # Strip nikkud for comparison
-        stripped = _strip_nikkud(user_str)
-        is_correct = user_str in [str(a).strip() for a in accept] or \
-                     stripped in [_strip_nikkud(str(a).strip()) for a in accept]
+        is_correct = _answers_match(str(user_answer), accept)
         return is_correct, correct, explanation_text
 
     elif exercise.type == "minimal_pairs":
         correct = answer_data.get("correct", "")
-        is_correct = str(user_answer).strip().lower() == str(correct).strip().lower()
+        is_correct = _normalize_answer(str(user_answer)) == _normalize_answer(str(correct))
         return is_correct, correct, explanation_text
 
     elif exercise.type == "listening_comprehension":
         correct_answers = answer_data.get("correct_answers", [])
         if isinstance(user_answer, list):
-            is_correct = user_answer == correct_answers
+            is_correct = (
+                len(user_answer) == len(correct_answers)
+                and all(
+                    _normalize_answer(str(u)) == _normalize_answer(str(c))
+                    for u, c in zip(user_answer, correct_answers)
+                )
+            )
         else:
             is_correct = False
         return is_correct, correct_answers, explanation_text
 
     return False, None, explanation_text
-
-
-def _strip_nikkud(text: str) -> str:
-    """Remove Hebrew nikkud (vowel marks) and cantillation marks from text for fuzzy comparison.
-    Preserves maqaf (U+05BE, Hebrew hyphen) to keep compound words intact.
-    """
-    return "".join(
-        c for c in text
-        if not ('\u0591' <= c <= '\u05BD' or '\u05BF' <= c <= '\u05C7')
-    )
 
 
 async def save_exercise_result(

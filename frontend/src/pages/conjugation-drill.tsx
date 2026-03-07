@@ -408,11 +408,9 @@ function TableDrillSection({ levelFilter, binyanFilter, tenseFilter }: {
   if (!tableDrill) return <p className="text-center py-6 text-muted-foreground">Нет данных для таблицы</p>;
 
   const handleSubmit = async (answers: Record<string, string>) => {
-    // We need word_id and binyan_id from the drill data — for now extract from the query
-    // The table drill endpoint should return these; using a simplified check
     const res = await checkTableDrill.mutateAsync({
-      word_id: 0, // The backend will use the session data
-      binyan_id: 0,
+      word_id: tableDrill.word_id,
+      binyan_id: tableDrill.binyan_id,
       tense: tableDrill.tense,
       answers,
     });

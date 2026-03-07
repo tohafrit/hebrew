@@ -68,6 +68,8 @@ export interface TableDrillCell {
 }
 
 export interface TableDrillData {
+  word_id: number;
+  binyan_id: number;
   word_hebrew: string;
   word_nikkud: string | null;
   translation_ru: string;

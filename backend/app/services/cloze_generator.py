@@ -24,6 +24,9 @@ async def generate_cloze_from_text(
     if not vocab:
         return []
 
+    if not text.content_he or not text.content_ru:
+        return []
+
     # Split content into sentences
     he_sentences = re.split(r'[.!?]\s*', text.content_he.strip())
     ru_sentences = re.split(r'[.!?]\s*', text.content_ru.strip())

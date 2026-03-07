@@ -1,11 +1,11 @@
 import random
-import re
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.grammar import VerbConjugation, Binyan
 from app.models.word import Word
+from app.services.hebrew_utils import strip_nikkud as _strip_nikkud
 
 
 async def generate_drill_questions(
@@ -135,11 +135,6 @@ async def generate_table_drill(
         cells[idx]["is_blank"] = True
 
     return group
-
-
-def _strip_nikkud(text: str) -> str:
-    """Remove Hebrew vowel marks (nikkud) from text."""
-    return re.sub(r"[\u0591-\u05C7]", "", text).replace("\u05BE", "-")
 
 
 async def check_drill_answer(

@@ -27,12 +27,18 @@ export function ClozePage() {
   const exercises = clozeData?.exercises ?? [];
   const currentEx = exercises[currentIndex];
 
-  const stripNikkud = (t: string) => t.replace(/[\u0591-\u05C7]/g, "").replace("\u05BE", "-");
+  const normalizeAnswer = (t: string) =>
+    t.replace(/[\u0591-\u05C7]/g, "")  // strip nikkud
+      .replace("\u05BE", "-")
+      .normalize("NFC")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ")            // collapse whitespace
+      .replace(/^[.,!?;: ]+|[.,!?;: ]+$/g, "");  // strip edge punctuation
 
   const handleCheck = useCallback(() => {
     if (!currentEx) return;
-    const correct = answer.trim() === currentEx.answer.trim()
-      || stripNikkud(answer.trim()) === stripNikkud(currentEx.answer.trim());
+    const correct = normalizeAnswer(answer) === normalizeAnswer(currentEx.answer);
     setChecked(true);
     setIsCorrect(correct);
     setScore(s => ({

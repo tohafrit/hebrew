@@ -3,6 +3,8 @@ import { useGrammarCards, useGrammarCardDetail, useGrammarTags } from "@/hooks/u
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HebrewText } from "@/components/hebrew-text";
+import { TTSControls } from "@/components/tts-controls";
 
 export function GrammarCardsPage() {
   const [levelFilter, setLevelFilter] = useState<number | undefined>();
@@ -24,7 +26,9 @@ export function GrammarCardsPage() {
         <Card>
           <CardHeader>
             <CardTitle>{detail.title_ru}</CardTitle>
-            {detail.title_he && <p className="font-hebrew text-lg">{detail.title_he}</p>}
+            {detail.title_he && (
+              <HebrewText size="lg">{detail.title_he}</HebrewText>
+            )}
             <div className="flex gap-1 flex-wrap">
               <Badge variant="outline">Уровень {detail.level_id}</Badge>
               {detail.tags.map(t => <Badge key={t} variant="secondary">{t}</Badge>)}
@@ -40,10 +44,23 @@ export function GrammarCardsPage() {
             {detail.rules.map(rule => (
               <div key={rule.id} className="border rounded-lg p-4 space-y-2">
                 <p>{rule.rule_text_ru}</p>
-                {rule.examples_json != null && (
-                  <div className="text-sm text-muted-foreground">
-                    <p className="font-medium">Примеры:</p>
-                    <pre className="text-xs mt-1 whitespace-pre-wrap">{String(JSON.stringify(rule.examples_json, null, 2))}</pre>
+                {rule.examples_json != null && Array.isArray(rule.examples_json) && rule.examples_json.length > 0 && (
+                  <div className="text-sm space-y-2">
+                    <p className="font-medium text-muted-foreground">Примеры:</p>
+                    {(rule.examples_json as Array<{ he?: string; ru?: string; translit?: string }>).map((ex, i) => (
+                      <div key={i} className="flex items-start gap-2 bg-muted/50 rounded p-2">
+                        {ex.he && (
+                          <div className="flex items-center gap-1">
+                            <TTSControls text={ex.he} size="sm" />
+                            <HebrewText size="base" className="font-medium">{ex.he}</HebrewText>
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          {ex.translit && <span className="text-xs text-muted-foreground">{ex.translit}</span>}
+                          {ex.ru && <span>{ex.ru}</span>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -97,7 +114,7 @@ export function GrammarCardsPage() {
           <Card key={card.id} className="cursor-pointer hover:bg-accent/50" onClick={() => setSelectedTopicId(card.id)}>
             <CardContent className="py-4 space-y-2">
               <p className="font-medium">{card.title_ru}</p>
-              {card.title_he && <p className="font-hebrew text-muted-foreground">{card.title_he}</p>}
+              {card.title_he && <HebrewText className="text-muted-foreground">{card.title_he}</HebrewText>}
               <div className="flex gap-1 flex-wrap">
                 <Badge variant="outline" className="text-xs">Ур. {card.level_id}</Badge>
                 {card.tags.map(t => <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>)}

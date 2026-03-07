@@ -14,7 +14,7 @@ from app.services.grammar import (
     list_topics, get_topic_detail, list_binyanim, get_conjugations, list_prepositions,
     get_grammar_cards, get_related_grammar_for_error, get_grammar_tags,
 )
-from app.services.conjugation_drill import generate_drill_questions, check_drill_answer, generate_table_drill, _strip_nikkud
+from app.services.conjugation_drill import generate_drill_questions, check_drill_answer, generate_table_drill
 
 router = APIRouter(tags=["grammar"])
 
@@ -185,16 +185,9 @@ async def get_card_detail(
     if not topic:
         raise HTTPException(status_code=404, detail="Topic not found")
     tags = await get_grammar_tags(db, topic_id)
-    return GrammarCardDetail(
-        id=topic.id,
-        title_ru=topic.title_ru,
-        title_he=topic.title_he,
-        level_id=topic.level_id,
-        summary=topic.summary,
-        content_md=topic.content_md,
-        rules=[],  # filled via model_validate if needed
-        tags=tags,
-    )
+    detail = GrammarCardDetail.model_validate(topic)
+    detail.tags = tags
+    return detail
 
 
 @router.get("/grammar/related", response_model=RelatedGrammarResponse)
