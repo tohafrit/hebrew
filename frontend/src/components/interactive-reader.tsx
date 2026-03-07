@@ -48,7 +48,8 @@ async function lookupWord(hebrew: string): Promise<WordInfo | null> {
 
   try {
     // 1. Try /words/lookup — checks words, forms, AND conjugations
-    const { data: lookup } = await api.get("/words/lookup", { params: { q: clean } });
+    // Send original (with nikkud) so backend can disambiguate homographs
+    const { data: lookup } = await api.get("/words/lookup", { params: { q: hebrew } });
     if (lookup && lookup.word_id) {
       const info: WordInfo = {
         hebrew: lookup.hebrew,
@@ -103,14 +104,15 @@ function WordTooltip({ word, vocabEntry, onClose }: {
   // If we have a vocab entry, use it directly
   const hasVocab = !!vocabEntry;
 
-  // Look up in dictionary if no vocab entry
+  // Always look up in dictionary to get wordId (needed for SRS + dictionary link)
   useEffect(() => {
-    if (hasVocab) return;
-    setLoading(true);
+    if (!hasVocab) setLoading(true);
     lookupWord(word).then((result) => {
       setInfo(result);
-      setLoading(false);
-      setLooked(true);
+      if (!hasVocab) {
+        setLoading(false);
+        setLooked(true);
+      }
     });
   }, [word, hasVocab]);
 

@@ -66,17 +66,24 @@ async def _build_word_cache(db: AsyncSession) -> dict[str, dict]:
         )
     )
     cache: dict[str, dict] = {}
+    # Also build a noun-only cache for possessive suffix disambiguation
+    # (שמו = שם+ו "his name" not שמו "they put", שם=there)
+    noun_cache: dict[str, dict] = {}
     for row in result:
+        entry = {
+            "word_id": row.id,
+            "hebrew": row.hebrew,
+            "translation_ru": row.translation_ru,
+            "transliteration": row.transliteration,
+            "pos": row.pos,
+            "root": row.root,
+            "level_id": row.level_id,
+        }
         if row.hebrew not in cache:
-            cache[row.hebrew] = {
-                "word_id": row.id,
-                "hebrew": row.hebrew,
-                "translation_ru": row.translation_ru,
-                "transliteration": row.transliteration,
-                "pos": row.pos,
-                "root": row.root,
-                "level_id": row.level_id,
-            }
+            cache[row.hebrew] = entry
+        if row.pos in ("noun", "adj", "сущ/прил") and row.hebrew not in noun_cache:
+            noun_cache[row.hebrew] = entry
+    cache["__nouns__"] = noun_cache
     return cache
 
 

@@ -549,8 +549,13 @@ def _match_stem(stem: str, cache: dict) -> dict | None:
     return None
 
 
+# Possessive suffixes that attach to nouns (not verbs/adverbs)
+_POSSESSIVE_SUFFIXES = {"ו", "י", "ך", "ה", "נו", "הם", "הן", "כם", "כן", "ם", "ן"}
+
+
 def _find_suffix_match(clean: str, cache: dict) -> dict | None:
     """Try suffix stripping to find a match. Returns the best (lowest level) match or None."""
+    noun_cache = cache.get("__nouns__", {})
     for suffix in _SUFFIXES:
         if clean.endswith(suffix) and len(clean) > len(suffix) + 1:
             stem = clean[:-len(suffix)]
@@ -558,7 +563,13 @@ def _find_suffix_match(clean: str, cache: dict) -> dict | None:
                 stem_ut = stem + 'ות'
                 if stem_ut in cache:
                     return cache[stem_ut]
-            # Direct match first
+            # For possessive suffixes, prefer noun matches to avoid
+            # שמו→שם(there) when שם(name) exists
+            if suffix in _POSSESSIVE_SUFFIXES:
+                noun_match = _match_stem(stem, noun_cache)
+                if noun_match:
+                    return noun_match
+            # Direct match
             if stem in cache:
                 return cache[stem]
             # ות→ה (prefer מדינה over מדין via sofit)
@@ -643,7 +654,15 @@ def _lookup_word(
 
     # 2b. Check if the whole word is a verb conjugation before prefix stripping
     # (ביקש is past tense of לבקש, not ב+יקש)
+    # But first try suffix stripping — a common noun+suffix (שם+ו = his name)
+    # should beat a verb conjugation (שמו = they put) if the noun is lower level.
     if clean in conj_cache:
+        conj_level = conj_cache[clean].get("level_id") or 99
+        suffix_alt = _find_suffix_match(clean, word_cache)
+        if suffix_alt:
+            suffix_level = suffix_alt.get("level_id") or 99
+            if suffix_level <= conj_level:
+                return {**suffix_alt, "match_type": "form"}
         return {**conj_cache[clean], "match_type": "conjugation"}
 
     # 3. Single-letter prefix → word_cache (catches ל+בית, ה+ילדים, ב+ירושלים)

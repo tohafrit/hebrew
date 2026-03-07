@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -60,16 +61,48 @@ async def lookup_word(
     """Look up a single Hebrew word across words, forms, and conjugations.
 
     Returns the dictionary entry for the word, including conjugated verb forms.
+    If the query contains nikkud, tries nikkud-aware matching first to
+    disambiguate homographs (e.g. שְׁמוֹ 'his name' vs שָׂמוּ 'they put').
     """
     from app.services.text_analysis import ensure_caches
     from app.routers.reader import _lookup_word, _NIKKUD_RE
 
     word_cache, form_cache, conj_cache = await ensure_caches(db)
-    clean = _NIKKUD_RE.sub("", q.strip())
+    raw = q.strip()
+    clean = _NIKKUD_RE.sub("", raw)
+
+    # If query has nikkud, try to find an exact nikkud match in the DB first
+    has_nikkud = raw != clean
+    if has_nikkud:
+        nikkud_result = await _lookup_by_nikkud(db, raw, clean)
+        if nikkud_result:
+            return nikkud_result
+
     result = _lookup_word(clean, word_cache, form_cache, conj_cache)
     if not result:
         return None
     return result
+
+
+async def _lookup_by_nikkud(db: AsyncSession, raw: str, clean: str) -> dict | None:
+    """Try to find a word matching by nikkud to disambiguate homographs."""
+    from app.models.word import Word
+
+    # Check words table for nikkud match
+    result = await db.execute(
+        select(Word).where(Word.hebrew == clean, Word.nikkud == raw).limit(1)
+    )
+    word = result.scalar_one_or_none()
+    if word:
+        return {
+            "word_id": word.id,
+            "hebrew": word.hebrew,
+            "translation_ru": word.translation_ru,
+            "transliteration": word.transliteration,
+            "pos": word.pos,
+            "match_type": "nikkud_exact",
+        }
+    return None
 
 
 @router.get("/stats", response_model=DictionaryStats)
