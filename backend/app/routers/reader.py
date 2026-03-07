@@ -667,14 +667,17 @@ def _lookup_word(
                 prefix_level, best, match_type = candidates[0]
                 prefix_match = {**best, "match_type": match_type}
             if prefix_match:
-                # Before accepting, check if suffix stripping gives a match at same or better level
-                # Suffix stripping is more reliable than prefix stripping
-                # (בנם: ב+נם lv4 vs בנ-ם→בן lv1; מדינות: מ+דינות lv4 vs מדינ+ות→מדינה lv4)
-                better_suffix = _find_suffix_match(clean, word_cache)
-                if better_suffix:
-                    suffix_level = better_suffix.get("level_id") or 99
-                    if suffix_level <= prefix_level:
-                        return {**better_suffix, "match_type": "form"}
+                # If prefix stem is an exact dictionary word, trust the prefix match
+                # (לעבודה = ל+עבודה, not לעבוד+ה)
+                stem_is_exact_word = stem in word_cache
+                if not stem_is_exact_word:
+                    # Only try suffix override when prefix stem is NOT an exact word
+                    # (בנם: ב+נם not a word → בנ-ם→בן lv1 wins)
+                    better_suffix = _find_suffix_match(clean, word_cache)
+                    if better_suffix:
+                        suffix_level = better_suffix.get("level_id") or 99
+                        if suffix_level <= prefix_level:
+                            return {**better_suffix, "match_type": "form"}
                 return prefix_match
 
     # 4. Suffix stripping → word_cache (catches plural/feminine: ילדים→ילד)
