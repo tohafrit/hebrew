@@ -22,6 +22,8 @@ router = APIRouter(tags=["reader"])
 
 # Hebrew punctuation / connectors to strip when matching
 _STRIP_RE = re.compile(r'[.,!?;:"\'"״""«»()\[\]{}/\\\u200F\u200E]')
+# Hebrew nikkud (vowel marks) range: U+0591 to U+05C7
+_NIKKUD_RE = re.compile(r'[\u0591-\u05C7]')
 # Number patterns (plain digits, or digits with Hebrew prefix like ב-2, ו-50)
 _NUMBER_RE = re.compile(r'^[בכלמוה]?-?[\d]+[,.]?[\d]*$')
 # Common Hebrew prefixes (ב, כ, ל, מ, ה, ו, ש)
@@ -591,6 +593,9 @@ def _lookup_word(
     9. Combined prefix + suffix (with sofit + ות→ה)
     10. Multi-letter prefix + suffix
     """
+
+    # Strip nikkud (vowel marks) — caches are keyed by consonantal forms
+    clean = _NIKKUD_RE.sub("", clean)
 
     # 1. Exact match in words table
     exact = word_cache.get(clean)
