@@ -45,17 +45,32 @@ async function lookupWord(hebrew: string): Promise<WordInfo | null> {
   if (wordCache.has(clean)) return wordCache.get(clean)!;
 
   try {
+    // 1. Try /words/lookup — checks words, forms, AND conjugations
+    const { data: lookup } = await api.get("/words/lookup", { params: { q: clean } });
+    if (lookup && lookup.word_id) {
+      const info: WordInfo = {
+        hebrew: lookup.hebrew,
+        translation_ru: lookup.translation_ru,
+        transliteration: lookup.transliteration,
+        nikkud: null,
+        pos: lookup.pos,
+        id: lookup.word_id,
+      };
+      wordCache.set(clean, info);
+      return info;
+    }
+  } catch { /* ignore */ }
+
+  try {
+    // 2. Fallback: search /words for skeleton match (handles defective/plene spelling)
     const { data } = await api.get("/words", { params: { search: clean, per_page: 20 } });
     if (data.items && data.items.length > 0) {
-      // 1. Try exact match first
       const exact = data.items.find((w: any) => stripNikkud(w.hebrew) === clean);
       if (exact) {
         const info = toWordInfo(exact);
         wordCache.set(clean, info);
         return info;
       }
-      // 2. Try consonantal skeleton match (handles defective/plene spelling)
-      // e.g. "לאכל" (from text) vs "לאכול" (in dictionary) — both skeleton to "לאכל"
       const skeleton = toSkeleton(clean);
       const skelMatch = data.items.find((w: any) => toSkeleton(w.hebrew) === skeleton);
       if (skelMatch) {

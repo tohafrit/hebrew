@@ -52,6 +52,26 @@ async def get_words(
     )
 
 
+@router.get("/lookup")
+async def lookup_word(
+    q: str = Query(..., min_length=1, max_length=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """Look up a single Hebrew word across words, forms, and conjugations.
+
+    Returns the dictionary entry for the word, including conjugated verb forms.
+    """
+    from app.services.text_analysis import ensure_caches
+    from app.routers.reader import _lookup_word, _NIKKUD_RE
+
+    word_cache, form_cache, conj_cache = await ensure_caches(db)
+    clean = _NIKKUD_RE.sub("", q.strip())
+    result = _lookup_word(clean, word_cache, form_cache, conj_cache)
+    if not result:
+        return None
+    return result
+
+
 @router.get("/stats", response_model=DictionaryStats)
 async def get_stats(db: AsyncSession = Depends(get_db)):
     return await get_dictionary_stats(db)

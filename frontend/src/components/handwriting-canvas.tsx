@@ -61,25 +61,40 @@ function normalizeBBox(strokes: StrokePoint[][]): StrokePoint[][] {
   })));
 }
 
+function nearestDist(p: StrokePoint, points: StrokePoint[]): number {
+  let best = Infinity;
+  for (const q of points) {
+    const dx = p.x - q.x;
+    const dy = p.y - q.y;
+    const d = dx * dx + dy * dy;
+    if (d < best) best = d;
+  }
+  return Math.sqrt(best);
+}
+
 function compareStrokes(drawn: StrokePoint[][], template: StrokePoint[][]): number {
-  const N = 32;
+  const N = 24;
   const drawnNorm = normalizeBBox(drawn);
   const templateNorm = normalizeBBox(template);
 
   const drawnPoints = drawnNorm.flatMap(s => resampleStroke(s, N));
   const templatePoints = templateNorm.flatMap(s => resampleStroke(s, N));
 
-  const len = Math.min(drawnPoints.length, templatePoints.length);
-  if (len === 0) return 0;
+  if (drawnPoints.length === 0 || templatePoints.length === 0) return 0;
 
-  let totalDist = 0;
-  for (let i = 0; i < len; i++) {
-    const dx = drawnPoints[i].x - templatePoints[i].x;
-    const dy = drawnPoints[i].y - templatePoints[i].y;
-    totalDist += Math.sqrt(dx * dx + dy * dy);
+  // Bidirectional nearest-point matching (modified Hausdorff)
+  // For each drawn point, find nearest template point and vice versa
+  let sumDrawnToTemplate = 0;
+  for (const p of drawnPoints) {
+    sumDrawnToTemplate += nearestDist(p, templatePoints);
   }
-  const avgDist = totalDist / len;
-  const score = Math.max(0, Math.min(100, Math.round((1 - avgDist / 0.5) * 100)));
+  let sumTemplateToDraw = 0;
+  for (const p of templatePoints) {
+    sumTemplateToDraw += nearestDist(p, drawnPoints);
+  }
+
+  const avgDist = (sumDrawnToTemplate / drawnPoints.length + sumTemplateToDraw / templatePoints.length) / 2;
+  const score = Math.max(0, Math.min(100, Math.round((1 - avgDist / 0.35) * 100)));
   return score;
 }
 
