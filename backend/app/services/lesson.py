@@ -46,6 +46,21 @@ async def get_exercise(db: AsyncSession, exercise_id: int) -> Exercise | None:
     return result.scalar_one_or_none()
 
 
+def _build_accept_list(answer_data: dict) -> list:
+    """Build the full list of accepted answers from answer_json.
+    Merges 'correct', 'accept', and 'alternatives' fields.
+    """
+    correct = answer_data.get("correct", "")
+    accept = list(answer_data.get("accept", [correct]))
+    alternatives = answer_data.get("alternatives", [])
+    if correct and correct not in accept:
+        accept.append(correct)
+    for alt in alternatives:
+        if alt and alt not in accept:
+            accept.append(alt)
+    return accept
+
+
 def check_answer(exercise: Exercise, user_answer) -> tuple[bool, str | dict | list | None, str | None]:
     """Check user's answer against the exercise answer_json.
     Returns (is_correct, correct_answer, explanation_text).
@@ -66,7 +81,7 @@ def check_answer(exercise: Exercise, user_answer) -> tuple[bool, str | dict | li
 
     elif exercise.type == "fill_blank":
         correct = answer_data.get("correct", "")
-        accept = answer_data.get("accept", [correct])
+        accept = _build_accept_list(answer_data)
         is_correct = _answers_match(str(user_answer), accept)
         return is_correct, correct, explanation_text
 
@@ -92,7 +107,7 @@ def check_answer(exercise: Exercise, user_answer) -> tuple[bool, str | dict | li
 
     elif exercise.type in ("dictation", "hebrew_typing", "translate_ru_he"):
         correct = answer_data.get("correct", "")
-        accept = answer_data.get("accept", [correct])
+        accept = _build_accept_list(answer_data)
         is_correct = _answers_match(str(user_answer), accept)
         return is_correct, correct, explanation_text
 
