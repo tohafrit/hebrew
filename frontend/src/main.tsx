@@ -9,11 +9,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA
+// Unregister any stale service workers (causes caching issues in dev)
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // SW registration failed — non-critical
-    });
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const reg of registrations) reg.unregister();
   });
 }
