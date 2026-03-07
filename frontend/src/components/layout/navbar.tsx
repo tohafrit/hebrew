@@ -28,13 +28,18 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Практика",
+    title: "Читать",
     items: [
       { path: "/reading", label: "Чтение" },
       { path: "/reader", label: "Свой текст" },
       { path: "/listening", label: "Аудирование" },
-      { path: "/writing", label: "Письмо" },
       { path: "/dialogues", label: "Диалоги" },
+    ],
+  },
+  {
+    title: "Упражнения",
+    items: [
+      { path: "/writing", label: "Письмо" },
       { path: "/pronunciation", label: "Произношение" },
       { path: "/handwriting", label: "Письмо (буквы)" },
       { path: "/minimal-pairs", label: "Мин. пары" },
@@ -58,6 +63,7 @@ const NAV_GROUPS: NavGroup[] = [
       { path: "/leaderboard", label: "Рейтинг" },
       { path: "/achievements", label: "Достижения" },
       { path: "/culture", label: "Культура" },
+      { path: "/placement", label: "Мой уровень" },
     ],
   },
 ];

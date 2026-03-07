@@ -10,6 +10,7 @@ TABLES=(
   words word_forms root_families root_family_members example_sentences
   grammar_topics grammar_rules verb_conjugations prepositions collocations
   lessons exercises reading_texts dialogues culture_articles achievement_definitions
+  learning_paths
 )
 
 SEED_DIR="backend/data/seed"
